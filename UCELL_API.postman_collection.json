@@ -1,0 +1,5175 @@
+{
+	"info": {
+		"_postman_id": "b9fa270b-7a7d-44fa-9dd2-f1a3687a6a0e",
+		"name": "UCELL_API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "session",
+			"item": [
+				{
+					"name": "get_session",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"token\", xml2Json(responseBody).SELFCARE.SESSION_ID);",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{oapi_host_d1}}/OAPI/v1/tokens-stub/get?login={{PERS_ACC_USER}}&password={{PERS_ACC_USER_pass}}",
+							"host": [
+								"{{oapi_host_d1}}"
+							],
+							"path": [
+								"OAPI",
+								"v1",
+								"tokens-stub",
+								"get"
+							],
+							"query": [
+								{
+									"key": "login",
+									"value": "{{PERS_ACC_USER}}"
+								},
+								{
+									"key": "password",
+									"value": "{{PERS_ACC_USER_pass}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "has_api",
+			"item": [
+				{
+					"name": "has_sbms",
+					"item": [
+						{
+							"name": "SUBS_SUBS_SUBS_INFO_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/subs/SUBS_SUBS_SUBS_INFO_R?SUBS_ID=1244183060&MODUS=1&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"subs",
+										"SUBS_SUBS_SUBS_INFO_R"
+									],
+									"query": [
+										{
+											"key": "SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "MODUS",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SCLI_GET_BIS_PARAM_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/subs/SCLI_GET_BIS_PARAM_R?PRMT_ID=210551&TYPE=STRING&CTX_NAME=BIS_PARAM_210551&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"subs",
+										"SCLI_GET_BIS_PARAM_R"
+									],
+									"query": [
+										{
+											"key": "PRMT_ID",
+											"value": "210551"
+										},
+										{
+											"key": "TYPE",
+											"value": "STRING"
+										},
+										{
+											"key": "CTX_NAME",
+											"value": "BIS_PARAM_210551"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "EXECUTE_OPERATIONS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/scli/EXECUTE_OPERATIONS?SUBS_ID=1244183060&LANG_ID=1&STND_ID=1&CLOSED=0&TIMEZONE=1&CAN_GET_DISABLE_STATUS=N&OPERATION=SUBS_CARD_MSISDN_INFO_R&OPERATION=SUBS_CARD_SUBS_SBST_R&OPERATION=SUBS_CARD_RTPL_INFO_R&OPERATION=SUBS_CARD_SUBS_COMMENT_R&OPERATION=SUBS_CARD_ACCESS_POINT_R&OPERATION=SUBS_CARD_SALE_POINT_R&OPERATION=SUBS_CARD_GET_BASE_SERV_STATE_R&OPERATION=SUBS_CARD_CHECK_MAIN_SUBS_R&OPERATION=SUBS_CARD_SUBS_ZONE_R&OPERATION=SUBS_CARD_GET_EXT_PHONES_R&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"EXECUTE_OPERATIONS"
+									],
+									"query": [
+										{
+											"key": "SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "LANG_ID",
+											"value": "1"
+										},
+										{
+											"key": "STND_ID",
+											"value": "1"
+										},
+										{
+											"key": "CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "TIMEZONE",
+											"value": "1"
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "N"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_MSISDN_INFO_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_SBST_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_RTPL_INFO_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_COMMENT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_ACCESS_POINT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SALE_POINT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_GET_BASE_SERV_STATE_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_CHECK_MAIN_SUBS_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_ZONE_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_GET_EXT_PHONES_R"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_GET_RT_STATUS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/custom/SUBS_GET_RT_STATUS?IP_SUBS=1244183060&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"custom",
+										"SUBS_GET_RT_STATUS"
+									],
+									"query": [
+										{
+											"key": "IP_SUBS",
+											"value": "1244183060"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_CARD_ZONE_LIST_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/sbms/SUBS_CARD_ZONE_LIST_R?SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"sbms",
+										"SUBS_CARD_ZONE_LIST_R"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_CARD_SALE_POINT_LIST_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/sbms/SUBS_CARD_SALE_POINT_LIST_R?SUBS_ID=1244183060&DELR_ID=182&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"sbms",
+										"SUBS_CARD_SALE_POINT_LIST_R"
+									],
+									"query": [
+										{
+											"key": "SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "DELR_ID",
+											"value": "182"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SCLI_TFOP_CHECK_CLIENT_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/subs/SCLI_TFOP_CHECK_CLIENT_R?INTM=BIS&CLNT_ID=262642373&SESSION_ID=AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB&REM_IOPER_ID=1\n",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"subs",
+										"SCLI_TFOP_CHECK_CLIENT_R"
+									],
+									"query": [
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "CLNT_ID",
+											"value": "262642373"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHaANWxkMBaiMUENlT5b4TY2dQ0_gB"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1\n"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "NX_CANCEL_RTPL_CHANGE",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/sbms/NX_CANCEL_RTPL_CHANGE?SUBS_ID=1240557563&SESSION_ID=AAAHagG.ZVCkM7lY0kqhg63GxXdXA6VN&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"sbms",
+										"NX_CANCEL_RTPL_CHANGE"
+									],
+									"query": [
+										{
+											"key": "SUBS_ID",
+											"value": "1240557563"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHagG.ZVCkM7lY0kqhg63GxXdXA6VN"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_SUBS_SUBS_COLLECT_R",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/grid/SUBS_SUBS_SUBS_COLLECT_R?P_CLNT_ID=270939146&P_CLOSED=0&CAN_GET_DISABLE_STATUS=N&P_ROW_FIRST=1&P_ROW_LAST=10&INTM=BIS&REM_IOPER_ID=1&SESSION_ID={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"grid",
+										"SUBS_SUBS_SUBS_COLLECT_R"
+									],
+									"query": [
+										{
+											"key": "F_PHONE",
+											"value": "998930571717",
+											"disabled": true
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146"
+										},
+										{
+											"key": "P_CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "N"
+										},
+										{
+											"key": "P_ROW_FIRST",
+											"value": "1"
+										},
+										{
+											"key": "P_ROW_LAST",
+											"value": "10"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "HAC_USER_INFO",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/hac/HAC_USER_INFO?SESSION_ID=AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"hac",
+										"HAC_USER_INFO"
+									],
+									"query": [
+										{
+											"key": "ACUG_ID",
+											"value": "100050677",
+											"disabled": true
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "HAC_USER_PRNT_LIST",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/hac/HAC_USER_PRNT_LIST?ACUG_ID=100050677&SESSION_ID=AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"hac",
+										"HAC_USER_PRNT_LIST"
+									],
+									"query": [
+										{
+											"key": "ACUG_ID",
+											"value": "100050677"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "HAC_USER_LIST_PAGE",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/ngadmin/HAC_USER_LIST_PAGE?F_ACGT_ID=&F_AGENT_ID=&F_BRANCH_ID=&F_IP_MASK=&F_LANG_ID=&F_LOCK_ID=&F_NAME=DL_72500_1&F_REG_NAME=&F_ROW_FROM=0&F_ROW_TO=100&F_SALE_POINT=&F_SALE_POINT_TYPE_ID=&F_SIMPLE_MODE=0&F_SUTP_ID=&P_IS_AGENT_ENABLE=1&SESSION_ID=AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"ngadmin",
+										"HAC_USER_LIST_PAGE"
+									],
+									"query": [
+										{
+											"key": "F_ACGT_ID",
+											"value": ""
+										},
+										{
+											"key": "F_AGENT_ID",
+											"value": ""
+										},
+										{
+											"key": "F_BRANCH_ID",
+											"value": ""
+										},
+										{
+											"key": "F_IP_MASK",
+											"value": ""
+										},
+										{
+											"key": "F_LANG_ID",
+											"value": ""
+										},
+										{
+											"key": "F_LOCK_ID",
+											"value": ""
+										},
+										{
+											"key": "F_NAME",
+											"value": "DL_72500_1"
+										},
+										{
+											"key": "F_REG_NAME",
+											"value": ""
+										},
+										{
+											"key": "F_ROW_FROM",
+											"value": "0"
+										},
+										{
+											"key": "F_ROW_TO",
+											"value": "100"
+										},
+										{
+											"key": "F_SALE_POINT",
+											"value": ""
+										},
+										{
+											"key": "F_SALE_POINT_TYPE_ID",
+											"value": ""
+										},
+										{
+											"key": "F_SIMPLE_MODE",
+											"value": "0"
+										},
+										{
+											"key": "F_SUTP_ID",
+											"value": ""
+										},
+										{
+											"key": "P_IS_AGENT_ENABLE",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHbgON2d5LDlmYtTb_jf4Cl12k2Lw9"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_SUBS_SUBS_COLLECT_R",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/grid/SUBS_SUBS_SUBS_COLLECT_R?P_CLNT_ID=240979877&P_CLOSED=0&CAN_GET_DISABLE_STATUS=N&P_ROW_FIRST=21&P_ROW_LAST=20&INTM=BIS&REM_IOPER_ID=1&SESSION_ID={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"grid",
+										"SUBS_SUBS_SUBS_COLLECT_R"
+									],
+									"query": [
+										{
+											"key": "F_PHONE",
+											"value": "99894%",
+											"disabled": true
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "240979877"
+										},
+										{
+											"key": "P_CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "N"
+										},
+										{
+											"key": "P_ROW_FIRST",
+											"value": "21"
+										},
+										{
+											"key": "P_ROW_LAST",
+											"value": "20"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "F_RTPL_DEF",
+											"value": "Employee",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/scli/SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R?I_ROW_MIN=1&I_PAGE_SIZE=100&I_NEW_FILTER=1&I_SORT=1&CLIDICT_CLNT_NO_ADD_INFO=0&CLIDICT_CLNT_NOT_MATCH=0&CLIDICT_USE_CLOSED=0&CLIDICT_STRINGS=1%7C33%7C%7C31705985950024%7CN%7CY%7CC%7CN%7CN%7CN%7C1&INTM=BIS&REM_IOPER_ID=1&SESSION_ID={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R"
+									],
+									"query": [
+										{
+											"key": "I_ROW_MIN",
+											"value": "1"
+										},
+										{
+											"key": "I_PAGE_SIZE",
+											"value": "100"
+										},
+										{
+											"key": "I_ONLY_TOTAL",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_FULL_SEARCH",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_NEW_FILTER",
+											"value": "1"
+										},
+										{
+											"key": "I_MSISDN_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_ACCOUNT_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_CLNT_NAME_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_CLNT_NAME_TRANSLIT_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_CONTRACT_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_FUCTURIE_EXT",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "I_SORT",
+											"value": "1"
+										},
+										{
+											"key": "CLIDICT_CLNT_NO_ADD_INFO",
+											"value": "0"
+										},
+										{
+											"key": "CLIDICT_CLNT_NOT_MATCH",
+											"value": "0"
+										},
+										{
+											"key": "CLIDICT_USE_CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "CLIDICT_STRINGS",
+											"value": "1%7C33%7C%7C31705985950024%7CN%7CY%7CC%7CN%7CN%7CN%7C1"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms1.ucell/PSIX/scli/SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R?SCLI_SCLI_ESRCH_CLNT_ASSC=1225493760&SESSION_ID={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms1",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R"
+									],
+									"query": [
+										{
+											"key": "SCLI_SCLI_ESRCH_CLNT_ASSC",
+											"value": "1225493760"
+										},
+										{
+											"key": "I_ASSC_CLNT_LIST",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "I_PAGE_SIZE",
+											"value": "8",
+											"disabled": true
+										},
+										{
+											"key": "I_ROW_MIN",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "RNUM_LAST",
+											"value": "8",
+											"disabled": true
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_PERS_GET_CLNT_DATA_R",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/grid/SUBS_PERS_GET_CLNT_DATA_R?P_SUBS_ID=1248722874&P_TIMEZONE=1&P_ORDER=PERS_CLNT_ACCOUNT&P_ROW_FIRST=1&P_ROW_LAST=24&SESSION_ID=AAAHuADgrSYBburqylMZtVA42ObYX9Z4&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"grid",
+										"SUBS_PERS_GET_CLNT_DATA_R"
+									],
+									"query": [
+										{
+											"key": "P_SUBS_ID",
+											"value": "1248722874"
+										},
+										{
+											"key": "P_TIMEZONE",
+											"value": "1"
+										},
+										{
+											"key": "P_ORDER",
+											"value": "PERS_CLNT_ACCOUNT"
+										},
+										{
+											"key": "P_ROW_FIRST",
+											"value": "1"
+										},
+										{
+											"key": "P_ROW_LAST",
+											"value": "24"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAHuADgrSYBburqylMZtVA42ObYX9Z4"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "CDM_CLIENT_REP_REQUEST Акт сверки взаиморасчетов(ACC)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/CDM_REPORTS/serv/CDM_CLIENT_REP_REQUEST?RI_BILL_ID=240709166545001&RI_PRECISION2=4&RI_PRECISION1=2&RI_PRECISION3=6&RI_PRECISION4=2&RI_PRINT_ADV=1&RI_FACSIMILE=1&RI_LANG_ID=1&RI_PRINT_1=1&RI_PRINT_2=1&RI_PRINT_3=1&RI_PRINT_4=1&DELIVERY_TYPE=1&report_format=pdf&RPTA_ID=2608&REPORT_OPER=NX_COMPLEX_BILL_REP&XDTP_ID=199&INTM=BIS&IP_INTM=BIS&POOL_PREFIX=BIS&SESSION_ID={{token}}&report_lang_id=1&SHOW_IN_FRAME=0",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"CDM_REPORTS",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "RI_BILL_ID",
+											"value": "240709166545001"
+										},
+										{
+											"key": "RI_PRECISION2",
+											"value": "4"
+										},
+										{
+											"key": "RI_PRECISION1",
+											"value": "2"
+										},
+										{
+											"key": "RI_PRECISION3",
+											"value": "6"
+										},
+										{
+											"key": "RI_PRECISION4",
+											"value": "2"
+										},
+										{
+											"key": "RI_PRINT_ADV",
+											"value": "1"
+										},
+										{
+											"key": "RI_FACSIMILE",
+											"value": "1"
+										},
+										{
+											"key": "RI_LANG_ID",
+											"value": "1"
+										},
+										{
+											"key": "RI_PROCESS_ID",
+											"value": "172879",
+											"disabled": true
+										},
+										{
+											"key": "RI_IGNOR_PRNT_3",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "RI_PRINT_1",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_2",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_3",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_4",
+											"value": "1"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strri_bill_id%3D240709166545001%26strRI_BILL_ID%3D240709166545001%26strRI_PRECISION1%3D2%26strRI_PRECISION3%3D6%26strRI_PRECISION4%3D2%26strRI_PRINT_ADV%3D1%26strRI_FACSIMILE%3D1%26strRI_LANG_ID%3D1%26strRI_PROCESS_ID%3D172879%26strRI_PRECISION2%3D4%26strRI_IGNOR_PRNT_3%3D1%26strRI_PRINT_1%3D1%26strRI_PRINT_2%3D1%26strRI_PRINT_3%3D1%26strRI_PRINT_4%3D1",
+											"disabled": true
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "1"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "2608"
+										},
+										{
+											"key": "REPORT_OPER",
+											"value": "NX_COMPLEX_BILL_REP"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "199"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "IP_INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "POOL_PREFIX",
+											"value": "BIS"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "CDM_CLIENT_REP_REQUEST  Формирование регулярного отчета",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/CDM_REPORTS/serv/CDM_CLIENT_REP_REQUEST?CLNT_ID=270939146&CDM_REPORT_PARAMS=strclnt_id%3D270939146%26struc_rep_param_invoice_num%3D1446705389%26struc_rep_param_sum_all%3D500%26struc_rep_param_lang_default_by_clnt_id%3D1%26strCLNT_ID%3D270939146&DELIVERY_TYPE=1&report_format=pdf&RPTA_ID=2948&XDTP_ID=2846&SESSION_ID={{token}}&report_lang_id=1&SHOW_IN_FRAME=0",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"CDM_REPORTS",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "CLNT_ID",
+											"value": "270939146"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strclnt_id%3D270939146%26struc_rep_param_invoice_num%3D1446705389%26struc_rep_param_sum_all%3D500%26struc_rep_param_lang_default_by_clnt_id%3D1%26strCLNT_ID%3D270939146"
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "1"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "2948"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "2846"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_SUBS_SUBS_COLLECT_R",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://10.4.78.232:8080/PSIX/grid/SUBS_SUBS_SUBS_COLLECT_R?P_CLNT_ID=262642373&P_CLOSED=0&P_ROW_FIRST=0&P_ROW_LAST=1000&INTM=BIS&REM_IOPER_ID=1&SESSION_ID={{token}}&F_STND_ID=1",
+									"protocol": "http",
+									"host": [
+										"10",
+										"4",
+										"78",
+										"232"
+									],
+									"port": "8080",
+									"path": [
+										"PSIX",
+										"grid",
+										"SUBS_SUBS_SUBS_COLLECT_R"
+									],
+									"query": [
+										{
+											"key": "F_PHONE",
+											"value": "998946011400",
+											"disabled": true
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "262642373"
+										},
+										{
+											"key": "P_CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "Y",
+											"disabled": true
+										},
+										{
+											"key": "P_ROW_FIRST",
+											"value": "0"
+										},
+										{
+											"key": "P_ROW_LAST",
+											"value": "1000"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "F_STND_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "счет на оплату",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/CDM_REPORTS/serv/CDM_CLIENT_REP_REQUEST?CLNT_ID=262642373&CDM_REPORT_PARAMS=strclnt_id%3D262642373%26struc_rep_param_invoice_num%3D1438419416%26struc_rep_param_sum_all%3D654321%26struc_rep_param_lang_default_by_clnt_id%3D1%26strCLNT_ID%3D262642373&DELIVERY_TYPE=1&report_format=pdf&RPTA_ID=3248&XDTP_ID=10245&SESSION_ID=AAAH5QHZbaYAZBniLF7p1O6jqbBDblgk&report_lang_id=1&SHOW_IN_FRAME=0",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"CDM_REPORTS",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "CLNT_ID",
+											"value": "262642373"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strclnt_id%3D262642373%26struc_rep_param_invoice_num%3D1438419416%26struc_rep_param_sum_all%3D654321%26struc_rep_param_lang_default_by_clnt_id%3D1%26strCLNT_ID%3D262642373"
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "1"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "3248"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "10245"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAH5QHZbaYAZBniLF7p1O6jqbBDblgk"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Акт сверки взаиморасчетов",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/CDM_REPORTS/serv/CDM_CLIENT_REP_REQUEST?CLNT_ID=262642373&CDM_REPORT_PARAMS=strclnt_id%3D262642373%26strround_to%3D2%26struc_rep_param_alb_period_default_values%3D%26struc_rep_param_alb_period_default_values_start%3D01.09.2024%252000%3A00%3A00%26struc_rep_param_alb_period_default_values_end%3D30.09.2024%252023%3A59%3A59%26struc_rep_param_lang_default_by_clnt_id%3D1%26struc_rep_param_check_sum%3D0%26strCLNT_ID%3D262642373&DELIVERY_TYPE=1&report_format=pdf&RPTA_ID=2548&XDTP_ID=97&SESSION_ID=AAAH5QHZbaYducGq40j31mIy7u6vdoCR&report_lang_id=1&SHOW_IN_FRAME=0",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"CDM_REPORTS",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "CLNT_ID",
+											"value": "262642373"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strclnt_id%3D262642373%26strround_to%3D2%26struc_rep_param_alb_period_default_values%3D%26struc_rep_param_alb_period_default_values_start%3D01.09.2024%252000%3A00%3A00%26struc_rep_param_alb_period_default_values_end%3D30.09.2024%252023%3A59%3A59%26struc_rep_param_lang_default_by_clnt_id%3D1%26struc_rep_param_check_sum%3D0%26strCLNT_ID%3D262642373"
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "1"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "2548"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "97"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAH5QHZbaYducGq40j31mIy7u6vdoCR"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "регулярный счет",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/CDM_REPORTS/serv/CDM_CLIENT_REP_REQUEST?RI_PRECISION1=2&RI_PRECISION3=2&RI_PRECISION4=2&RI_PRINT_ADV=1&RI_FACSIMILE=1&RI_LANG_ID=1&RI_PROCESS_ID=174580&RI_PRECISION2=2&RI_IGNOR_PRNT_3=1&RI_PRINT_1=1&RI_PRINT_2=1&RI_PRINT_3=1&RI_PRINT_4=1&CDM_REPORT_PARAMS=strri_bill_id%3D240903034320001%26strRI_BILL_ID%3D240903034320001%26strRI_PRECISION1%3D2%26strRI_PRECISION3%3D2%26strRI_PRECISION4%3D2%26strRI_PRINT_ADV%3D1%26strRI_FACSIMILE%3D1%26strRI_LANG_ID%3D1%26strRI_PROCESS_ID%3D174580%26strRI_PRECISION2%3D2%26strRI_IGNOR_PRNT_3%3D1%26strRI_PRINT_1%3D1%26strRI_PRINT_2%3D1%26strRI_PRINT_3%3D1%26strRI_PRINT_4%3D1&DELIVERY_TYPE=1&report_format=pdf&RPTA_ID=2608&REPORT_OPER=NX_COMPLEX_BILL_REP&XDTP_ID=199&INTM=BIS&IP_INTM=BIS&POOL_PREFIX=BIS&SESSION_ID={{token}}&report_lang_id=1&SHOW_IN_FRAME=0",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"CDM_REPORTS",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "RI_BILL_ID",
+											"value": "240903034320001",
+											"disabled": true
+										},
+										{
+											"key": "RI_PRECISION1",
+											"value": "2"
+										},
+										{
+											"key": "RI_PRECISION3",
+											"value": "2"
+										},
+										{
+											"key": "RI_PRECISION4",
+											"value": "2"
+										},
+										{
+											"key": "RI_PRINT_ADV",
+											"value": "1"
+										},
+										{
+											"key": "RI_FACSIMILE",
+											"value": "1"
+										},
+										{
+											"key": "RI_LANG_ID",
+											"value": "1"
+										},
+										{
+											"key": "RI_PROCESS_ID",
+											"value": "174580"
+										},
+										{
+											"key": "RI_PRECISION2",
+											"value": "2"
+										},
+										{
+											"key": "RI_IGNOR_PRNT_3",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_1",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_2",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_3",
+											"value": "1"
+										},
+										{
+											"key": "RI_PRINT_4",
+											"value": "1"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strri_bill_id%3D240903034320001%26strRI_BILL_ID%3D240903034320001%26strRI_PRECISION1%3D2%26strRI_PRECISION3%3D2%26strRI_PRECISION4%3D2%26strRI_PRINT_ADV%3D1%26strRI_FACSIMILE%3D1%26strRI_LANG_ID%3D1%26strRI_PROCESS_ID%3D174580%26strRI_PRECISION2%3D2%26strRI_IGNOR_PRNT_3%3D1%26strRI_PRINT_1%3D1%26strRI_PRINT_2%3D1%26strRI_PRINT_3%3D1%26strRI_PRINT_4%3D1"
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "1"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "2608"
+										},
+										{
+											"key": "REPORT_OPER",
+											"value": "NX_COMPLEX_BILL_REP"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "199"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "IP_INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "POOL_PREFIX",
+											"value": "BIS"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SUBS_DISC_GET_CALL_CREDIT_R",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/grid/SUBS_DISC_GET_CALL_CREDIT_R?P_SUBS_ID=65842956&P_CLNT_ID_FOR_SUBS=241013539&P_BRT_CLCR_ID=3971248124&P_BRT_CLCR_ID=3957130444&P_BRT_CLCR_ID=3957130443&P_BRT_CLCR_ID=3957130442&P_BRT_CLCR_ID=3957130441&P_BRT_CLCR_ID=2694035624&P_BRT_CLCR_ID=2694035623&P_BRT_CLCR_ID=2689583185&P_BRT_CLCR_ID=2689583184&P_BRT_CLCR_ID=2228359192&SHOW_SELF_CLNT=1&P_START_NUM=1&P_END_NUM=13&SESSION_ID={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"grid",
+										"SUBS_DISC_GET_CALL_CREDIT_R"
+									],
+									"query": [
+										{
+											"key": "P_SUBS_ID",
+											"value": "65842956"
+										},
+										{
+											"key": "P_CLNT_ID_FOR_SUBS",
+											"value": "241013539"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "3971248124"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "3957130444"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "3957130443"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "3957130442"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "3957130441"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "2694035624"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "2694035623"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "2689583185"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "2689583184"
+										},
+										{
+											"key": "P_BRT_CLCR_ID",
+											"value": "2228359192"
+										},
+										{
+											"key": "SHOW_SELF_CLNT",
+											"value": "1"
+										},
+										{
+											"key": "P_START_NUM",
+											"value": "1"
+										},
+										{
+											"key": "P_END_NUM",
+											"value": "13"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "COMBINED_HISTORY_GET_SERVICES_PACKS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/combhist/COMBINED_HISTORY_GET_SERVICES_PACKS?SESSION_ID={{token}}&customerId=262642373&endDateFilter=05.11.2024+23:59:59&limit=10000&offset=0&startDateFilter=05.10.2024+00:00:00&subscriberId=1244183060",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"combhist",
+										"COMBINED_HISTORY_GET_SERVICES_PACKS"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "customerId",
+											"value": "262642373"
+										},
+										{
+											"key": "endDateFilter",
+											"value": "05.11.2024+23:59:59"
+										},
+										{
+											"key": "limit",
+											"value": "10000"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "session_id",
+											"value": "AAAH6gJS4NwmSpquG8xlVzYSdD5JzTay",
+											"disabled": true
+										},
+										{
+											"key": "startDateFilter",
+											"value": "05.10.2024+00:00:00"
+										},
+										{
+											"key": "subscriberId",
+											"value": "1244183060"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "NX_COMPLEX_BILL_REP",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/serv/CDM_CLIENT_REP_REQUEST?CLNT_ID=240977859&CDM_REPORT_PARAMS=strclnt_id%3D240977859%26strround_to%3D2%26struc_rep_param_alb_period_default_values%3D%26struc_rep_param_alb_period_default_values_start%3D01.10.2025%252000%3A00%3A00%26struc_rep_param_alb_period_default_values_end%3D31.10.2025%252023%3A59%3A59%26struc_rep_param_lang_default_by_clnt_id%3D1%26struc_rep_param_check_sum%3D0%26strCLNT_ID%3D240977859&DELIVERY_TYPE=4&report_format=pdf&RPTA_ID=2548&XDTP_ID=97&report_lang_id=1&SESSION_ID={{token}}&SHOW_IN_FRAME=0&FILE_NAME=test",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"serv",
+										"CDM_CLIENT_REP_REQUEST"
+									],
+									"query": [
+										{
+											"key": "CLNT_ID",
+											"value": "240977859"
+										},
+										{
+											"key": "CDM_REPORT_PARAMS",
+											"value": "strclnt_id%3D240977859%26strround_to%3D2%26struc_rep_param_alb_period_default_values%3D%26struc_rep_param_alb_period_default_values_start%3D01.10.2025%252000%3A00%3A00%26struc_rep_param_alb_period_default_values_end%3D31.10.2025%252023%3A59%3A59%26struc_rep_param_lang_default_by_clnt_id%3D1%26struc_rep_param_check_sum%3D0%26strCLNT_ID%3D240977859"
+										},
+										{
+											"key": "DELIVERY_TYPE",
+											"value": "4"
+										},
+										{
+											"key": "report_format",
+											"value": "pdf"
+										},
+										{
+											"key": "RPTA_ID",
+											"value": "2548"
+										},
+										{
+											"key": "XDTP_ID",
+											"value": "97"
+										},
+										{
+											"key": "report_lang_id",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "SHOW_IN_FRAME",
+											"value": "0"
+										},
+										{
+											"key": "FILE_NAME",
+											"value": "test"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "has_scc",
+					"item": [
+						{
+							"name": "UCELL_GET_CLIENT_INFO_EXT",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://10.4.78.237:7711/UCELL_GET_CLIENT_INFO_EXT?LOGIN=PROTEI&CHANNEL=PROTEI&PASSWORD=1111&ONLY_M2M=0&P_CLNT_ID=240991826",
+									"protocol": "http",
+									"host": [
+										"10",
+										"4",
+										"78",
+										"237"
+									],
+									"port": "7711",
+									"path": [
+										"UCELL_GET_CLIENT_INFO_EXT"
+									],
+									"query": [
+										{
+											"key": "LOGIN",
+											"value": "PROTEI"
+										},
+										{
+											"key": "CHANNEL",
+											"value": "PROTEI"
+										},
+										{
+											"key": "PASSWORD",
+											"value": "1111"
+										},
+										{
+											"key": "ONLY_M2M",
+											"value": "0"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "240991826"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "DICTS_ON_SUBSCRIBER",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:7711/DICTS_ON_SUBSCRIBER?LOGIN=IVR_HAS_USER&CHANNEL=PROTEI&PASSWORD=1111&SUBSCRIBER_MSISDN=998943709669",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "7711",
+									"path": [
+										"DICTS_ON_SUBSCRIBER"
+									],
+									"query": [
+										{
+											"key": "LOGIN",
+											"value": "IVR_HAS_USER"
+										},
+										{
+											"key": "CHANNEL",
+											"value": "PROTEI"
+										},
+										{
+											"key": "PASSWORD",
+											"value": "1111"
+										},
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998943709669"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "UCELL_GET_AVAIL_PACKS",
+							"request": {
+								"auth": {
+									"type": "bearer"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:7711/UCELL_GET_AVAIL_PACKS?LOGIN=PROTEI&CHANNEL=PROTEI&PASSWORD=1111&SUBSCRIBER_MSISDN=998503014162",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "7711",
+									"path": [
+										"UCELL_GET_AVAIL_PACKS"
+									],
+									"query": [
+										{
+											"key": "LOGIN",
+											"value": "PROTEI"
+										},
+										{
+											"key": "CHANNEL",
+											"value": "PROTEI"
+										},
+										{
+											"key": "PASSWORD",
+											"value": "1111"
+										},
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998503014162"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "open_api",
+			"item": [
+				{
+					"name": "call_credits",
+					"item": [
+						{
+							"name": "rtDiscounts",
+							"request": {
+								"auth": {
+									"type": "bearer"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/v1/bis-brt-balance/subscribers/{{subs_id}}/rtDiscounts?authToken={{token}}&customerDatabaseId=902&callCreditIds=4523812228",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-brt-balance",
+										"subscribers",
+										"{{subs_id}}",
+										"rtDiscounts"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "customerDatabaseId",
+											"value": "902"
+										},
+										{
+											"key": "callCreditIds",
+											"value": "4523812228"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "dictionaries",
+					"item": [
+						{
+							"name": "currentCustomAttributes",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host}}/OAPI/v1/customers/{{client_id}}/currentCustomAttributes?authToken=AAAHaANU2vYIr5j8QiRr1QlSFBYlRiLo",
+									"host": [
+										"{{oapi_host}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"customers",
+										"{{client_id}}",
+										"currentCustomAttributes"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAHaANU2vYIr5j8QiRr1QlSFBYlRiLo"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "inquiries/slaveCustomProperties",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"inquiry\": {\r\n        \"topic\": {\r\n            \"topicId\": 365,\r\n            \"topicCode\": \"UCELL:CONTRACT:FO:B2C\"\r\n        },\r\n        \"description\": \"\",\r\n        \"phone\": null,\r\n        \"priority\": {\r\n            \"inquiryPriorityId\": 1,\r\n            \"inquiryPriorityCode\": \"LOW\"\r\n        },\r\n        \"subscriber\": {\r\n            \"subscriberId\": 1244183060\r\n        },\r\n        \"createDate\": \"2024-09-30T07:17:08.694Z\",\r\n        \"customProperties\": [\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1045,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTACT:TYPE\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1048,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTACT:CATEGORY\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1065,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTRACT:SYBCATEGORY\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1047,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTRACT:REASON\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1046,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTRACT:GROUP\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"DMS_FO_B2C_ALL\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1085,\r\n                    \"customPropertyDeclarationCode\": \"UCELL:CONTRACT:CHECK_SUBCAT\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"0\"\r\n                    }\r\n                ]\r\n            }\r\n        ]\r\n    },\r\n    \"contact\": {\r\n        \"direction\": \"INCOMING\",\r\n        \"contactSite\": {\r\n            \"contactSiteId\": 21,\r\n            \"contactSiteCode\": \"OFFICE_CONTACT\"\r\n        },\r\n        \"channel\": {\r\n            \"channelId\": 2,\r\n            \"channelCode\": \"VISIT\"\r\n        },\r\n        \"customer\": {\r\n            \"customerId\": 262642373\r\n        },\r\n        \"subscriber\": {\r\n            \"subscriberId\": 1244183060\r\n        },\r\n        \"createDate\": \"2024-09-30T07:17:08.657Z\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/inquiries/slaveCustomProperties?masterCustomPropertyDeclarationId=1045&AuthToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"inquiries",
+										"slaveCustomProperties"
+									],
+									"query": [
+										{
+											"key": "masterCustomPropertyDeclarationId",
+											"value": "1045"
+										},
+										{
+											"key": "AuthToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "numberSets",
+					"item": [
+						{
+							"name": "phoneNumbers/free",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"agentId\": 63,\r\n    \"associatedAgentIds\": [],\r\n    \"freeMonthPeriod\": \"2\",\r\n    \"salePointId\": 111,\r\n    \"standardId\": 1,\r\n    \"switchIds\": [\r\n        1\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/networkResources/phoneNumbers/free?authToken=AAAHaANU2vYIr5j8QiRr1QlSFBYlRiLo&standardId=1&freeMonthPeriod=2",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"networkResources",
+										"phoneNumbers",
+										"free"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAHaANU2vYIr5j8QiRr1QlSFBYlRiLo"
+										},
+										{
+											"key": "standardId",
+											"value": "1"
+										},
+										{
+											"key": "salePointId",
+											"value": "167",
+											"disabled": true
+										},
+										{
+											"key": "freeMonthPeriod",
+											"value": "2"
+										},
+										{
+											"key": "agentId",
+											"value": "170",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "customerSearch",
+					"item": [
+						{
+							"name": "customers/searchBase",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"fields\": \"customerProfile\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/customers/searchBase?accountNumber=1446811789&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"customers",
+										"searchBase"
+									],
+									"query": [
+										{
+											"key": "accountNumber",
+											"value": "1446811789"
+										},
+										{
+											"key": "identification",
+											"value": "1446705389",
+											"disabled": true
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "fields",
+											"value": "costumer",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "subscribers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/65842956?fields=ratePlan&languageId=1&authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"65842956"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "ratePlan"
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "customers",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/customers/244359443?fields=personalData,customAttributes&authToken={{token}}&actionDate=2025-07-31T16:13:00.000000",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"customers",
+										"244359443"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "personalData,customAttributes"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "customAttributes.customAttributeId",
+											"value": "675",
+											"disabled": true
+										},
+										{
+											"key": "actionDate",
+											"value": "2025-07-31T16:13:00.000000"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "sbms/customerHeaderInfo",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host}}/OAPI/v1/sbms/customerHeaderInfo?authToken=AAAHagAqjshbOBS65guOAU_7K4DOi8lX&customerId=259340746&subscriberId=1244183060",
+									"host": [
+										"{{oapi_host}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"sbms",
+										"customerHeaderInfo"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAHagAqjshbOBS65guOAU_7K4DOi8lX"
+										},
+										{
+											"key": "customerId",
+											"value": "259340746"
+										},
+										{
+											"key": "subscriberId",
+											"value": "1244183060"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "packs",
+					"item": [
+						{
+							"name": "packs/activate",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"actionParameters\": {\r\n        \"checkBalance\": true\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/packs/activate?authToken={{token}}&packId=5093",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"packs",
+										"activate"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "packId",
+											"value": "5093"
+										},
+										{
+											"key": "activationDate",
+											"value": "2025-08-03T23:00:00",
+											"disabled": true
+										},
+										{
+											"key": "accountTypeId",
+											"value": "1",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "availableForActivatePacks",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/v1/bis-base/subscribers/1255783082/packs/availableForActivate?limit=12&unlimited=1&offset=0&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"1255783082",
+										"packs",
+										"availableForActivate"
+									],
+									"query": [
+										{
+											"key": "limit",
+											"value": "12"
+										},
+										{
+											"key": "showFees",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "unlimited",
+											"value": "1"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "packStatusIds",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "packIds",
+											"value": "1234",
+											"disabled": true
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "packs/search",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/packs?authToken=AAAIwQNuuVCp9Lgo_EBEx9Wqea5h_SvT",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"packs"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAIwQNuuVCp9Lgo_EBEx9Wqea5h_SvT"
+										},
+										{
+											"key": "onlyRealPackFlag",
+											"value": "0",
+											"disabled": true
+										},
+										{
+											"key": "packStatusIds",
+											"value": "12",
+											"disabled": true
+										},
+										{
+											"key": "packIds",
+											"value": "5316",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "packs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1244183060/subscriptions/nextCharges/packs/720?authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"subscriptions",
+										"nextCharges",
+										"packs",
+										"720"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "packs/*/deactivate",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"packId\": 182}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/packs/5405t1408647543/deactivate?authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"packs",
+										"5405t1408647543",
+										"deactivate"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "allowedActions",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"packIds\":[81,2224,2225,994,133]}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1244183060/packs/allowedActions/search?languageId=1&authToken={{token}}&actions=DEACTIVATE&packIds=133&packIds=2225&packIds=81&packIds=994",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"packs",
+										"allowedActions",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "actions",
+											"value": "ACTIVATE",
+											"disabled": true
+										},
+										{
+											"key": "actions",
+											"value": "UPDATE",
+											"disabled": true
+										},
+										{
+											"key": "actions",
+											"value": "DEACTIVATE"
+										},
+										{
+											"key": "packId",
+											"value": "2224",
+											"disabled": true
+										},
+										{
+											"key": "packIds",
+											"value": "133"
+										},
+										{
+											"key": "packIds",
+											"value": "2225"
+										},
+										{
+											"key": "packIds",
+											"value": "81"
+										},
+										{
+											"key": "packIds",
+											"value": "994"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "bis-base/subscribers/packs/availableForActivate",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSAPI/v1/bis-base/subscribers/{{subs_id}}/packs/availableForActivate?languageId=1&limit=0&showFees=true&authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"{{subs_id}}",
+										"packs",
+										"availableForActivate"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "0"
+										},
+										{
+											"key": "showFees",
+											"value": "true"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "subscriptions/nextCharges/packs",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/subscribers/48110137/subscriptions/nextCharges/packs/5316?authToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"48110137",
+										"subscriptions",
+										"nextCharges",
+										"packs",
+										"5316"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "bis-brt-balance/rtBalance",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://10.4.78.233:8080/PSAPI/v1/bis-brt-balance/customers/262642373/rtBalance?authToken={{token}}",
+									"protocol": "http",
+									"host": [
+										"10",
+										"4",
+										"78",
+										"233"
+									],
+									"port": "8080",
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-brt-balance",
+										"customers",
+										"262642373",
+										"rtBalance"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "batchExecute",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"functions\": [\r\n        {\r\n            \"requestBody\": {\r\n                \"packId\": 5316,\r\n                \"comment\": \"\",\r\n                \"actionParameters\": {\r\n                    \"optionalChargeIds\": []\r\n                }\r\n            },\r\n            \"requestId\": \"deactivate_5316\",\r\n            \"method\": \"GET\",\r\n            \"internal\": true,\r\n            \"url\": \"subscribers/1244183060/packs/5316t1316483629/deactivate\"\r\n        },\r\n        {\r\n            \"requestBody\": {\r\n                \"packId\": 5415,\r\n                \"comment\": \"\",\r\n                \"actionParameters\": {\r\n                    \"optionalChargeIds\": []\r\n                }\r\n            },\r\n            \"requestId\": \"deactivate_801\",\r\n            \"method\": \"GET\",\r\n            \"internal\": true,\r\n            \"url\": \"subscribers/1244183060/packs/5415t1310772153/deactivate\"\r\n        }       \r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/oapi-bis-service/batchExecute?languageId=1&authToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"oapi-bis-service",
+										"batchExecute"
+									],
+									"query": [
+										{
+											"key": "breakOnError",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "service",
+					"item": [
+						{
+							"name": "availableForActivateServices",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSAPI/v1/bis-base/subscribers/{{subs_id}}/services/availableForActivate?authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"{{subs_id}}",
+										"services",
+										"availableForActivate"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "services/search",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d2}}/OAPI/v1/subscribers/{{subs_id}}/services?authToken={{token}}&fields=status",
+									"host": [
+										"{{oapi_host_d2}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"services"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "fields",
+											"value": "status"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "services/availableForActivate",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d2}}/PSAPI/v1/bis-base/subscribers/{{subs_id}}/services/availableForActivate?authToken={{token}}&limit=100",
+									"host": [
+										"{{oapi_host_d2}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"{{subs_id}}",
+										"services",
+										"availableForActivate"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "limit",
+											"value": "100"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "subscribers/services",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/subscribers/1249436333/services?authToken=AAAHewWJyHX_HTRU0LU_ZnE477kwtNDa",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1249436333",
+										"services"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAHewWJyHX_HTRU0LU_ZnE477kwtNDa"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "services",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/services?authToken={{token}}&limit=12345",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"services"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "limit",
+											"value": "12345"
+										},
+										{
+											"key": "serviceStatusIds",
+											"value": "0",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "services/activate",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/subscribers/1249436333/services/activate?authToken=AAAHewWJyHX_HTRU0LU_ZnE477kwtNDa&serviceId=1104&deactivationDate=2024-07-12T17:00:00&breakActionId=3&breakNotificationId=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1249436333",
+										"services",
+										"activate"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "AAAHewWJyHX_HTRU0LU_ZnE477kwtNDa"
+										},
+										{
+											"key": "serviceId",
+											"value": "1104"
+										},
+										{
+											"key": "deactivationDate",
+											"value": "2024-07-12T17:00:00"
+										},
+										{
+											"key": "breakActionId",
+											"value": "3"
+										},
+										{
+											"key": "breakNotificationId",
+											"value": "1"
+										},
+										{
+											"key": "activationDate",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "subscriptions/nextCharges/services",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{d1-prod-nginx-wpsec-1}}/OAPI/v1/subscribers/1244183060/subscriptions/nextCharges/services/7?authToken={{token}}",
+									"host": [
+										"{{d1-prod-nginx-wpsec-1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"subscriptions",
+										"nextCharges",
+										"services",
+										"7"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "rate_plans",
+					"item": [
+						{
+							"name": "ratePlans/change/check",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/ratePlans/change/check?authToken={{token}}&isFullDiscountsInfo=true&languageId=1&newRatePlanId=5",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"ratePlans",
+										"change",
+										"check"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "isFullDiscountsInfo",
+											"value": "true"
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "newRatePlanId",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/allowedActions",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1249224442/ratePlans/allowedActions?languageId=1&authToken=AAAHewO5.CIdASNM6YumMjJtfBjPp3HS",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1249224442",
+										"ratePlans",
+										"allowedActions"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "AAAHewO5.CIdASNM6YumMjJtfBjPp3HS"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/orders",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/subscribers/1250221726/ratePlans/orders/search?authToken={{token}}&limit=45&ratePlanOrderStatusIds=0&ratePlanOrderId=h13",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1250221726",
+										"ratePlans",
+										"orders",
+										"search"
+									],
+									"query": [
+										{
+											"key": "isFullHistoryAndStorno",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "ratePlanOrderStatusIds",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "ratePlanOrderStatusIds",
+											"value": "5",
+											"disabled": true
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "limit",
+											"value": "45"
+										},
+										{
+											"key": "ratePlanOrderStatusIds",
+											"value": "0"
+										},
+										{
+											"key": "isFullHistoryAndStorno",
+											"value": "False",
+											"disabled": true
+										},
+										{
+											"key": "item[0].ratePlan.ratePlanId",
+											"value": "45",
+											"disabled": true
+										},
+										{
+											"key": "ratePlanOrderId",
+											"value": "h13"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/availableForChange",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/cbss/subscribers/1249787974/ratePlans/availableForChange/search?languageId=1&limit=500&offset=0&otherServiceTypeRatePlansVisibility=NOT_VISIBLE&returnCount=true&showArchiveRatePlans=false&showFees=true&showFutureRatePlans=true&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"cbss",
+										"subscribers",
+										"1249787974",
+										"ratePlans",
+										"availableForChange",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "500"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "otherServiceTypeRatePlansVisibility",
+											"value": "NOT_VISIBLE"
+										},
+										{
+											"key": "returnCount",
+											"value": "true"
+										},
+										{
+											"key": "showArchiveRatePlans",
+											"value": "false"
+										},
+										{
+											"key": "showFees",
+											"value": "true"
+										},
+										{
+											"key": "showFutureRatePlans",
+											"value": "true"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/change/parameters",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/v1/bis-base/subscribers/{{subs_id}}/ratePlans/change?activationDate=2026-02-29T17:00:00&authToken={{token}}&newRatePlanId=8",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"{{subs_id}}",
+										"ratePlans",
+										"change"
+									],
+									"query": [
+										{
+											"key": "isFullDiscountsInfo",
+											"value": "true",
+											"disabled": true
+										},
+										{
+											"key": "languageId",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "activationDate",
+											"value": "2026-02-29T17:00:00"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "newRatePlanId",
+											"value": "8"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "charges/oneTime/search",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"eventIds\":[10],\"eventDate\":null,\"conditions\":{\"new_rtpl_id\":34}}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/v1/bis-base/subscribers/1242712347/charges/oneTime/search?languageId=1&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"1242712347",
+										"charges",
+										"oneTime",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "new_rtpl_id",
+											"value": "33",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/change",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/{{subs_id}}/ratePlans/change?languageId=1&newRatePlanId=8&activationDate=2025-12-28T00:00:00&authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"{{subs_id}}",
+										"ratePlans",
+										"change"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "newRatePlanId",
+											"value": "8"
+										},
+										{
+											"key": "activationDate",
+											"value": "2025-12-28T00:00:00"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/order/cancel",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1244183060/ratePlans/orders/h161/cancel?authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"ratePlans",
+										"orders",
+										"h161",
+										"cancel"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "ratePlans/orders",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/subscribers/1244183060/ratePlans/orders?languageId=1&ratePlanOrderStatusIds=2&authToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"ratePlans",
+										"orders"
+									],
+									"query": [
+										{
+											"key": "customerId",
+											"value": "262642373",
+											"disabled": true
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "ratePlanOrderStatusIds",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "ratePlanOrderStatusIds",
+											"value": "2"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "ratePlanOrderId",
+											"value": "h123",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "nextCharges/ratePlans",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_ip_port}}/OAPI/v1/subscribers/1249663242/subscriptions/nextCharges/ratePlans/158?authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1249663242",
+										"subscriptions",
+										"nextCharges",
+										"ratePlans",
+										"158"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/subscriptions/nextCharges/ratePlans",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1249224442/subscriptions/nextCharges/ratePlans/377?AuthToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1249224442",
+										"subscriptions",
+										"nextCharges",
+										"ratePlans",
+										"377"
+									],
+									"query": [
+										{
+											"key": "AuthToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "sigos",
+					"item": [
+						{
+							"name": "sigoscallforwarding",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n\"Action\":\"1\",\r\n\"Timeout\":\"5\",\r\n\"SubscriberA\":\"998930571717\",\r\n\"SubscriberB\":\"998930521717\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://192.168.1.110:7712/WebApi_deb/api/Tools/sigoscallforwarding",
+									"protocol": "http",
+									"host": [
+										"192",
+										"168",
+										"1",
+										"110"
+									],
+									"port": "7712",
+									"path": [
+										"WebApi_deb",
+										"api",
+										"Tools",
+										"sigoscallforwarding"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "balances",
+					"item": [
+						{
+							"name": "balances/events/days",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"balanceDate\": [\r\n        {\r\n            \"dateFrom\": \"2024-02-28T00:00:00\",\r\n            \"dateTo\": \"2024-02-28T23:59:59\"\r\n        }\r\n    ],\r\n    \"eventTypeIds\": null,\r\n    \"amount\": {\r\n        \"minValue\": null,\r\n        \"maxValue\": null,\r\n        \"value\": null\r\n    }\r\n}\r\n\r\n\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/sbms/customers/256579187/balances/events/days/details/search?languageId=1&limit=9&offset=0&authToken={{token}}&dateFrom=2024-10-01T23:59:59&dateTo=2024-10-03T23:59:59",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"sbms",
+										"customers",
+										"256579187",
+										"balances",
+										"events",
+										"days",
+										"details",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "9"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "dateFrom",
+											"value": "2024-10-01T23:59:59"
+										},
+										{
+											"key": "dateTo",
+											"value": "2024-10-03T23:59:59"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "availableBalance",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/v1/bis-base/customers/278257663/availableBalance?authToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"customers",
+										"278257663",
+										"availableBalance"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "balances/events/days",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/sbms/customers/241013539/balances/events/days?dateFrom=2024-06-01T00:00:00&languageId=1&authToken={{token_pers_acc_b2b}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"sbms",
+										"customers",
+										"241013539",
+										"balances",
+										"events",
+										"days"
+									],
+									"query": [
+										{
+											"key": "dateFrom",
+											"value": "2024-06-01T00:00:00"
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token_pers_acc_b2b}}"
+										},
+										{
+											"key": "fields",
+											"value": "items.balanceDate,items.startBalance,items.endBalance,items.incomeAmount",
+											"disabled": true
+										},
+										{
+											"key": null,
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "priceEnquiry",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"balanceInfo\": 1,\r\n    \"externalServiceId\": \"MO_Voice\",\r\n    \"requestedServiceUnit\": 110,\r\n    \"calledNumber\": \"998930374935\",\r\n    \"tarifficationInfo\": 1\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_host_d1}}/OAPI/v1/subscribers/1254206918/priceEnquiry?authToken={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1254206918",
+										"priceEnquiry"
+									],
+									"query": [
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "subs_simCards",
+					"item": [
+						{
+							"name": "SIMCards/search",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host}}/PSAPI/v1/bis-base/subscribers/1244183060/SIMCards/search?languageId=1&limit=40&offset=0&sort=-isActive,-isMain,-changeDate&subscriberId=1244183060&showUnsuccessful=0&objectTypeId=1&objectId=4&startDate=2024-04-26T10:54:15&endDate=2999-12-31T00:00:00&authToken=AAAHbgM8bgg5iZiK2JnEa_8f7Tei_4W9",
+									"host": [
+										"{{oapi_host}}"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"1244183060",
+										"SIMCards",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "40"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "sort",
+											"value": "-isActive,-isMain,-changeDate"
+										},
+										{
+											"key": "subscriberId",
+											"value": "1244183060"
+										},
+										{
+											"key": "showUnsuccessful",
+											"value": "0"
+										},
+										{
+											"key": "objectTypeId",
+											"value": "1"
+										},
+										{
+											"key": "objectId",
+											"value": "4"
+										},
+										{
+											"key": "startDate",
+											"value": "2024-04-26T10:54:15"
+										},
+										{
+											"key": "endDate",
+											"value": "2999-12-31T00:00:00"
+										},
+										{
+											"key": "authToken",
+											"value": "AAAHbgM8bgg5iZiK2JnEa_8f7Tei_4W9"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SIMCards/*/history",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/oapi-bis-service/SIMCards/113010412/history?languageId=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"oapi-bis-service",
+										"SIMCards",
+										"113010412",
+										"history"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "SIMCards/*/allowedActions",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/OAPI/v1/subscribers/1244183060/SIMCards/113010412/allowedActions?actions=SIM_CHANGE&languageId=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"subscribers",
+										"1244183060",
+										"SIMCards",
+										"113010412",
+										"allowedActions"
+									],
+									"query": [
+										{
+											"key": "actions",
+											"value": "SIM_CHANGE"
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "subscribers/SIMCards/search",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/v1/bis-base/subscribers/65842956/SIMCards/search?languageId=1&limit=20&offset=0&sort=-isActive,-isMain,-changeDate&authToken={{token}}&isActive =true&statusId=6",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"bis-base",
+										"subscribers",
+										"65842956",
+										"SIMCards",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "20"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "sort",
+											"value": "-isActive,-isMain,-changeDate"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "fields",
+											"value": "cardType",
+											"disabled": true
+										},
+										{
+											"key": "isActive ",
+											"value": "true"
+										},
+										{
+											"key": "statusId",
+											"value": "6"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "cart",
+					"item": [
+						{
+							"name": "esm-private/objects",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"subscriberId\": 1244183060,\r\n    \"showClosed\": 0\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/internal/v1/esm-private/objects/search?languageId=1&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"esm-private",
+										"objects",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "lc",
+					"item": [
+						{
+							"name": "/lcstates/*/info/current",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"subsId\": 1244183060,\r\n    \"changeDate\": \"2999-12-31T23:59:59\",\r\n    \"balanceLifetime\": \"2999-12-31T23:59:59\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/internal/v1/licy-base-private/lcstates/34/info/current?languageId=1&authToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"licy-base-private",
+										"lcstates",
+										"34",
+										"info",
+										"current"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "customers/CUSTOMER_ID/subscribers/lifeCycleInfo/search",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"returnLCStatesList\": true\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://10.4.78.232:8080/PSAPI/internal/v1/licy-base-private/customers/270806900/subscribers/lifeCycleInfo/search?languageId=1&limit=25&offset=1&returnCount=true&authToken={{token}}",
+									"protocol": "http",
+									"host": [
+										"10",
+										"4",
+										"78",
+										"232"
+									],
+									"port": "8080",
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"licy-base-private",
+										"customers",
+										"270806900",
+										"subscribers",
+										"lifeCycleInfo",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "25"
+										},
+										{
+											"key": "offset",
+											"value": "1"
+										},
+										{
+											"key": "returnCount",
+											"value": "true"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "returnLCStatesList",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "refresh/lcstate",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"subsId\": 1244183060,\r\n    \"changeDate\": \"2999-12-31T23:59:59\",\r\n    \"balanceLifetime\": \"2999-12-31T23:59:59\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/internal/v1/licy-base-private/operation/subs/1244183060/refresh/lcstate?AuthToken=AAAHewKe0UMnpxNWLq8r8T6R5jOd5MX8",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"licy-base-private",
+										"operation",
+										"subs",
+										"1244183060",
+										"refresh",
+										"lcstate"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "AuthToken",
+											"value": "AAAHewKe0UMnpxNWLq8r8T6R5jOd5MX8"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "actual",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/internal/v1/licy-base-private/subslcstates/actual/1247798062?languageId=1&AuthToken={{token}}",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"licy-base-private",
+										"subslcstates",
+										"actual",
+										"1247798062"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "AuthToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/subslcstates/history/search",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"subs\": 1250221726\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{oapi_ip_port}}/PSAPI/internal/v1/licy-base-private/subslcstates/history/search?languageId=1&authToken={{token}}",
+									"host": [
+										"{{oapi_ip_port}}"
+									],
+									"path": [
+										"PSAPI",
+										"internal",
+										"v1",
+										"licy-base-private",
+										"subslcstates",
+										"history",
+										"search"
+									],
+									"query": [
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "payments",
+					"item": [
+						{
+							"name": "payments",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSAPI/v1/fim/customers/241013539/payments?languageId=1&limit=14&offset=0&sort=-paymentDate&authToken={{token}}&paymentDate.dateFrom=2024-05-31T23:07:34",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSAPI",
+										"v1",
+										"fim",
+										"customers",
+										"241013539",
+										"payments"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "paymentDate",
+											"disabled": true
+										},
+										{
+											"key": "languageId",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "14"
+										},
+										{
+											"key": "offset",
+											"value": "0"
+										},
+										{
+											"key": "sort",
+											"value": "-paymentDate"
+										},
+										{
+											"key": "authToken",
+											"value": "{{token}}"
+										},
+										{
+											"key": "paymentDate.dateFrom",
+											"value": "2024-05-31T23:07:34"
+										},
+										{
+											"key": "paymentDate.dateTo",
+											"value": "2024-05-31T23:07:34",
+											"disabled": true
+										},
+										{
+											"key": null,
+											"value": "2024-05-31T23:07:35",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "inquiries",
+					"item": [
+						{
+							"name": "OAPI/v1/inquiries",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"inquiry\": {\r\n        \"topic\": {\r\n            \"topicId\": 182,\r\n            \"topicCode\": \"UCELL_ADJUSTMENT_MONEY\"\r\n        },\r\n        \"planCloseDate\": \"2099-01-01T05:00:00\",\r\n        \"description\": \"\",\r\n        \"phone\": null,\r\n        \"priority\": {\r\n            \"inquiryPriorityId\": 1,\r\n            \"inquiryPriorityCode\": \"LOW\"\r\n        },\r\n        \"subscriber\": {\r\n            \"subscriberId\": 1245085898\r\n        },\r\n        \"createDate\": \"2024-12-05T12:01:17\",\r\n        \"customProperties\": [\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 369,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_TYPE\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 354,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_AJD_REASONS\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 355,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_BALANCE\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"-4987000\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 362,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_FULL_TRANSFER\"\r\n                },\r\n                \"type\": \"BOOL\",\r\n                \"booleanValue\": null\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 365,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_SUMMA\"\r\n                },\r\n                \"type\": \"NUMBER\",\r\n                \"numberValue\": null\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 1125,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_SUMMA_FULL\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"-4987000\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 357,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_CANCEL\"\r\n                },\r\n                \"type\": \"BOOL\",\r\n                \"booleanValue\": null\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 353,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_WHY_CANCELED\"\r\n                },\r\n                \"type\": \"STRING\",\r\n                \"stringValue\": \"\"\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 364,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_PAYS\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 356,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_BILLS_ID\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 360,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_DETG\"\r\n                },\r\n                \"type\": \"DICTIONARY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 367,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_VAT\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 368,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_VAT_FULL\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"-534321.428571\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 361,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ERROR_MESSAGE\"\r\n                },\r\n                \"type\": \"STRING\",\r\n                \"stringValue\": \"\"\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 359,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_CODE_EXEC\"\r\n                },\r\n                \"type\": \"NUMBER\",\r\n                \"numberValue\": null\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 358,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_CLIENT_SELECT\"\r\n                },\r\n                \"type\": \"WEB_COMPONENT\",\r\n                \"values\": []\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 363,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ID_ADJ\"\r\n                },\r\n                \"type\": \"NUMBER\",\r\n                \"numberValue\": null\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 352,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_NEED_AGREE\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"1\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 403,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_AJD_ADMIN\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"0\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 404,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_CONT_TYPE_CLNT\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"1_Individual Prepaid Resident PINFL\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 421,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_DETG_15\"\r\n                },\r\n                \"type\": \"STRING\",\r\n                \"stringValue\": \"\"\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 441,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_TYPE_CLNT\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"1\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 442,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_INFO_BALANCE\"\r\n                },\r\n                \"type\": \"STRING\",\r\n                \"stringValue\": \"\"\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 461,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_VIRT_AMOUNT\"\r\n                },\r\n                \"type\": \"DB_QUERY\",\r\n                \"values\": [\r\n                    {\r\n                        \"value\": \"0\"\r\n                    }\r\n                ]\r\n            },\r\n            {\r\n                \"customPropertyDeclaration\": {\r\n                    \"customPropertyDeclarationId\": 462,\r\n                    \"customPropertyDeclarationCode\": \"UCELL_ADJ_VIRT_PAY_INFO\"\r\n                },\r\n                \"type\": \"STRING\",\r\n                \"stringValue\": \"\"\r\n            }\r\n        ]\r\n    },\r\n    \"contact\": {\r\n        \"direction\": \"INCOMING\",\r\n        \"contactSite\": {\r\n            \"contactSiteId\": 21,\r\n            \"contactSiteCode\": \"OFFICE_CONTACT\"\r\n        },\r\n        \"channel\": {\r\n            \"channelId\": 2,\r\n            \"channelCode\": \"VISIT\"\r\n        },\r\n        \"customer\": {\r\n            \"customerId\": 264071519\r\n        },\r\n        \"subscriber\": {\r\n            \"subscriberId\": 1245085898\r\n        },\r\n        \"duration\": 59,\r\n        \"createDate\": \"2024-12-05T12:01:17\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://preprodsbms.ucell/OAPI/v1/inquiries?fields=inquiryId,contact(contactId)&getObject=true&AuthToken=AAAHUwBlNaj76nsCzQJERKjOslc5BARu",
+									"protocol": "https",
+									"host": [
+										"preprodsbms",
+										"ucell"
+									],
+									"path": [
+										"OAPI",
+										"v1",
+										"inquiries"
+									],
+									"query": [
+										{
+											"key": "fields",
+											"value": "inquiryId,contact(contactId)"
+										},
+										{
+											"key": "getObject",
+											"value": "true"
+										},
+										{
+											"key": "AuthToken",
+											"value": "AAAHUwBlNaj76nsCzQJERKjOslc5BARu"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "OAPI2HAS",
+					"item": [
+						{
+							"name": "custom-has-ucell/rtplName",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi2has_host}}/ps/v1/custom-has-ucell/rtplName?P_RTPL_ID=31&P_LANGUAGE_ID=1",
+									"host": [
+										"{{oapi2has_host}}"
+									],
+									"path": [
+										"ps",
+										"v1",
+										"custom-has-ucell",
+										"rtplName"
+									],
+									"query": [
+										{
+											"key": "P_RTPL_ID",
+											"value": "31"
+										},
+										{
+											"key": "P_LANGUAGE_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "PSIX",
+					"item": [
+						{
+							"name": "/PSIX/scli/UCL_OAPI_GET_CHARGE",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_OAPI_GET_CHARGE?SUBSCRIBER_MSISDN=998930041717&P_DATE_FROM=14.07.2025&P_DATE_TILL=14.07.2025%2023:59:59&SESSION_ID={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_OAPI_GET_CHARGE"
+									],
+									"query": [
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930041717"
+										},
+										{
+											"key": "P_DATE_FROM",
+											"value": "14.07.2025"
+										},
+										{
+											"key": "P_DATE_TILL",
+											"value": "14.07.2025%2023:59:59"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_GET_RTPLS_FOR_CUSTOM_SUBS_ADD",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_GET_RTPLS_FOR_CUSTOM_SUBS_ADD?SESSION_ID={{token}}&IN_NSET_ID=19659",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_GET_RTPLS_FOR_CUSTOM_SUBS_ADD"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "IN_NSET_ID",
+											"value": "19659"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_GET_DELR_DETAILS_BY_SIMCARD",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_DELR_DETAILS_BY_SIMCARD?SESSION_ID={{token}}&SimCardId=115227698",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_DELR_DETAILS_BY_SIMCARD"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "SimCardId",
+											"value": "115227698"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "UCL_GET_OPER_BY_LOGIN",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_OPER_BY_LOGIN?SESSION_ID={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_OPER_BY_LOGIN"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "AUTH_LOGIN",
+											"value": "FIRUZA.USMANOVA",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/GET_SUBS_CC_VOLUMES",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/SUBS_CARD_SUBS_CARD_R?SESSION_ID={{token}}&P_SUBS_ID={{subs_id}}&MSIDN",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"SUBS_CARD_SUBS_CARD_R"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										},
+										{
+											"key": "MSIDN",
+											"value": null
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_USER_LANGUAGE",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/PACKS/UCL_GET_PACK_STATUS?SESSION_ID={{token}}&P_PACK_ID=380&P_SUBS_ID={{subs_id}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"PACKS",
+										"UCL_GET_PACK_STATUS"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_PACK_ID",
+											"value": "380"
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_GET_DCPL_INFORMATION",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_GET_DCPL_INFORMATION?SESSION_ID={{token}}&P_SUBS_ID={{subs_id}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_GET_DCPL_INFORMATION"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_GET_SUBS_NEXT_STATUS",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_SUBS_NEXT_STATUS?SESSION_ID={{token}}&P_SUBS_ID={{subs_id}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_SUBS_NEXT_STATUS"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_DISCOUNTS_INFO",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_DISCOUNTS_INFO?SESSION_ID={{token}}&P_SUBS_ID=1244183060&SUBSCRIBER_MSISDN=998930571717&P_IMSI=434054419796883",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_DISCOUNTS_INFO"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930571717"
+										},
+										{
+											"key": "P_IMSI",
+											"value": "434054419796883"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_GET_ALL_QOS_QUOTAS",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_GET_ALL_QOS_QUOTAS?SESSION_ID={{token}}&P_SUBS_ID=1244183060&SUBSCRIBER_MSISDN=998930571717&P_IMSI=434054419796883",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_GET_ALL_QOS_QUOTAS"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930571717"
+										},
+										{
+											"key": "P_IMSI",
+											"value": "434054419796883"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_GET_QOS_ON_RTPL",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_GET_QOS_ON_RTPL?SESSION_ID={{token}}&P_SUBS_ID=1244183060&SUBSCRIBER_MSISDN=998930571717&P_IMSI=434054419796883",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_GET_QOS_ON_RTPL"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930571717"
+										},
+										{
+											"key": "P_IMSI",
+											"value": "434054419796883"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCELL_NEXT_TIME_FEE",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCELL_NEXT_TIME_FEE?SESSION_ID={{token}}&P_SUBS_ID={{subs_id}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCELL_NEXT_TIME_FEE"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "NX_SUBS_CHANGE_LANG",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/nx_add_forms/NX_SUBS_CHANGE_LANG?LANG_ID=1&SESSION_ID=AAAIUgSc9SCjUfv2GMDeWEHH6zs7OnKC&SUBS_ID=1244183060",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"nx_add_forms",
+										"NX_SUBS_CHANGE_LANG"
+									],
+									"query": [
+										{
+											"key": "LANG_ID",
+											"value": "1"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "AAAIUgSc9SCjUfv2GMDeWEHH6zs7OnKC"
+										},
+										{
+											"key": "SUBS_ID",
+											"value": "1244183060"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_GET_RTPL_CHARGE_HIST",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_RTPL_CHARGE_HIST?SESSION_ID={{token}}&P_SUBS_ID={{subs_id}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_RTPL_CHARGE_HIST"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146",
+											"disabled": true
+										},
+										{
+											"key": "F_RTLCST_ID",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "{{subs_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_GET_MSISDN_TERMINATION_DATE",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_MSISDN_TERMINATION_DATE?SUBSCRIBER_MSISDN=998930041717&SESSION_ID={{token}}",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_MSISDN_TERMINATION_DATE"
+									],
+									"query": [
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930041717"
+										},
+										{
+											"key": "P_DATE_FROM",
+											"value": "14.07.2025",
+											"disabled": true
+										},
+										{
+											"key": "P_DATE_TILL",
+											"value": "14.07.2025%2023:59:59",
+											"disabled": true
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_GET_MSISDN_LIST_BY_DOC",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_GET_MSISDN_LIST_BY_DOC?SESSION_ID={{token}}&DOC_TYPE_ID=1&DOC_IN=998930571717&IS_CLOSED_IGN=1",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_GET_MSISDN_LIST_BY_DOC"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "DOC_TYPE_ID",
+											"value": "1"
+										},
+										{
+											"key": "DOC_IN",
+											"value": "998930571717"
+										},
+										{
+											"key": "LIMIT",
+											"value": "20",
+											"disabled": true
+										},
+										{
+											"key": "OFFSET",
+											"value": "0",
+											"disabled": true
+										},
+										{
+											"key": "IS_CLOSED_IGN",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/EXECUTE_OPERATIONS",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/scli/EXECUTE_OPERATIONS?SUBS_ID={{subs_id}}&LANG_ID=1&STND_ID=1&CLOSED=0&TIMEZONE=1&CAN_GET_DISABLE_STATUS=N&OPERATION=SUBS_CARD_MSISDN_INFO_R&OPERATION=SUBS_CARD_SUBS_SBST_R&OPERATION=SUBS_CARD_RTPL_INFO_R&OPERATION=SUBS_CARD_SUBS_COMMENT_R&OPERATION=SUBS_CARD_ACCESS_POINT_R&OPERATION=SUBS_CARD_SALE_POINT_R&OPERATION=SUBS_CARD_GET_BASE_SERV_STATE_R&OPERATION=SUBS_CARD_CHECK_MAIN_SUBS_R&OPERATION=SUBS_CARD_SUBS_ZONE_R&OPERATION=SUBS_CARD_GET_EXT_PHONES_R&SESSION_ID={{token}}&INTM=BIS&REM_IOPER_ID=1",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"EXECUTE_OPERATIONS"
+									],
+									"query": [
+										{
+											"key": "SUBS_ID",
+											"value": "{{subs_id}}"
+										},
+										{
+											"key": "LANG_ID",
+											"value": "1"
+										},
+										{
+											"key": "STND_ID",
+											"value": "1"
+										},
+										{
+											"key": "CLOSED",
+											"value": "0"
+										},
+										{
+											"key": "TIMEZONE",
+											"value": "1"
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "N"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_MSISDN_INFO_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_SBST_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_RTPL_INFO_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_COMMENT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_ACCESS_POINT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SALE_POINT_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_GET_BASE_SERV_STATE_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_CHECK_MAIN_SUBS_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_SUBS_ZONE_R"
+										},
+										{
+											"key": "OPERATION",
+											"value": "SUBS_CARD_GET_EXT_PHONES_R"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "REM_IOPER_ID",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R?SESSION_ID={{token}}&SUBS_ID=1244183060&INTM=BIS&I_MSISDN_EXT=998930571717",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"SCLI_SCLI_CLNT_COLLECT_PAGE_EXT_R"
+									],
+									"query": [
+										{
+											"key": "SUBSCRIBER_MSISDN",
+											"value": "998930041717",
+											"disabled": true
+										},
+										{
+											"key": "P_DATE_FROM",
+											"value": "14.07.2025",
+											"disabled": true
+										},
+										{
+											"key": "P_DATE_TILL",
+											"value": "14.07.2025%2023:59:59",
+											"disabled": true
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "INTM",
+											"value": "BIS"
+										},
+										{
+											"key": "I_MSISDN_EXT",
+											"value": "998930571717"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_MLK_UPSERT_CASHBACK",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://sbms.ucell/PSIX/scli/UCL_MLK_UPSERT_CASHBACK?SESSION_ID={{token}}&P_SUBS_ID=1244183060&P_VOLUME=500&P_ACTION=0&STATUS=null&MESSAGE=null",
+									"protocol": "https",
+									"host": [
+										"sbms",
+										"ucell"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_MLK_UPSERT_CASHBACK"
+									],
+									"query": [
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_SUBS_ID",
+											"value": "1244183060"
+										},
+										{
+											"key": "P_VOLUME",
+											"value": "500"
+										},
+										{
+											"key": "P_ACTION",
+											"value": "0"
+										},
+										{
+											"key": "STATUS",
+											"value": "null"
+										},
+										{
+											"key": "MESSAGE",
+											"value": "null"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "/PSIX/scli/UCL_SUBS_COLLECTION_INFO",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/UCL_SUBS_COLLECTION_INFO?P_CLNT_ID=270939146&SESSION_ID={{token}}&CAN_GET_DISABLE_STATUS=0&P_ROW_FIRST=1&P_ROW_LAST=500",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"UCL_SUBS_COLLECTION_INFO"
+									],
+									"query": [
+										{
+											"key": "P_CLNT_ID",
+											"value": "270939146"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_CLOSED",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "CAN_GET_DISABLE_STATUS",
+											"value": "0"
+										},
+										{
+											"key": "P_ROW_FIRST",
+											"value": "1"
+										},
+										{
+											"key": "P_ROW_LAST",
+											"value": "500"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PACKS/UCL_GET_PACK_STATUS",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{oapi_host_d1}}/PSIX/scli/PACKS/UCL_GET_PACK_STATUS?P_SUBS_ID=1249436333&SESSION_ID={{token}}&P_PACK_ID=1900",
+									"host": [
+										"{{oapi_host_d1}}"
+									],
+									"path": [
+										"PSIX",
+										"scli",
+										"PACKS",
+										"UCL_GET_PACK_STATUS"
+									],
+									"query": [
+										{
+											"key": "P_SUBS_ID",
+											"value": "1249436333"
+										},
+										{
+											"key": "SESSION_ID",
+											"value": "{{token}}"
+										},
+										{
+											"key": "P_PACK_ID",
+											"value": "1900"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}

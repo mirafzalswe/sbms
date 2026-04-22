@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCELL SBMS - QA Tester</title>
+    <style>
+        /* ========== THEME VARIABLES ========== */
+        :root {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f0f2f5;
+            --bg-input: #f8f9fb;
+            --border: #e2e6ec;
+            --border-hover: #c8cdd6;
+            --text-primary: #1a2332;
+            --text-secondary: #5a6577;
+            --text-muted: #8893a4;
+            --text-hint: #9ca5b4;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #dbeafe;
+            --green: #16a34a;
+            --green-bg: #dcfce7;
+            --green-text: #15803d;
+            --red: #dc2626;
+            --red-bg: #fee2e2;
+            --red-text: #b91c1c;
+            --yellow: #ca8a04;
+            --yellow-bg: #fef9c3;
+            --yellow-text: #a16207;
+            --purple: #7c3aed;
+            --purple-bg: #ede9fe;
+            --orange: #ea580c;
+            --orange-bg: #fff7ed;
+            --gray-badge-bg: #f1f5f9;
+            --gray-badge-text: #64748b;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,.1);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: .2s ease;
+            --topbar-bg: #ffffff;
+            --topbar-border: #e2e6ec;
+            --topbar-title: #2563eb;
+            --progress-bg: #e2e6ec;
+            --raw-header-bg: #f0f2f5;
+            --raw-body-bg: #f8f9fb;
+            --scrollbar-track: #f0f2f5;
+            --scrollbar-thumb: #c8cdd6;
+            --table-header-bg: #f8f9fb;
+            --table-row-hover: #f5f7fa;
+            --mono-color: #475569;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #0f172a;
+            --bg-input: #0f172a;
+            --border: #334155;
+            --border-hover: #475569;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-hint: #475569;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-light: #1e3a5f;
+            --green: #22c55e;
+            --green-bg: rgba(34,197,94,.12);
+            --green-text: #4ade80;
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,.12);
+            --red-text: #f87171;
+            --yellow: #eab308;
+            --yellow-bg: rgba(234,179,8,.12);
+            --yellow-text: #facc15;
+            --purple: #a78bfa;
+            --purple-bg: rgba(167,139,250,.12);
+            --orange: #f97316;
+            --orange-bg: rgba(249,115,22,.12);
+            --gray-badge-bg: #334155;
+            --gray-badge-text: #94a3b8;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.3);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,.4);
+            --topbar-bg: #1e293b;
+            --topbar-border: #334155;
+            --topbar-title: #38bdf8;
+            --progress-bg: #0f172a;
+            --raw-header-bg: #0f172a;
+            --raw-body-bg: #0f172a;
+            --scrollbar-track: #1e293b;
+            --scrollbar-thumb: #475569;
+            --table-header-bg: #0f172a;
+            --table-row-hover: rgba(15,23,42,.4);
+            --mono-color: #94a3b8;
+        }
+
+        /* ========== BASE ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ========== TOP BAR ========== */
+        .top-bar {
+            background: var(--topbar-bg);
+            border-bottom: 1px solid var(--topbar-border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: background var(--transition), border-color var(--transition);
+        }
+        .top-bar h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--topbar-title);
+            letter-spacing: -0.3px;
+        }
+        .top-bar .nav { display: flex; gap: 6px; align-items: center; }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .nav-link:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-link.active { background: var(--accent); color: white; }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 16px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .theme-toggle:hover { border-color: var(--border-hover); background: var(--bg-secondary); }
+        .theme-toggle .icon { font-size: 16px; line-height: 1; }
+
+        /* ========== LAYOUT ========== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+        /* ========== CARDS / PANELS ========== */
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+            transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+        }
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .panel-body { padding: 20px; }
+
+        /* ========== FORM ========== */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .form-row.two { grid-template-columns: 1fr 1fr; }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+        }
+        .form-group select { cursor: pointer; }
+        .form-group .hint { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin: 20px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-run {
+            background: var(--green);
+            color: white;
+            padding: 11px 28px;
+            font-size: 15px;
+            box-shadow: 0 2px 8px rgba(22,163,74,.25);
+        }
+        .btn-run:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,.35); transform: translateY(-1px); }
+        .btn-run:active { transform: translateY(0); }
+        .btn-run:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        .btn-secondary:hover { background: var(--border); color: var(--text-primary); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+
+        /* ========== PROGRESS ========== */
+        .progress-panel {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .progress-panel.visible { display: block; }
+        .progress-bar-wrap {
+            background: var(--progress-bg);
+            border-radius: 20px;
+            height: 26px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            border-radius: 20px;
+            transition: width 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            min-width: 40px;
+        }
+        .progress-step { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+        /* ========== SUMMARY ========== */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition);
+        }
+        .summary-card .number { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
+        .summary-card .label { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+        .summary-card.total .number { color: var(--accent); }
+        .summary-card.pass .number { color: var(--green); }
+        .summary-card.fail .number { color: var(--red); }
+        .summary-card.warn .number { color: var(--yellow); }
+        .summary-card.time .number { color: var(--purple); font-size: 22px; }
+
+        /* ========== CUSTOMER INFO ========== */
+        .customer-info { display: none; }
+        .customer-info.visible { display: block; }
+        .customer-info h3 { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .info-item {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+        }
+        .info-item .info-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
+        .info-item .info-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-top: 3px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-weight: 500;
+        }
+
+        /* ========== RESULTS TABLE ========== */
+        .results-panel { display: none; overflow: hidden; }
+        .results-panel.visible { display: block; }
+        .results-panel h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .results-table { width: 100%; border-collapse: collapse; }
+        .results-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--table-header-bg);
+            border-bottom: 1px solid var(--border);
+        }
+        .results-table td {
+            padding: 9px 14px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .results-table tr:hover { background: var(--table-row-hover); }
+        .results-table tr:last-child td { border-bottom: none; }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .status-badge.pass { background: var(--green-bg); color: var(--green-text); }
+        .status-badge.fail { background: var(--red-bg); color: var(--red-text); }
+        .status-badge.warn { background: var(--yellow-bg); color: var(--yellow-text); }
+        .status-badge.skip { background: var(--gray-badge-bg); color: var(--gray-badge-text); }
+        .status-badge.error { background: var(--orange-bg); color: var(--orange); }
+        .status-badge.info { background: var(--accent-light); color: var(--accent); }
+
+        .category-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            background: var(--gray-badge-bg);
+            color: var(--gray-badge-text);
+        }
+
+        /* ========== RAW RESPONSES ========== */
+        .raw-panel { display: none; }
+        .raw-panel.visible { display: block; }
+        .raw-toggle {
+            padding: 14px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition);
+        }
+        .raw-toggle:hover { background: var(--bg-tertiary); }
+        .raw-toggle h3 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .raw-toggle .arrow { color: var(--text-muted); font-size: 16px; transition: transform 0.2s; }
+        .raw-toggle .arrow.open { transform: rotate(180deg); }
+        .raw-content { display: none; padding: 16px 20px; }
+        .raw-content.open { display: block; }
+        .raw-item { margin-bottom: 10px; }
+        .raw-item-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--raw-header-bg);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            border: 1px solid var(--border);
+            transition: color var(--transition);
+        }
+        .raw-item-header:hover { color: var(--accent-hover); }
+        .raw-item-body {
+            display: none;
+            background: var(--raw-body-bg);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 12px;
+            color: var(--mono-color);
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .raw-item-body.open { display: block; }
+
+        /* ========== HISTORY ========== */
+        .history-list { max-height: 400px; overflow-y: auto; }
+        .history-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .history-item:hover { background: var(--bg-tertiary); }
+        .history-item:last-child { border-bottom: none; }
+        .history-item .hi-left { display: flex; gap: 10px; align-items: center; }
+        .history-item .hi-msisdn { font-family: monospace; font-size: 14px; color: var(--text-primary); font-weight: 600; }
+        .history-item .hi-name { font-size: 13px; color: var(--text-secondary); }
+        .history-item .hi-time { font-size: 12px; color: var(--text-muted); }
+        .history-item .hi-summary { display: flex; gap: 8px; align-items: center; }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ========== SPINNER ========== */
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .form-row { grid-template-columns: 1fr; }
+            .form-row.two { grid-template-columns: 1fr; }
+            .summary { grid-template-columns: repeat(3, 1fr); }
+            .container { padding: 16px; }
+        }
+        @media (max-width: 600px) {
+            .summary { grid-template-columns: repeat(2, 1fr); }
+            .top-bar { padding: 0 12px; }
+            .top-bar h1 { font-size: 15px; }
+            .nav-link { font-size: 12px; padding: 5px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>UCELL SBMS - QA Tester</h1>
+        <div class="nav">
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/tester" class="nav-link active">QA Tester</a>
+            <a href="/tariff-test" class="nav-link">Тест тарифа</a>
+            <a href="/tme" class="nav-link">TME</a>
+            <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
+                <span class="icon" id="themeIcon">&#9788;</span>
+                <span id="themeLabel">Светлая</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Test Form -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Новый тест</h2>
+            </div>
+            <div class="panel-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>MSISDN</label>
+                        <input type="text" id="fMsisdn" value="998500173054" placeholder="998XXXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Тип теста</label>
+                        <select id="fTestType" onchange="onTestTypeChange()">
+                            <option value="tariff">Тариф</option>
+                            <option value="pack">Пакет</option>
+                            <option value="service">Услуга</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Название / ID</label>
+                        <input type="text" id="fTargetName" placeholder="Barcha 65, Data 5GB...">
+                        <div class="hint">Имя тарифа/пакета/услуги (частичное совпадение)</div>
+                    </div>
+                </div>
+
+                <div class="section-title">Ожидаемые значения (заполнять только нужные)</div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Абонентская плата (сум)</label>
+                        <input type="number" id="fMonthlyFee" placeholder="65000">
+                    </div>
+                    <div class="form-group">
+                        <label>Минуты</label>
+                        <input type="number" id="fMinutes" placeholder="650">
+                    </div>
+                    <div class="form-group">
+                        <label>SMS</label>
+                        <input type="number" id="fSms" placeholder="650">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Интернет (ГБ)</label>
+                        <input type="number" id="fInternetGb" placeholder="6" step="0.1">
+                        <div class="hint">Или в МБ ниже</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Интернет (МБ)</label>
+                        <input type="number" id="fInternetMb" placeholder="6144">
+                        <div class="hint">Приоритет у ГБ если оба заполнены</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Состояние ЖЦ</label>
+                        <input type="text" id="fLifecycle" placeholder="Active, Suspended...">
+                    </div>
+                </div>
+
+                <div class="section-title" id="sectionCounts">Количество доступных (для теста тарифа)</div>
+
+                <div class="form-row" id="rowCounts">
+                    <div class="form-group">
+                        <label>Доступных пакетов</label>
+                        <input type="number" id="fPacksCount" placeholder="кол-во">
+                    </div>
+                    <div class="form-group">
+                        <label>Доступных услуг</label>
+                        <input type="number" id="fServicesCount" placeholder="кол-во">
+                    </div>
+                    <div class="form-group">
+                        <label>Доступных тарифов</label>
+                        <input type="number" id="fRatePlansCount" placeholder="кол-во">
+                    </div>
+                </div>
+
+                <div class="section-title" id="sectionNames">Проверка по именам (через запятую)</div>
+
+                <div class="form-row" id="rowNames">
+                    <div class="form-group">
+                        <label>Названия пакетов</label>
+                        <input type="text" id="fPackNames" placeholder="Data 1GB, Voice 100...">
+                    </div>
+                    <div class="form-group">
+                        <label>Названия услуг</label>
+                        <input type="text" id="fServiceNames" placeholder="CallerID, Roaming...">
+                    </div>
+                    <div class="form-group">
+                        <label>Названия тарифов</label>
+                        <input type="text" id="fRatePlanNames" placeholder="Barcha 45, Barcha 95...">
+                    </div>
+                </div>
+
+                <div class="section-title">Авторизация</div>
+                <div class="form-row two">
+                    <div class="form-group">
+                        <label>Login</label>
+                        <input type="text" id="fLogin" value="DBS_CC_OPERATORS_PSO">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="fPassword" value="Ucell2026$$">
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-run" id="btnRun" onclick="runTest()">Запустить тест</button>
+                    <button class="btn btn-secondary" onclick="clearForm()">Очистить</button>
+                    <button class="btn btn-secondary" onclick="loadPreset('barcha65')">Пример: Barcha 65</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="panel progress-panel" id="progressPanel">
+            <div class="panel-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span id="progressLabel" style="font-size:14px;font-weight:500;">Выполняется...</span>
+                    <span id="progressPercent" style="font-size:14px;color:var(--accent);font-weight:700;">0%</span>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="progressBar" style="width:0%">0%</div>
+                </div>
+                <div class="progress-step" id="progressStep">Подготовка...</div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary" id="summaryPanel" style="display:none;">
+            <div class="summary-card total">
+                <div class="number" id="sTotal">0</div>
+                <div class="label">Всего пров��рок</div>
+            </div>
+            <div class="summary-card pass">
+                <div class="number" id="sPass">0</div>
+                <div class="label">Пройдено</div>
+            </div>
+            <div class="summary-card fail">
+                <div class="number" id="sFail">0</div>
+                <div class="label">Не пройдено</div>
+            </div>
+            <div class="summary-card warn">
+                <div class="number" id="sWarn">0</div>
+                <div class="label">Предупреждения</div>
+            </div>
+            <div class="summary-card time">
+                <div class="number" id="sTime">0.0s</div>
+                <div class="label">Время</div>
+            </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="panel customer-info" id="customerInfo">
+            <div class="panel-body">
+                <h3>Информация о клиенте</h3>
+                <div class="info-grid" id="infoGrid"></div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="panel results-panel" id="resultsPanel">
+            <h3 style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);">
+                <span style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Результаты проверок</span>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="downloadJSON()">JSON</button>
+                    <button class="btn btn-secondary btn-sm" onclick="downloadHTML()">HTML-отчёт</button>
+                </div>
+            </h3>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">#</th>
+                        <th style="width:80px;">Статус</th>
+                        <th>Проверка</th>
+                        <th style="width:90px;">Категория</th>
+                        <th>��жидаемое</th>
+                        <th>Фактическое</th>
+                        <th>Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Raw Responses -->
+        <div class="panel raw-panel" id="rawPanel">
+            <div class="raw-toggle" onclick="toggleRawPanel()">
+                <h3>Сырые ответы API</h3>
+                <span class="arrow" id="rawArrow">&#9660;</span>
+            </div>
+            <div class="raw-content" id="rawContent"></div>
+        </div>
+
+        <!-- History -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>История тестов</h2>
+                <button class="btn btn-secondary btn-sm" onclick="loadHistory()">Обновить</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-state">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lastReport = null;
+
+        // ==================== THEME ====================
+        function getTheme() {
+            return localStorage.getItem('sbms-theme') || 'light';
+        }
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (theme === 'dark') {
+                icon.innerHTML = '&#9790;';
+                label.textContent = 'Тёмная';
+            } else {
+                icon.innerHTML = '&#9788;';
+                label.textContent = 'Светлая';
+            }
+        }
+        function toggleTheme() {
+            const current = getTheme();
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('sbms-theme', next);
+            applyTheme(next);
+        }
+        applyTheme(getTheme());
+
+        // ==================== LOAD CONFIG ====================
+        async function loadConfig() {
+            try {
+                const resp = await fetch('/api/config');
+                const cfg = await resp.json();
+                if (cfg.login) document.getElementById('fLogin').value = cfg.login;
+                if (cfg.password && cfg.password !== '********') document.getElementById('fPassword').value = cfg.password;
+                if (cfg.msisdn) document.getElementById('fMsisdn').value = cfg.msisdn;
+            } catch (e) {}
+        }
+
+        // ==================== FORM ====================
+        function onTestTypeChange() {
+            const tt = document.getElementById('fTestType').value;
+            const show = tt === 'tariff';
+            document.getElementById('sectionCounts').style.display = show ? '' : 'none';
+            document.getElementById('rowCounts').style.display = show ? '' : 'none';
+            document.getElementById('sectionNames').style.display = show ? '' : 'none';
+            document.getElementById('rowNames').style.display = show ? '' : 'none';
+        }
+
+        function clearForm() {
+            ['fTargetName','fMonthlyFee','fMinutes','fSms','fInternetGb','fInternetMb',
+             'fLifecycle','fPacksCount','fServicesCount','fRatePlansCount',
+             'fPackNames','fServiceNames','fRatePlanNames'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+
+        function loadPreset(name) {
+            if (name === 'barcha65') {
+                document.getElementById('fTestType').value = 'tariff';
+                document.getElementById('fTargetName').value = 'Barcha 65';
+                document.getElementById('fMonthlyFee').value = '65000';
+                document.getElementById('fMinutes').value = '650';
+                document.getElementById('fSms').value = '650';
+                document.getElementById('fInternetGb').value = '6';
+                document.getElementById('fInternetMb').value = '';
+                onTestTypeChange();
+            }
+        }
+
+        function splitNames(str) {
+            if (!str || !str.trim()) return null;
+            return str.split(',').map(s => s.trim()).filter(s => s);
+        }
+
+        function buildTestCase() {
+            const tc = {
+                msisdn: document.getElementById('fMsisdn').value.trim(),
+                testType: document.getElementById('fTestType').value,
+                targetName: document.getElementById('fTargetName').value.trim(),
+                login: document.getElementById('fLogin').value.trim(),
+                password: document.getElementById('fPassword').value.trim(),
+                expected: {}
+            };
+
+            const fee = document.getElementById('fMonthlyFee').value;
+            if (fee && !isNaN(parseFloat(fee))) tc.expected.monthlyFee = parseFloat(fee);
+
+            const min = document.getElementById('fMinutes').value;
+            if (min && !isNaN(parseFloat(min))) tc.expected.minutesLimit = parseFloat(min);
+
+            const sms = document.getElementById('fSms').value;
+            if (sms && !isNaN(parseFloat(sms))) tc.expected.smsLimit = parseFloat(sms);
+
+            const gb = document.getElementById('fInternetGb').value;
+            if (gb && !isNaN(parseFloat(gb))) tc.expected.internetGb = parseFloat(gb);
+
+            const mb = document.getElementById('fInternetMb').value;
+            if (mb && !gb && !isNaN(parseFloat(mb))) tc.expected.internetMb = parseFloat(mb);
+
+            const lc = document.getElementById('fLifecycle').value.trim();
+            if (lc) tc.expected.lifecycleState = lc;
+
+            if (tc.testType === 'tariff') {
+                const pc = document.getElementById('fPacksCount').value;
+                if (pc) tc.expected.availablePacksCount = parseInt(pc);
+
+                const sc = document.getElementById('fServicesCount').value;
+                if (sc) tc.expected.availableServicesCount = parseInt(sc);
+
+                const rc = document.getElementById('fRatePlansCount').value;
+                if (rc) tc.expected.availableRatePlansCount = parseInt(rc);
+
+                const pn = splitNames(document.getElementById('fPackNames').value);
+                if (pn) tc.expected.availablePackNames = pn;
+
+                const sn = splitNames(document.getElementById('fServiceNames').value);
+                if (sn) tc.expected.availableServiceNames = sn;
+
+                const rn = splitNames(document.getElementById('fRatePlanNames').value);
+                if (rn) tc.expected.availableRatePlanNames = rn;
+            }
+
+            return tc;
+        }
+
+        // ==================== RUN TEST ====================
+        async function runTest() {
+            const tc = buildTestCase();
+            if (!tc.msisdn) {
+                alert('Введите MSISDN');
+                return;
+            }
+
+            const btn = document.getElementById('btnRun');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Выполняется...';
+
+            showProgress(true);
+            setProgress(5, 'Отправка запроса...');
+
+            document.getElementById('summaryPanel').style.display = 'none';
+            document.getElementById('customerInfo').classList.remove('visible');
+            document.getElementById('resultsPanel').classList.remove('visible');
+            document.getElementById('rawPanel').classList.remove('visible');
+
+            let pct = 5;
+            const progressInterval = setInterval(() => {
+                if (pct < 85) {
+                    pct += Math.random() * 8;
+                    if (pct > 85) pct = 85;
+                    const steps = [
+                        'Авторизация...', 'Поиск клиента...', 'Получение остатков...',
+                        'Проверка тарифа...', 'Загрузка пакетов...', 'Загрузка услуг...',
+                        'Проверка тарифов...', 'Жизненный цикл...', 'Баланс...',
+                        'PSIX данные...', 'Формирование отчёта...'
+                    ];
+                    const stepIdx = Math.min(Math.floor(pct / 8), steps.length - 1);
+                    setProgress(pct, steps[stepIdx]);
+                }
+            }, 600);
+
+            try {
+                const resp = await fetch('/api/test/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tc)
+                });
+
+                clearInterval(progressInterval);
+
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+                    setProgress(100, 'Ошибка: ' + (err.error || 'Unknown'));
+                    alert('О��ибка: ' + (err.error || `HTTP ${resp.status}`));
+                    btn.disabled = false;
+                    btn.textContent = 'Запустить тест';
+                    return;
+                }
+
+                const report = await resp.json();
+                lastReport = report;
+
+                setProgress(100, 'Готово!');
+                setTimeout(() => showProgress(false), 1500);
+
+                renderReport(report);
+                loadHistory();
+
+            } catch (e) {
+                clearInterval(progressInterval);
+                setProgress(100, 'Ошибка сети: ' + e.message);
+                alert('Оши��ка: ' + e.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Запустить тест';
+        }
+
+        // ==================== PROGRESS ====================
+        function showProgress(visible) {
+            document.getElementById('progressPanel').classList.toggle('visible', visible);
+        }
+
+        function setProgress(pct, step) {
+            const bar = document.getElementById('progressBar');
+            const p = Math.round(pct);
+            bar.style.width = p + '%';
+            bar.textContent = p + '%';
+            document.getElementById('progressPercent').textContent = p + '%';
+            if (step) document.getElementById('progressStep').textContent = step;
+        }
+
+        // ==================== RENDER REPORT ====================
+        function renderReport(r) {
+            const s = r.summary || {};
+            document.getElementById('sTotal').textContent = s.total || 0;
+            document.getElementById('sPass').textContent = s.passed || 0;
+            document.getElementById('sFail').textContent = s.failed || 0;
+            document.getElementById('sWarn').textContent = (s.warnings || 0);
+            if (s.skipped) document.getElementById('sWarn').textContent += ' + ' + s.skipped + ' skip';
+            document.getElementById('sTime').textContent = (r.duration || 0).toFixed(1) + 's';
+            document.getElementById('summaryPanel').style.display = '';
+
+            const ci = r.customerInfo || {};
+            if (ci.name || ci.customerId) {
+                const items = [
+                    { label: 'ФИО', value: ci.name || 'N/A' },
+                    { label: 'Customer ID', value: ci.customerId || 'N/A' },
+                    { label: 'Subscriber ID', value: ci.subscriberId || 'N/A' },
+                    { label: 'Тариф', value: ci.ratePlanName || 'N/A' },
+                    { label: 'Статус', value: ci.status || 'N/A' },
+                    { label: 'Баланс', value: ci.balance != null ? ci.balance + ' сум' : 'N/A' },
+                ];
+                document.getElementById('infoGrid').innerHTML = items.map(i =>
+                    `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${escapeHtml(String(i.value))}</div></div>`
+                ).join('');
+                document.getElementById('customerInfo').classList.add('visible');
+            }
+
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            (r.checks || []).forEach((c, idx) => {
+                const statusCls = (c.status || '').toLowerCase();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color:var(--text-muted);font-size:12px;">${idx + 1}</td>
+                    <td><span class="status-badge ${statusCls}">${c.status}</span></td>
+                    <td style="font-weight:500;">${escapeHtml(c.name)}</td>
+                    <td><span class="category-badge">${escapeHtml(c.category || '')}</span></td>
+                    <td style="font-family:monospace;font-size:12px;color:var(--mono-color);">${c.expected != null ? escapeHtml(String(c.expected)) : '-'}</td>
+                    <td style="font-family:monospace;font-size:12px;">${c.actual != null ? escapeHtml(String(c.actual)) : '-'}</td>
+                    <td style="font-size:12px;color:${statusCls === 'fail' ? 'var(--red)' : 'var(--text-muted)'};">${c.message ? escapeHtml(c.message) : ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('resultsPanel').classList.add('visible');
+
+            const rawContent = document.getElementById('rawContent');
+            rawContent.innerHTML = '';
+            const raw = r.rawResponses || {};
+            for (const [key, val] of Object.entries(raw)) {
+                const div = document.createElement('div');
+                div.className = 'raw-item';
+                div.innerHTML = `
+                    <div class="raw-item-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                        ${escapeHtml(key)}
+                    </div>
+                    <div class="raw-item-body">${escapeHtml(JSON.stringify(val, null, 2))}</div>
+                `;
+                rawContent.appendChild(div);
+            }
+            document.getElementById('rawPanel').classList.add('visible');
+
+            if (r.error) {
+                const div = document.createElement('div');
+                div.style.cssText = 'background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:16px;margin-bottom:16px;color:var(--red-text);';
+                div.textContent = 'Error: ' + r.error;
+                document.getElementById('resultsPanel').before(div);
+            }
+        }
+
+        // ==================== RAW PANEL TOGGLE ====================
+        function toggleRawPanel() {
+            document.getElementById('rawContent').classList.toggle('open');
+            document.getElementById('rawArrow').classList.toggle('open');
+        }
+
+        // ==================== DOWNLOADS ====================
+        function downloadJSON() {
+            if (!lastReport) return;
+            const blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `test_${lastReport.testId || 'report'}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadHTML() {
+            if (!lastReport) return;
+            const r = lastReport;
+            const s = r.summary || {};
+            const ci = r.customerInfo || {};
+
+            let checksRows = '';
+            (r.checks || []).forEach((c, i) => {
+                const color = c.status === 'PASS' ? '#16a34a' : c.status === 'FAIL' ? '#dc2626' : c.status === 'WARN' ? '#ca8a04' : '#64748b';
+                checksRows += `<tr>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;color:#8893a4;">${i+1}</td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;"><span style="color:${color};font-weight:700;">${esc(c.status)}</span></td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;font-weight:500;">${esc(c.name)}</td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;font-family:monospace;font-size:12px;color:#5a6577;">${c.expected != null ? esc(String(c.expected)) : '-'}</td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;font-family:monospace;font-size:12px;">${c.actual != null ? esc(String(c.actual)) : '-'}</td>
+                    <td style="padding:8px 12px;border-bottom:1px solid #e2e6ec;font-size:12px;color:${c.status==='FAIL'?'#dc2626':'#8893a4'};">${c.message ? esc(c.message) : ''}</td>
+                </tr>`;
+            });
+
+            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>QA Report - ${esc(r.msisdn)} - ${esc(r.targetName)}</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;color:#1a2332;padding:40px;max-width:1000px;margin:0 auto;}
+h1{color:#2563eb;font-size:22px;margin-bottom:6px;}
+.meta{color:#5a6577;font-size:13px;margin-bottom:24px;}
+.summary{display:flex;gap:16px;margin-bottom:24px;}
+.sc{background:#fff;border:1px solid #e2e6ec;border-radius:10px;padding:16px 24px;text-align:center;flex:1;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.sc .n{font-size:28px;font-weight:700;}
+.sc .l{font-size:11px;color:#8893a4;margin-top:2px;}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+th{text-align:left;padding:10px 12px;font-size:11px;color:#8893a4;text-transform:uppercase;background:#f8f9fb;}
+td{padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f2f5;}
+.info{background:#fff;border:1px solid #e2e6ec;border-radius:10px;padding:16px;margin-bottom:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.info-i{background:#f8f9fb;border-radius:6px;padding:8px 12px;}
+.info-i .il{font-size:10px;color:#8893a4;text-transform:uppercase;}
+.info-i .iv{font-size:13px;font-family:monospace;}
+</style></head><body>
+<h1>QA Test Report</h1>
+<div class="meta">${esc(r.timestamp)} | MSISDN: ${esc(r.msisdn)} | Тип: ${esc(r.testType)} | ${esc(r.targetName)} | Время: ${(r.duration||0).toFixed(1)}s</div>
+<div class="summary">
+<div class="sc"><div class="n" style="color:#2563eb;">${s.total||0}</div><div class="l">Всего</div></div>
+<div class="sc"><div class="n" style="color:#16a34a;">${s.passed||0}</div><div class="l">Пройдено</div></div>
+<div class="sc"><div class="n" style="color:#dc2626;">${s.failed||0}</div><div class="l">Не пройдено</div></div>
+<div class="sc"><div class="n" style="color:#ca8a04;">${(s.warnings||0)+(s.skipped||0)}</div><div class="l">Пропущено</div></div>
+</div>
+<div class="info">
+<div class="info-i"><div class="il">ФИО</div><div class="iv">${esc(ci.name||'N/A')}</div></div>
+<div class="info-i"><div class="il">Тариф</div><div class="iv">${esc(ci.ratePlanName||'N/A')}</div></div>
+<div class="info-i"><div class="il">Баланс</div><div class="iv">${ci.balance!=null?esc(String(ci.balance))+' сум':'N/A'}</div></div>
+<div class="info-i"><div class="il">Customer ID</div><div class="iv">${esc(String(ci.customerId||'N/A'))}</div></div>
+<div class="info-i"><div class="il">Subscriber ID</div><div class="iv">${esc(String(ci.subscriberId||'N/A'))}</div></div>
+<div class="info-i"><div class="il">Статус</div><div class="iv">${esc(ci.status||'N/A')}</div></div>
+</div>
+<table><thead><tr><th>#</th><th>Статус</th><th>Проверка</th><th>Ожидаемое</th><th>Фактическое</th><th>Комментарий</th></tr></thead>
+<tbody>${checksRows}</tbody></table>
+<div style="margin-top:24px;text-align:center;color:#8893a4;font-size:12px;">Generated by UCELL SBMS QA Tester</div>
+</body></html>`;
+
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `report_${r.testId || 'test'}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== HISTORY ====================
+        async function loadHistory() {
+            const list = document.getElementById('historyList');
+            try {
+                const resp = await fetch('/api/test/history');
+                const items = await resp.json();
+
+                if (!items || items.length === 0) {
+                    list.innerHTML = '<div class="empty-state">Нет сохранённых тестов</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(item => {
+                    const s = item.summary || {};
+                    const statusColor = (s.failed || 0) > 0 ? 'var(--red)' : 'var(--green)';
+                    const typeLabels = { tariff: 'Тариф', pack: 'Пакет', service: 'Услуга' };
+                    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString('ru-RU') : '';
+                    return `<div class="history-item" onclick="loadReport('${escapeHtml(item.id)}')">
+                        <div class="hi-left">
+                            <span class="hi-msisdn">${escapeHtml(item.msisdn)}</span>
+                            <span class="category-badge">${typeLabels[item.testType] || item.testType}</span>
+                            <span class="hi-name">${escapeHtml(item.targetName || '')}</span>
+                        </div>
+                        <div class="hi-summary">
+                            <span style="color:var(--green);font-weight:600;font-size:13px;">${s.passed||0}</span>
+                            <span style="color:var(--text-muted);">/</span>
+                            <span style="color:${statusColor};font-weight:600;font-size:13px;">${s.failed||0}</span>
+                            <span class="hi-time">${ts}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                list.innerHTML = `<div class="empty-state">Ошибка загрузки: ${e.message}</div>`;
+            }
+        }
+
+        async function loadReport(id) {
+            try {
+                const resp = await fetch(`/api/test/history/${encodeURIComponent(id)}`);
+                if (!resp.ok) return;
+                const report = await resp.json();
+                lastReport = report;
+                renderReport(report);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (e) {
+                alert('Ошибка загрузки отчёта: ' + e.message);
+            }
+        }
+
+        // ==================== UTILS ====================
+        function escapeHtml(str) {
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        const esc = escapeHtml;
+
+        // ==================== INIT ====================
+        loadConfig();
+        onTestTypeChange();
+        loadHistory();
+    </script>
+</body>
+</html>

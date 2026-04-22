@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCELL SBMS API - Testing Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .top-bar {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar h1 { font-size: 20px; color: #38bdf8; }
+        .top-bar .status { display: flex; gap: 16px; align-items: center; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+        .status-dot.red { background: #ef4444; box-shadow: 0 0 8px #ef444488; }
+        .status-dot.yellow { background: #eab308; box-shadow: 0 0 8px #eab30888; }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        .config-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .config-panel h2 { font-size: 16px; color: #94a3b8; margin-bottom: 12px; }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .config-field label {
+            display: block;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .config-field input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .config-field input:focus { outline: none; border-color: #38bdf8; }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 36px; font-weight: 700; }
+        .stat-card .label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+        .stat-card.total .number { color: #38bdf8; }
+        .stat-card.pass .number { color: #22c55e; }
+        .stat-card.fail .number { color: #ef4444; }
+        .stat-card.time .number { color: #a78bfa; font-size: 28px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 8px;
+        }
+        .tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #94a3b8;
+            background: transparent;
+            border: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab:hover { background: #334155; color: #e2e8f0; }
+        .tab.active { background: #3b82f6; color: white; }
+        .tab .count {
+            background: #334155;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        .tab.active .count { background: #2563eb; }
+
+        /* Test cards */
+        .test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .test-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .test-card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+        .test-card-header h3 { font-size: 15px; }
+        .test-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .test-badge.get { background: #22c55e22; color: #22c55e; }
+        .test-badge.post { background: #eab30822; color: #eab308; }
+        .test-badge.put { background: #f9731622; color: #f97316; }
+        .test-badge.delete { background: #ef444422; color: #ef4444; }
+        .test-badge.pending { background: #64748b22; color: #64748b; }
+        .test-badge.running { background: #3b82f622; color: #3b82f6; }
+        .test-badge.passed { background: #22c55e22; color: #22c55e; }
+        .test-badge.failed { background: #ef444422; color: #ef4444; }
+
+        .test-card-body { padding: 16px 20px; }
+        .test-card-body .url {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            background: #0f172a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            margin-bottom: 12px;
+        }
+        .test-card-body .description {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .param-input {
+            padding: 5px 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .param-input:focus { outline: none; border-color: #38bdf8; }
+        .param-label {
+            font-size: 11px;
+            color: #64748b;
+            padding: 6px 0 0;
+            text-align: right;
+        }
+
+        .test-card-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .response-time { font-size: 12px; color: #a78bfa; }
+        .http-status { font-size: 12px; font-weight: 600; }
+        .http-status.s200 { color: #22c55e; }
+        .http-status.s400 { color: #eab308; }
+        .http-status.s500 { color: #ef4444; }
+
+        .response-area {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            color: #94a3b8;
+            display: none;
+        }
+        .response-area.visible { display: block; }
+
+        .log-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .log-panel h2 { font-size: 16px; color: #94a3b8; margin-bottom: 12px; }
+        #log {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .log-pass { color: #22c55e; }
+        .log-fail { color: #ef4444; }
+        .log-info { color: #38bdf8; }
+        .log-warn { color: #eab308; }
+        .log-dim { color: #475569; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 900px) {
+            .test-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .body-editor {
+            width: 100%;
+            min-height: 80px;
+            padding: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        .body-editor:focus { outline: none; border-color: #38bdf8; }
+
+        /* ========== THEME TOGGLE ========== */
+        .theme-toggle {
+            display: flex; align-items: center; gap: 8px; margin-left: 12px;
+            cursor: pointer; padding: 6px 12px; border-radius: 6px;
+            border: 1px solid #334155; background: #0f172a; color: #94a3b8;
+            font-size: 13px; font-weight: 500; transition: all .2s; user-select: none;
+        }
+        .theme-toggle:hover { border-color: #475569; background: #1e293b; }
+        .theme-toggle .icon { font-size: 16px; line-height: 1; }
+
+        /* ========== LIGHT THEME ========== */
+        [data-theme="light"] body { background: #f5f7fa; color: #1a2332; }
+        [data-theme="light"] .top-bar { background: #fff; border-bottom-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        [data-theme="light"] .top-bar h1 { color: #2563eb; }
+        [data-theme="light"] .theme-toggle { background: #f0f2f5; border-color: #e2e6ec; color: #5a6577; }
+        [data-theme="light"] .theme-toggle:hover { background: #e2e6ec; }
+
+        [data-theme="light"] .config-panel { background: #fff; border-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        [data-theme="light"] .config-panel h2 { color: #5a6577; }
+        [data-theme="light"] .config-field label { color: #8893a4; }
+        [data-theme="light"] .config-field input { background: #f8f9fb; border-color: #e2e6ec; color: #1a2332; }
+        [data-theme="light"] .config-field input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+
+        [data-theme="light"] .btn-secondary { background: #f0f2f5; color: #5a6577; }
+        [data-theme="light"] .btn-secondary:hover { background: #e2e6ec; color: #1a2332; }
+
+        [data-theme="light"] .stat-card { background: #fff; border-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        [data-theme="light"] .stat-card .label { color: #8893a4; }
+
+        [data-theme="light"] .tabs { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .tab { color: #5a6577; }
+        [data-theme="light"] .tab:hover { background: #f0f2f5; color: #1a2332; }
+        [data-theme="light"] .tab .count { background: #e2e6ec; }
+
+        [data-theme="light"] .test-card { background: #fff; border-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        [data-theme="light"] .test-card-header { border-bottom-color: #e2e6ec; }
+        [data-theme="light"] .test-card-header h3 { color: #1a2332; }
+        [data-theme="light"] .test-card-body { color: #5a6577; }
+        [data-theme="light"] .test-card-body pre { background: #f8f9fb; border-color: #e2e6ec; color: #475569; }
+
+        [data-theme="light"] .body-editor { background: #f8f9fb; border-color: #e2e6ec; color: #1a2332; }
+        [data-theme="light"] .body-editor:focus { border-color: #3b82f6; }
+
+        [data-theme="light"] .spinner { border-color: #e2e6ec; border-top-color: #3b82f6; }
+
+        [data-theme="light"] ::-webkit-scrollbar { width: 6px; height: 6px; }
+        [data-theme="light"] ::-webkit-scrollbar-track { background: #f0f2f5; }
+        [data-theme="light"] ::-webkit-scrollbar-thumb { background: #c8cdd6; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>UCELL SBMS API Testing Dashboard</h1>
+        <div class="status">
+            <a href="/tester" style="color:#22c55e;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #22c55e44;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#22c55e22'" onmouseout="this.style.background='transparent'">QA Tester</a>
+            <a href="/tariff-test" style="color:#eab308;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #eab30844;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#eab30822'" onmouseout="this.style.background='transparent'">Тест тарифа</a>
+            <a href="/tme" style="color:#f472b6;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #f472b644;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#f472b622'" onmouseout="this.style.background='transparent'">TME</a>
+            <span class="status-dot" id="serverStatus"></span>
+            <span id="serverStatusText" style="font-size:13px; color:#94a3b8;">Not connected</span>
+            <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
+                <span class="icon" id="themeIcon">&#9790;</span>
+                <span id="themeLabel">Тёмная</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Config -->
+        <div class="config-panel">
+            <h2>CONFIGURATION</h2>
+            <div class="config-grid">
+                <div class="config-field">
+                    <label>Login</label>
+                    <input type="text" id="login" value="DBS_CC_OPERATORS_PSO">
+                </div>
+                <div class="config-field">
+                    <label>Password</label>
+                    <input type="password" id="password" value="Ucell2026$$">
+                </div>
+                <div class="config-field">
+                    <label>Test MSISDN</label>
+                    <input type="text" id="msisdn" value="998500173054">
+                </div>
+                <div class="config-field">
+                    <label>Token (auto)</label>
+                    <input type="text" id="tokenField" value="" placeholder="Получается автоматически" readonly>
+                </div>
+                <div class="config-field">
+                    <label>Customer ID (auto)</label>
+                    <input type="text" id="customerIdField" value="" placeholder="Из поиска клиента">
+                </div>
+                <div class="config-field">
+                    <label>Subscriber ID (auto)</label>
+                    <input type="text" id="subscriberIdField" value="" placeholder="Из поиска клиента">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="runCoreTests()">Run Core Tests (1-6)</button>
+                <button class="btn btn-success" onclick="runSingleEndpoint('get_session')">1. Get Session</button>
+                <button class="btn btn-danger" onclick="clearResults()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card total">
+                <div class="number" id="statTotal">0</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="stat-card pass">
+                <div class="number" id="statPass">0</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="stat-card fail">
+                <div class="number" id="statFail">0</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="stat-card time">
+                <div class="number" id="statTime">0.00s</div>
+                <div class="label">Total Time</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="tabs"></div>
+
+        <!-- Test Cards -->
+        <div class="test-grid" id="testGrid"></div>
+
+        <!-- Log -->
+        <div class="log-panel">
+            <h2>TEST LOG</h2>
+            <div id="log">
+                <span class="log-dim">[Ready] Dashboard loaded. Press "Run Core Tests" or select a category.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== THEME ====================
+        function getTheme() { return localStorage.getItem('sbms-theme') || 'dark'; }
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (theme === 'dark') { icon.innerHTML = '&#9790;'; label.textContent = 'Тёмная'; }
+            else { icon.innerHTML = '&#9788;'; label.textContent = 'Светлая'; }
+        }
+        function toggleTheme() {
+            const next = getTheme() === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('sbms-theme', next);
+            applyTheme(next);
+        }
+        applyTheme(getTheme());
+
+        // ==================== STATE ====================
+        let token = null;
+        let customerId = null;
+        let subscriberId = null;
+        let totalTime = 0;
+        let passCount = 0;
+        let failCount = 0;
+        let activeTab = 'core';
+
+        // ==================== ALL ENDPOINTS ====================
+        const endpoints = [
+            // ===== CORE (6 основных тестов) =====
+            {
+                id: 'get_session', category: 'core', name: '1. Get Session',
+                method: 'GET', path: '/OAPI/v1/tokens-stub/get',
+                params: [
+                    { key: 'login', label: 'Login', configRef: 'login' },
+                    { key: 'password', label: 'Password', configRef: 'password' }
+                ],
+                description: 'Авторизация. Возвращает SESSION_ID (XML). Токен нужен для всех остальных запросов.',
+                responseType: 'xml',
+                onSuccess: function(data) {
+                    const parser = new DOMParser();
+                    const xml = parser.parseFromString(data, 'text/xml');
+                    const el = xml.querySelector('SESSION_ID');
+                    if (el && el.textContent) {
+                        token = el.textContent;
+                        document.getElementById('tokenField').value = token;
+                        document.getElementById('serverStatus').className = 'status-dot green';
+                        document.getElementById('serverStatusText').textContent = 'Connected';
+                        return { ok: true, msg: `Token: ${token.substring(0, 25)}...` };
+                    }
+                    return { ok: false, msg: 'SESSION_ID not found in response' };
+                }
+            },
+            {
+                id: 'customer_search', category: 'core', name: '2. Customer Search Base',
+                method: 'GET', path: '/OAPI/v1/customers/searchBase',
+                params: [
+                    { key: 'identification', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Поиск клиента по MSISDN. Возвращает customerId, subscriberId, ФИО, тариф.',
+                onSuccess: function(data) {
+                    const count = data.listInfo?.count || 0;
+                    if (count > 0) {
+                        const sr = data.searchResults[0];
+                        customerId = sr.customerId;
+                        subscriberId = sr.subscriberId;
+                        document.getElementById('customerIdField').value = customerId || '';
+                        document.getElementById('subscriberIdField').value = subscriberId || '';
+                        const name = sr.customer?.name || 'N/A';
+                        const plan = sr.firstSubscriber?.ratePlan?.name || 'N/A';
+                        return { ok: true, msg: `${name} | ${plan} | CID:${customerId} SID:${subscriberId}` };
+                    }
+                    return { ok: false, msg: 'Customer not found' };
+                }
+            },
+            {
+                id: 'rt_discounts', category: 'core', name: '3. RT Discounts',
+                method: 'GET', path: '/PSAPI/v1/bis-brt-balance/subscribers/{subscriberId}/rtDiscounts',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'customerDatabaseId', label: 'DB ID', value: '902' }
+                ],
+                description: 'Остатки пакетов: минуты, SMS, интернет-трафик, использованный и доступный объем.'
+            },
+            {
+                id: 'custom_attributes', category: 'core', name: '4. Custom Attributes',
+                method: 'GET', path: '/OAPI/v1/customers/{customerId}/currentCustomAttributes',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Атрибуты клиента: паспортные данные, ПИН ФЛ, признак подключения через МП.'
+            },
+            {
+                id: 'inquiry_props', category: 'core', name: '5. Inquiry Slave Properties',
+                method: 'POST', path: '/OAPI/v1/inquiries/slaveCustomProperties',
+                params: [
+                    { key: 'masterCustomPropertyDeclarationId', label: 'Master ID', value: '1045' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: {
+                    inquiry: {
+                        topic: { topicId: 365, topicCode: "UCELL:CONTRACT:FO:B2C" },
+                        description: "",
+                        phone: null,
+                        priority: { inquiryPriorityId: 1, inquiryPriorityCode: "LOW" },
+                        customProperties: [
+                            { customPropertyDeclaration: { customPropertyDeclarationId: 1045, customPropertyDeclarationCode: "UCELL:CONTACT:TYPE" }, type: "DICTIONARY", values: [] },
+                            { customPropertyDeclaration: { customPropertyDeclarationId: 1046, customPropertyDeclarationCode: "UCELL:CONTRACT:GROUP" }, type: "DB_QUERY", values: [{ value: "DMS_FO_B2C_ALL" }] },
+                            { customPropertyDeclaration: { customPropertyDeclarationId: 1085, customPropertyDeclarationCode: "UCELL:CONTRACT:CHECK_SUBCAT" }, type: "DB_QUERY", values: [{ value: "0" }] }
+                        ]
+                    },
+                    contact: {
+                        direction: "INCOMING",
+                        contactSite: { contactSiteId: 21, contactSiteCode: "OFFICE_CONTACT" },
+                        channel: { channelId: 2, channelCode: "VISIT" }
+                    }
+                },
+                description: 'Зависимые свойства обращений: тип, категория, причина. Определяет обязательные/скрытые поля.'
+            },
+            {
+                id: 'free_numbers', category: 'core', name: '6. Free Phone Numbers',
+                method: 'GET', path: '/OAPI/v1/networkResources/phoneNumbers/free',
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'standardId', label: 'Standard', value: '1' },
+                    { key: 'freeMonthPeriod', label: 'Months', value: '2' }
+                ],
+                description: 'Свободные номера для подключения. Классы: Обычный, GOLD, SILVER, Steel.'
+            },
+
+            // ===== CUSTOMER (Клиенты) =====
+            {
+                id: 'subscriber_info', category: 'customer', name: 'Subscriber Info',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'fields', label: 'Fields', value: 'subscriberId,status,ratePlan,MSISDN' },
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Информация об абоненте: статус, тариф, номер.'
+            },
+            {
+                id: 'customer_info', category: 'customer', name: 'Customer Info',
+                method: 'GET', path: '/OAPI/v1/customers/{customerId}',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'fields', label: 'Fields', value: 'customerId,name,customerType' },
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'actionDate', label: 'Date', value: '' }
+                ],
+                description: 'Полная информация о клиенте: тип, ФИО, данные.'
+            },
+            {
+                id: 'customer_header', category: 'customer', name: 'Customer Header Info',
+                method: 'GET', path: '/OAPI/v1/sbms/customerHeaderInfo',
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'customerId', label: 'Customer ID', stateRef: 'customerId' },
+                    { key: 'subscriberId', label: 'Subscriber ID', stateRef: 'subscriberId' }
+                ],
+                description: 'Краткая заголовочная информация клиента для интерфейса.'
+            },
+
+            // ===== PACKS (Пакеты) =====
+            {
+                id: 'active_packs', category: 'packs', name: 'Active Packs (Search)',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/packs',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Список активных пакетов абонента.'
+            },
+            {
+                id: 'available_packs', category: 'packs', name: 'Available Packs',
+                method: 'GET', path: '/PSAPI/v1/bis-base/subscribers/{subscriberId}/packs/availableForActivate',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'limit', label: 'Limit', value: '100' },
+                    { key: 'unlimited', label: 'Unlimited', value: '1' },
+                    { key: 'offset', label: 'Offset', value: '0' }
+                ],
+                description: 'Доступные для активации пакеты.'
+            },
+            {
+                id: 'activate_pack', category: 'packs', name: 'Activate Pack',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/packs/activate',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'packId', label: 'Pack ID', value: '' }
+                ],
+                body: { actionParameters: [] },
+                description: 'Активация пакета для абонента.'
+            },
+            {
+                id: 'deactivate_pack', category: 'packs', name: 'Deactivate Pack',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/packs/{packId}/deactivate',
+                pathParams: ['subscriberId', 'packId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'packId', label: 'Pack ID', value: '' }
+                ],
+                body: {},
+                description: 'Деактивация пакета абонента.'
+            },
+            {
+                id: 'pack_allowed_actions', category: 'packs', name: 'Pack Allowed Actions',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/packs/allowedActions/search',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'actions', label: 'Actions', value: '' }
+                ],
+                body: { packIds: [] },
+                description: 'Допустимые действия над пакетами абонента.'
+            },
+            {
+                id: 'pack_next_charges', category: 'packs', name: 'Pack Next Charges',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/subscriptions/nextCharges/packs/{packId}',
+                pathParams: ['subscriberId', 'packId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'packId', label: 'Pack ID', value: '' }
+                ],
+                description: 'Следующие списания за пакет.'
+            },
+            {
+                id: 'batch_execute', category: 'packs', name: 'Batch Execute',
+                method: 'POST', path: '/OAPI/v1/oapi-bis-service/batchExecute',
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { functions: [] },
+                description: 'Пакетное выполнение нескольких операций OAPI за один запрос.'
+            },
+
+            // ===== SERVICES (Услуги) =====
+            {
+                id: 'active_services', category: 'services', name: 'Active Services',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/services',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'fields', label: 'Fields', value: '' },
+                    { key: 'limit', label: 'Limit', value: '' }
+                ],
+                description: 'Список активных услуг абонента.'
+            },
+            {
+                id: 'available_services', category: 'services', name: 'Available Services',
+                method: 'GET', path: '/PSAPI/v1/bis-base/subscribers/{subscriberId}/services/availableForActivate',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'limit', label: 'Limit', value: '' }
+                ],
+                description: 'Доступные для активации услуги.'
+            },
+            {
+                id: 'activate_service', category: 'services', name: 'Activate Service',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/services/activate',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'serviceId', label: 'Service ID', value: '' },
+                    { key: 'deactivationDate', label: 'Deact. Date', value: '' }
+                ],
+                description: 'Активация услуги для абонента.'
+            },
+            {
+                id: 'service_next_charges', category: 'services', name: 'Service Next Charges',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/subscriptions/nextCharges/services/{serviceId}',
+                pathParams: ['subscriberId', 'serviceId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'serviceId', label: 'Service ID', value: '' }
+                ],
+                description: 'Следующие списания за услугу.'
+            },
+
+            // ===== RATE PLANS (Тарифы) =====
+            {
+                id: 'rateplan_allowed', category: 'rateplans', name: 'Rate Plan Allowed Actions',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/ratePlans/allowedActions',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Допустимые действия над тарифом абонента.'
+            },
+            {
+                id: 'rateplan_check', category: 'rateplans', name: 'Rate Plan Change Check',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/ratePlans/change/check',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'isFullDiscountsInfo', label: 'Full Info', value: 'true' },
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'newRatePlanId', label: 'New Plan ID', value: '' }
+                ],
+                description: 'Проверка возможности смены тарифа.'
+            },
+            {
+                id: 'rateplan_change', category: 'rateplans', name: 'Rate Plan Change',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/ratePlans/change',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'newRatePlanId', label: 'New Plan ID', value: '' },
+                    { key: 'activationDate', label: 'Act. Date', value: '' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Смена тарифного плана абонента.'
+            },
+            {
+                id: 'rateplan_available', category: 'rateplans', name: 'Available Rate Plans',
+                method: 'POST', path: '/OAPI/v1/cbss/subscribers/{subscriberId}/ratePlans/availableForChange/search',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'limit', label: 'Limit', value: '100' },
+                    { key: 'offset', label: 'Offset', value: '0' },
+                    { key: 'returnCount', label: 'Count', value: '1' },
+                    { key: 'showFees', label: 'Fees', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Доступные для перехода тарифные планы.'
+            },
+            {
+                id: 'rateplan_orders', category: 'rateplans', name: 'Rate Plan Orders',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/ratePlans/orders',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'ratePlanOrderStatusIds', label: 'Status IDs', value: '' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'История заказов на смену тарифа.'
+            },
+            {
+                id: 'rateplan_next_charges', category: 'rateplans', name: 'Rate Plan Next Charges',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/subscriptions/nextCharges/ratePlans/{ratePlanId}',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'ratePlanId', label: 'Plan ID', value: '' }
+                ],
+                description: 'Следующие списания по тарифу.'
+            },
+            {
+                id: 'rateplan_change_params', category: 'rateplans', name: 'Rate Plan Change (BIS)',
+                method: 'POST', path: '/PSAPI/v1/bis-base/subscribers/{subscriberId}/ratePlans/change',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'activationDate', label: 'Act. Date', value: '' },
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'newRatePlanId', label: 'New Plan ID', value: '' }
+                ],
+                description: 'Смена тарифа через BIS API.'
+            },
+
+            // ===== BALANCES (Балансы) =====
+            {
+                id: 'available_balance', category: 'balances', name: 'Available Balance',
+                method: 'GET', path: '/PSAPI/v1/bis-base/customers/{customerId}/availableBalance',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Доступный баланс клиента.'
+            },
+            {
+                id: 'balance_events_days', category: 'balances', name: 'Balance Events Days',
+                method: 'GET', path: '/OAPI/v1/sbms/customers/{customerId}/balances/events/days',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'dateFrom', label: 'Date From', value: '' },
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Детализация событий баланса по дням.'
+            },
+            {
+                id: 'balance_events_details', category: 'balances', name: 'Balance Events Details',
+                method: 'POST', path: '/OAPI/v1/sbms/customers/{customerId}/balances/events/days/details/search',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'limit', label: 'Limit', value: '50' },
+                    { key: 'offset', label: 'Offset', value: '0' },
+                    { key: 'authToken', label: 'Token', tokenRef: true },
+                    { key: 'dateFrom', label: 'Date From', value: '' },
+                    { key: 'dateTo', label: 'Date To', value: '' }
+                ],
+                body: { balanceDate: "", eventTypeIds: [], amount: null },
+                description: 'Детальная информация о событиях баланса.'
+            },
+            {
+                id: 'rt_balance', category: 'balances', name: 'RT Balance',
+                method: 'GET', path: '/PSAPI/v1/bis-brt-balance/customers/{customerId}/rtBalance',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Баланс реального времени клиента (BRT).'
+            },
+            {
+                id: 'price_enquiry', category: 'balances', name: 'Price Enquiry',
+                method: 'POST', path: '/OAPI/v1/subscribers/{subscriberId}/priceEnquiry',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { balanceInfo: true, externalServiceId: 0, requestedServiceUnit: {}, calledNumber: "", tarifficationInfo: {} },
+                description: 'Запрос стоимости для абонента.'
+            },
+
+            // ===== SIM CARDS =====
+            {
+                id: 'simcards_search', category: 'simcards', name: 'SIM Cards Search',
+                method: 'POST', path: '/PSAPI/v1/bis-base/subscribers/{subscriberId}/SIMCards/search',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'limit', label: 'Limit', value: '10' },
+                    { key: 'offset', label: 'Offset', value: '0' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'Поиск SIM-карт абонента.'
+            },
+            {
+                id: 'simcard_history', category: 'simcards', name: 'SIM Card History',
+                method: 'GET', path: '/OAPI/v1/oapi-bis-service/SIMCards/{simCardId}/history',
+                pathParams: [],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'simCardId', label: 'SIM Card ID', value: '' }
+                ],
+                description: 'История SIM-карты.'
+            },
+            {
+                id: 'simcard_actions', category: 'simcards', name: 'SIM Card Allowed Actions',
+                method: 'GET', path: '/OAPI/v1/subscribers/{subscriberId}/SIMCards/{simCardId}/allowedActions',
+                pathParams: ['subscriberId', 'simCardId'],
+                params: [
+                    { key: 'actions', label: 'Actions', value: '' },
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'simCardId', label: 'SIM Card ID', value: '' }
+                ],
+                description: 'Допустимые действия с SIM-картой.'
+            },
+
+            // ===== LIFECYCLE =====
+            {
+                id: 'lifecycle_info', category: 'lifecycle', name: 'Lifecycle Info',
+                method: 'POST', path: '/PSAPI/internal/v1/licy-base-private/customers/{customerId}/subscribers/lifeCycleInfo/search',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'limit', label: 'Limit', value: '10' },
+                    { key: 'offset', label: 'Offset', value: '0' },
+                    { key: 'returnCount', label: 'Count', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { returnLCStatesList: true },
+                description: 'Информация о жизненном цикле абонентов клиента.'
+            },
+            {
+                id: 'lifecycle_actual', category: 'lifecycle', name: 'LC State Actual',
+                method: 'POST', path: '/PSAPI/internal/v1/licy-base-private/subslcstates/actual/{subscriberId}',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: {},
+                description: 'Текущее состояние жизненного цикла абонента.'
+            },
+            {
+                id: 'lifecycle_refresh', category: 'lifecycle', name: 'LC State Refresh',
+                method: 'POST', path: '/PSAPI/internal/v1/licy-base-private/operation/subs/{subscriberId}/refresh/lcstate',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: {},
+                description: 'Обновление состояния жизненного цикла абонента.'
+            },
+            {
+                id: 'lifecycle_history', category: 'lifecycle', name: 'LC State History',
+                method: 'POST', path: '/PSAPI/internal/v1/licy-base-private/subslcstates/history/search',
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { subs: [] },
+                description: 'История изменений жизненного цикла.'
+            },
+
+            // ===== PAYMENTS =====
+            {
+                id: 'payments', category: 'payments', name: 'Payments',
+                method: 'GET', path: '/PSAPI/v1/fim/customers/{customerId}/payments',
+                pathParams: ['customerId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'limit', label: 'Limit', value: '20' },
+                    { key: 'offset', label: 'Offset', value: '0' },
+                    { key: 'sort', label: 'Sort', value: '' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                description: 'История платежей клиента.'
+            },
+
+            // ===== INQUIRIES =====
+            {
+                id: 'create_inquiry', category: 'inquiries', name: 'Create Inquiry',
+                method: 'POST', path: '/OAPI/v1/inquiries',
+                params: [
+                    { key: 'fields', label: 'Fields', value: '' },
+                    { key: 'getObject', label: 'Get Object', value: 'true' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: {
+                    inquiry: {
+                        topic: { topicId: 365, topicCode: "UCELL:CONTRACT:FO:B2C" },
+                        description: "",
+                        priority: { inquiryPriorityId: 1 },
+                        customProperties: []
+                    },
+                    contact: {
+                        direction: "INCOMING",
+                        contactSite: { contactSiteId: 21 },
+                        channel: { channelId: 2 }
+                    }
+                },
+                description: 'Создание обращения в системе.'
+            },
+
+            // ===== HAS/SBMS (Legacy) =====
+            {
+                id: 'subs_info_r', category: 'has_sbms', name: 'SUBS_SUBS_SUBS_INFO_R',
+                method: 'GET', path: '/PSIX/subs/SUBS_SUBS_SUBS_INFO_R',
+                params: [
+                    { key: 'SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'MODUS', label: 'MODUS', value: '1' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Полная информация об абоненте (HAS/SBMS legacy).'
+            },
+            {
+                id: 'execute_operations', category: 'has_sbms', name: 'EXECUTE_OPERATIONS',
+                method: 'GET', path: '/PSIX/scli/EXECUTE_OPERATIONS',
+                params: [
+                    { key: 'SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'LANG_ID', label: 'Lang', value: '1' },
+                    { key: 'STND_ID', label: 'STND', value: '1' },
+                    { key: 'CLOSED', label: 'Closed', value: '0' },
+                    { key: 'TIMEZONE', label: 'TZ', value: '1' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Комплексный запрос: MSISDN, тариф, статус, зона, точка продаж и др.'
+            },
+            {
+                id: 'rt_status', category: 'has_sbms', name: 'SUBS_GET_RT_STATUS',
+                method: 'GET', path: '/PSIX/custom/SUBS_GET_RT_STATUS',
+                params: [
+                    { key: 'IP_SUBS', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Статус абонента в реальном времени.'
+            },
+            {
+                id: 'bis_param', category: 'has_sbms', name: 'SCLI_GET_BIS_PARAM_R',
+                method: 'GET', path: '/PSIX/subs/SCLI_GET_BIS_PARAM_R',
+                params: [
+                    { key: 'PRMT_ID', label: 'PRMT_ID', value: '210551' },
+                    { key: 'TYPE', label: 'TYPE', value: 'STRING' },
+                    { key: 'CTX_NAME', label: 'CTX', value: 'BIS_PARAM_210551' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Получение BIS параметра.'
+            },
+            {
+                id: 'hac_user_info', category: 'has_sbms', name: 'HAC_USER_INFO',
+                method: 'GET', path: '/PSIX/hac/HAC_USER_INFO',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true }
+                ],
+                description: 'Информация о текущем пользователе HAC.'
+            },
+            {
+                id: 'zone_list', category: 'has_sbms', name: 'SUBS_CARD_ZONE_LIST_R',
+                method: 'GET', path: '/PSIX/sbms/SUBS_CARD_ZONE_LIST_R',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Список зон обслуживания.'
+            },
+            {
+                id: 'sale_point_list', category: 'has_sbms', name: 'SUBS_CARD_SALE_POINT_LIST_R',
+                method: 'GET', path: '/PSIX/sbms/SUBS_CARD_SALE_POINT_LIST_R',
+                params: [
+                    { key: 'SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'DELR_ID', label: 'DELR_ID', value: '' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Список точек продаж.'
+            },
+            {
+                id: 'cancel_rtpl', category: 'has_sbms', name: 'NX_CANCEL_RTPL_CHANGE',
+                method: 'POST', path: '/PSIX/sbms/NX_CANCEL_RTPL_CHANGE',
+                params: [
+                    { key: 'SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Отмена заказа на смену тарифа.'
+            },
+            {
+                id: 'combined_history', category: 'has_sbms', name: 'COMBINED_HISTORY',
+                method: 'GET', path: '/PSIX/combhist/COMBINED_HISTORY_GET_SERVICES_PACKS',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'customerId', label: 'Customer ID', stateRef: 'customerId' },
+                    { key: 'subscriberId', label: 'Subscriber ID', stateRef: 'subscriberId' },
+                    { key: 'startDateFilter', label: 'Date From', value: '' },
+                    { key: 'endDateFilter', label: 'Date To', value: '' },
+                    { key: 'limit', label: 'Limit', value: '50' },
+                    { key: 'offset', label: 'Offset', value: '0' }
+                ],
+                description: 'История подключений/отключений услуг и пакетов.'
+            },
+            {
+                id: 'tfop_check', category: 'has_sbms', name: 'SCLI_TFOP_CHECK_CLIENT_R',
+                method: 'GET', path: '/PSIX/subs/SCLI_TFOP_CHECK_CLIENT_R',
+                params: [
+                    { key: 'INTM', label: 'INTM', value: 'BIS' },
+                    { key: 'CLNT_ID', label: 'Client ID', stateRef: 'customerId' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'REM_IOPER_ID', label: 'IOPER', value: '1' }
+                ],
+                description: 'Проверка клиента TFOP.'
+            },
+
+            // ===== PSIX =====
+            {
+                id: 'psix_charge', category: 'psix', name: 'UCL_OAPI_GET_CHARGE',
+                method: 'GET', path: '/PSIX/scli/UCL_OAPI_GET_CHARGE',
+                params: [
+                    { key: 'SUBSCRIBER_MSISDN', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'P_DATE_FROM', label: 'Date From', value: '' },
+                    { key: 'P_DATE_TILL', label: 'Date To', value: '' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true }
+                ],
+                description: 'Списания абонента за период.'
+            },
+            {
+                id: 'psix_discounts', category: 'psix', name: 'UCELL_DISCOUNTS_INFO',
+                method: 'GET', path: '/PSIX/scli/UCELL_DISCOUNTS_INFO',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SUBSCRIBER_MSISDN', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'P_IMSI', label: 'IMSI', value: '' }
+                ],
+                description: 'Информация о скидках абонента.'
+            },
+            {
+                id: 'psix_qos_quotas', category: 'psix', name: 'UCELL_GET_ALL_QOS_QUOTAS',
+                method: 'GET', path: '/PSIX/scli/UCELL_GET_ALL_QOS_QUOTAS',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SUBSCRIBER_MSISDN', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'P_IMSI', label: 'IMSI', value: '' }
+                ],
+                description: 'QoS квоты абонента.'
+            },
+            {
+                id: 'psix_qos_rtpl', category: 'psix', name: 'UCELL_GET_QOS_ON_RTPL',
+                method: 'GET', path: '/PSIX/scli/UCELL_GET_QOS_ON_RTPL',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SUBSCRIBER_MSISDN', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'P_IMSI', label: 'IMSI', value: '' }
+                ],
+                description: 'QoS параметры тарифного плана.'
+            },
+            {
+                id: 'psix_next_fee', category: 'psix', name: 'UCELL_NEXT_TIME_FEE',
+                method: 'GET', path: '/PSIX/scli/UCELL_NEXT_TIME_FEE',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' }
+                ],
+                description: 'Следующее списание абонентской платы.'
+            },
+            {
+                id: 'psix_next_status', category: 'psix', name: 'UCL_GET_SUBS_NEXT_STATUS',
+                method: 'GET', path: '/PSIX/scli/UCL_GET_SUBS_NEXT_STATUS',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' }
+                ],
+                description: 'Следующий статус абонента.'
+            },
+            {
+                id: 'psix_dcpl', category: 'psix', name: 'UCELL_GET_DCPL_INFORMATION',
+                method: 'GET', path: '/PSIX/scli/UCELL_GET_DCPL_INFORMATION',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' }
+                ],
+                description: 'DCPL информация абонента.'
+            },
+            {
+                id: 'psix_msisdn_by_doc', category: 'psix', name: 'UCL_GET_MSISDN_LIST_BY_DOC',
+                method: 'GET', path: '/PSIX/scli/UCL_GET_MSISDN_LIST_BY_DOC',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'DOC_TYPE_ID', label: 'Doc Type', value: '' },
+                    { key: 'DOC_IN', label: 'Doc Number', value: '' },
+                    { key: 'IS_CLOSED_IGN', label: 'Closed', value: '' }
+                ],
+                description: 'Поиск MSISDN по документу.'
+            },
+            {
+                id: 'psix_termination', category: 'psix', name: 'UCL_GET_MSISDN_TERMINATION_DATE',
+                method: 'GET', path: '/PSIX/scli/UCL_GET_MSISDN_TERMINATION_DATE',
+                params: [
+                    { key: 'SUBSCRIBER_MSISDN', label: 'MSISDN', configRef: 'msisdn' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true }
+                ],
+                description: 'Дата отключения номера.'
+            },
+            {
+                id: 'psix_change_lang', category: 'psix', name: 'NX_SUBS_CHANGE_LANG',
+                method: 'GET', path: '/PSIX/nx_add_forms/NX_SUBS_CHANGE_LANG',
+                params: [
+                    { key: 'LANG_ID', label: 'Lang ID', value: '1' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' }
+                ],
+                description: 'Смена языка абонента.'
+            },
+            {
+                id: 'psix_rtpl_charge_hist', category: 'psix', name: 'UCL_GET_RTPL_CHARGE_HIST',
+                method: 'GET', path: '/PSIX/scli/UCL_GET_RTPL_CHARGE_HIST',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' }
+                ],
+                description: 'История списаний по тарифному плану.'
+            },
+            {
+                id: 'psix_cashback', category: 'psix', name: 'UCL_MLK_UPSERT_CASHBACK',
+                method: 'GET', path: '/PSIX/scli/UCL_MLK_UPSERT_CASHBACK',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'P_VOLUME', label: 'Volume', value: '' },
+                    { key: 'P_ACTION', label: 'Action', value: '' }
+                ],
+                description: 'Операции с кэшбэком.'
+            },
+            {
+                id: 'psix_collection_info', category: 'psix', name: 'UCL_SUBS_COLLECTION_INFO',
+                method: 'GET', path: '/PSIX/scli/UCL_SUBS_COLLECTION_INFO',
+                params: [
+                    { key: 'P_CLNT_ID', label: 'Client ID', stateRef: 'customerId' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'CAN_GET_DISABLE_STATUS', label: 'Disable', value: '' },
+                    { key: 'P_ROW_FIRST', label: 'Row First', value: '1' },
+                    { key: 'P_ROW_LAST', label: 'Row Last', value: '100' }
+                ],
+                description: 'Информация о коллекции абонентов клиента.'
+            },
+            {
+                id: 'psix_pack_status', category: 'psix', name: 'UCL_GET_PACK_STATUS',
+                method: 'GET', path: '/PSIX/scli/PACKS/UCL_GET_PACK_STATUS',
+                params: [
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_PACK_ID', label: 'Pack ID', value: '' }
+                ],
+                description: 'Статус пакета абонента.'
+            },
+            {
+                id: 'psix_subs_card', category: 'psix', name: 'SUBS_CARD_SUBS_CARD_R',
+                method: 'GET', path: '/PSIX/scli/SUBS_CARD_SUBS_CARD_R',
+                params: [
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true },
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'MSIDN', label: 'MSISDN', configRef: 'msisdn' }
+                ],
+                description: 'Карточка абонента.'
+            },
+
+            // ===== REPORTS =====
+            {
+                id: 'esm_objects', category: 'other', name: 'ESM Objects',
+                method: 'POST', path: '/PSAPI/internal/v1/esm-private/objects/search',
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { subscriberId: null, showClosed: false },
+                description: 'Поиск ESM объектов абонента.'
+            },
+            {
+                id: 'charges_onetime', category: 'other', name: 'One-Time Charges',
+                method: 'POST', path: '/PSAPI/v1/bis-base/subscribers/{subscriberId}/charges/oneTime/search',
+                pathParams: ['subscriberId'],
+                params: [
+                    { key: 'languageId', label: 'Lang', value: '1' },
+                    { key: 'authToken', label: 'Token', tokenRef: true }
+                ],
+                body: { eventIds: [], eventDate: "", conditions: {} },
+                description: 'Поиск разовых списаний абонента.'
+            },
+            {
+                id: 'call_credits', category: 'other', name: 'Call Credits (SUBS_DISC)',
+                method: 'POST', path: '/PSIX/grid/SUBS_DISC_GET_CALL_CREDIT_R',
+                params: [
+                    { key: 'P_SUBS_ID', label: 'SUBS_ID', stateRef: 'subscriberId' },
+                    { key: 'P_CLNT_ID_FOR_SUBS', label: 'Client ID', stateRef: 'customerId' },
+                    { key: 'SHOW_SELF_CLNT', label: 'Show Self', value: '' },
+                    { key: 'P_START_NUM', label: 'Start', value: '1' },
+                    { key: 'P_END_NUM', label: 'End', value: '100' },
+                    { key: 'SESSION_ID', label: 'Session', tokenRef: true }
+                ],
+                description: 'Кредиты вызовов абонента.'
+            }
+        ];
+
+        // ==================== CATEGORIES ====================
+        const categories = {
+            core: 'Core Tests',
+            customer: 'Customers',
+            packs: 'Packs',
+            services: 'Services',
+            rateplans: 'Rate Plans',
+            balances: 'Balances',
+            simcards: 'SIM Cards',
+            lifecycle: 'Lifecycle',
+            payments: 'Payments',
+            inquiries: 'Inquiries',
+            has_sbms: 'HAS/SBMS',
+            psix: 'PSIX',
+            other: 'Other'
+        };
+
+        // ==================== CONFIG HELPERS ====================
+        function getConfig() {
+            return {
+                proxyUrl: '/proxy',
+                login: document.getElementById('login').value,
+                password: document.getElementById('password').value,
+                msisdn: document.getElementById('msisdn').value
+            };
+        }
+
+        function getParamValue(p) {
+            const cfg = getConfig();
+            if (p.tokenRef) return token || '';
+            if (p.configRef) return cfg[p.configRef] || '';
+            if (p.stateRef) {
+                if (p.stateRef === 'customerId') return customerId || document.getElementById('customerIdField').value || '';
+                if (p.stateRef === 'subscriberId') return subscriberId || document.getElementById('subscriberIdField').value || '';
+            }
+            return p.value || '';
+        }
+
+        function getStateValue(name) {
+            if (name === 'customerId') return customerId || document.getElementById('customerIdField').value || '';
+            if (name === 'subscriberId') return subscriberId || document.getElementById('subscriberIdField').value || '';
+            return '';
+        }
+
+        // ==================== UI HELPERS ====================
+        function log(msg, cls = '') {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `\n<span class="${cls}">[${time}] ${msg}</span>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function updateStats() {
+            document.getElementById('statTotal').textContent = passCount + failCount;
+            document.getElementById('statPass').textContent = passCount;
+            document.getElementById('statFail').textContent = failCount;
+            document.getElementById('statTime').textContent = `${(totalTime / 1000).toFixed(2)}s`;
+        }
+
+        function clearResults() {
+            token = null;
+            customerId = null;
+            subscriberId = null;
+            totalTime = 0;
+            passCount = 0;
+            failCount = 0;
+            updateStats();
+            document.getElementById('tokenField').value = '';
+            document.getElementById('customerIdField').value = '';
+            document.getElementById('subscriberIdField').value = '';
+            document.querySelectorAll('.ep-status').forEach(el => {
+                el.className = 'test-badge pending ep-status';
+                el.textContent = 'PENDING';
+            });
+            document.querySelectorAll('.ep-time').forEach(el => el.textContent = '-');
+            document.querySelectorAll('.ep-http').forEach(el => { el.textContent = '-'; el.className = 'http-status ep-http'; });
+            document.querySelectorAll('.response-area').forEach(el => el.classList.remove('visible'));
+            document.getElementById('log').innerHTML = '<span class="log-dim">[Ready] Cleared.</span>';
+            document.getElementById('serverStatus').className = 'status-dot';
+            document.getElementById('serverStatusText').textContent = 'Not connected';
+        }
+
+        // ==================== RENDER ====================
+        function renderTabs() {
+            const tabsEl = document.getElementById('tabs');
+            let html = '';
+            for (const [key, label] of Object.entries(categories)) {
+                const count = endpoints.filter(e => e.category === key).length;
+                if (count === 0) continue;
+                html += `<button class="tab ${key === activeTab ? 'active' : ''}" onclick="switchTab('${key}')">${label}<span class="count">${count}</span></button>`;
+            }
+            tabsEl.innerHTML = html;
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('testGrid');
+            let html = '';
+            for (const ep of endpoints) {
+                const isVisible = ep.category === activeTab;
+                const methodClass = ep.method.toLowerCase();
+
+                let paramsHtml = '';
+                if (ep.params && ep.params.length > 0) {
+                    paramsHtml = '<div class="param-grid">';
+                    for (const p of ep.params) {
+                        const val = getParamValue(p);
+                        paramsHtml += `<span class="param-label">${p.label}:</span>`;
+                        paramsHtml += `<input class="param-input" id="param_${ep.id}_${p.key}" value="${escapeHtml(val)}" placeholder="${p.key}">`;
+                    }
+                    paramsHtml += '</div>';
+                }
+
+                let bodyHtml = '';
+                if (ep.body) {
+                    bodyHtml = `<textarea class="body-editor" id="body_${ep.id}">${JSON.stringify(ep.body, null, 2)}</textarea>`;
+                }
+
+                html += `
+                <div class="test-card ${isVisible ? '' : 'hidden'}" data-category="${ep.category}" id="card_${ep.id}">
+                    <div class="test-card-header">
+                        <h3>${ep.name}</h3>
+                        <div style="display:flex;gap:6px;align-items:center">
+                            <span class="test-badge ${methodClass}">${ep.method}</span>
+                            <button class="btn btn-primary btn-sm" onclick="runSingleEndpoint('${ep.id}')">Run</button>
+                        </div>
+                    </div>
+                    <div class="test-card-body">
+                        <div class="url">${ep.path}</div>
+                        <div class="description">${ep.description}</div>
+                        ${paramsHtml}
+                        ${bodyHtml}
+                        <div class="test-badge pending ep-status" id="status_${ep.id}">PENDING</div>
+                        <div class="response-area" id="resp_${ep.id}"></div>
+                    </div>
+                    <div class="test-card-footer">
+                        <span class="response-time ep-time" id="time_${ep.id}">-</span>
+                        <span class="http-status ep-http" id="http_${ep.id}">-</span>
+                    </div>
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.querySelectorAll('.test-card').forEach(card => {
+                card.classList.toggle('hidden', card.dataset.category !== tab);
+            });
+        }
+
+        // ==================== API CALLS ====================
+        async function fetchAPI(url, options = {}) {
+            const start = performance.now();
+            try {
+                const resp = await fetch(url, options);
+                const elapsed = performance.now() - start;
+                totalTime += elapsed;
+
+                let data;
+                const ct = resp.headers.get('content-type') || '';
+                if (ct.includes('json')) {
+                    data = await resp.json();
+                } else {
+                    data = await resp.text();
+                }
+                return { ok: resp.ok, status: resp.status, data, elapsed };
+            } catch (e) {
+                const elapsed = performance.now() - start;
+                totalTime += elapsed;
+                return { ok: false, status: 0, data: e.message, elapsed };
+            }
+        }
+
+        async function runSingleEndpoint(id) {
+            const ep = endpoints.find(e => e.id === id);
+            if (!ep) return;
+
+            const cfg = getConfig();
+
+            // Read param values — синхронизировать с текущей конфигурацией
+            const params = {};
+            if (ep.params) {
+                for (const p of ep.params) {
+                    const input = document.getElementById(`param_${ep.id}_${p.key}`);
+                    // Для params с configRef/tokenRef — всегда брать актуальное значение из конфига
+                    if (p.configRef || p.tokenRef) {
+                        const freshVal = getParamValue(p);
+                        if (input) input.value = freshVal;
+                        if (freshVal) params[p.key] = freshVal;
+                    } else {
+                        const val = input ? input.value : getParamValue(p);
+                        if (val) params[p.key] = val;
+                    }
+                }
+            }
+
+            // Build path with path params
+            let path = ep.path;
+            if (ep.pathParams) {
+                for (const pp of ep.pathParams) {
+                    const val = getStateValue(pp);
+                    path = path.replace(`{${pp}}`, val);
+                }
+            }
+            // Also replace any remaining {paramName} from query params
+            path = path.replace(/\{(\w+)\}/g, (match, name) => {
+                return params[name] || match;
+            });
+
+            // Build URL
+            const queryStr = new URLSearchParams(params).toString();
+            const url = `${cfg.proxyUrl}${path}${queryStr ? '?' + queryStr : ''}`;
+
+            // Status
+            const statusEl = document.getElementById(`status_${ep.id}`);
+            statusEl.className = 'test-badge running ep-status';
+            statusEl.textContent = 'RUNNING';
+            log(`Running: ${ep.name} [${ep.method} ${path}]`, 'log-info');
+
+            // Build fetch options
+            const options = { method: ep.method };
+            if (ep.method === 'POST' || ep.method === 'PUT' || ep.method === 'PATCH') {
+                const bodyEl = document.getElementById(`body_${ep.id}`);
+                if (bodyEl) {
+                    try {
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = bodyEl.value;
+                    } catch (e) {
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = bodyEl.value;
+                    }
+                }
+            }
+
+            const result = await fetchAPI(url, options);
+
+            // Update UI
+            document.getElementById(`time_${ep.id}`).textContent = `${(result.elapsed / 1000).toFixed(2)}s`;
+
+            const httpEl = document.getElementById(`http_${ep.id}`);
+            httpEl.textContent = result.status ? `HTTP ${result.status}` : 'ERR';
+            if (result.status >= 200 && result.status < 300) httpEl.className = 'http-status s200 ep-http';
+            else if (result.status >= 400 && result.status < 500) httpEl.className = 'http-status s400 ep-http';
+            else httpEl.className = 'http-status s500 ep-http';
+
+            const respEl = document.getElementById(`resp_${ep.id}`);
+            respEl.textContent = typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2);
+            respEl.classList.add('visible');
+
+            if (result.status === 0) {
+                statusEl.className = 'test-badge failed ep-status';
+                statusEl.textContent = 'FAILED';
+                failCount++;
+                log(`FAIL: ${ep.name} - ${result.data}`, 'log-fail');
+                document.getElementById('serverStatus').className = 'status-dot red';
+                document.getElementById('serverStatusText').textContent = 'Error';
+                updateStats();
+                return false;
+            }
+
+            // Custom success handler
+            if (ep.onSuccess && result.ok) {
+                const res = ep.onSuccess(result.data);
+                if (res.ok) {
+                    statusEl.className = 'test-badge passed ep-status';
+                    statusEl.textContent = 'PASSED';
+                    passCount++;
+                    log(`PASS: ${ep.name} - ${res.msg}`, 'log-pass');
+                    updateStats();
+                    return true;
+                } else {
+                    statusEl.className = 'test-badge failed ep-status';
+                    statusEl.textContent = 'FAILED';
+                    failCount++;
+                    log(`FAIL: ${ep.name} - ${res.msg}`, 'log-fail');
+                    updateStats();
+                    return false;
+                }
+            }
+
+            if (result.ok) {
+                statusEl.className = 'test-badge passed ep-status';
+                statusEl.textContent = 'PASSED';
+                passCount++;
+                log(`PASS: ${ep.name} - HTTP ${result.status}`, 'log-pass');
+                updateStats();
+                return true;
+            } else {
+                statusEl.className = 'test-badge failed ep-status';
+                statusEl.textContent = 'FAILED';
+                failCount++;
+                log(`FAIL: ${ep.name} - HTTP ${result.status}`, 'log-fail');
+                updateStats();
+                return false;
+            }
+        }
+
+        // ==================== CORE TESTS ====================
+        async function runCoreTests() {
+            clearResults();
+            log('Starting Core Tests (1-6)...', 'log-info');
+
+            const ok1 = await runSingleEndpoint('get_session');
+            if (!ok1) {
+                log('Auth failed. Remaining tests skipped.', 'log-warn');
+                return;
+            }
+
+            // Refresh param inputs with new token
+            refreshParamInputs();
+
+            const ok2 = await runSingleEndpoint('customer_search');
+            if (ok2) refreshParamInputs();
+
+            if (subscriberId) await runSingleEndpoint('rt_discounts');
+            else { failCount++; log('SKIP: RT Discounts - no subscriberId', 'log-warn'); }
+
+            if (customerId) await runSingleEndpoint('custom_attributes');
+            else { failCount++; log('SKIP: Custom Attributes - no customerId', 'log-warn'); }
+
+            await runSingleEndpoint('inquiry_props');
+            await runSingleEndpoint('free_numbers');
+
+            updateStats();
+            log(`Done! ${passCount} passed, ${failCount} failed, total ${(totalTime / 1000).toFixed(2)}s`,
+                failCount === 0 ? 'log-pass' : 'log-warn');
+        }
+
+        function refreshParamInputs() {
+            // Refresh all token/state/config-dependent inputs
+            const cfg = getConfig();
+            for (const ep of endpoints) {
+                if (!ep.params) continue;
+                for (const p of ep.params) {
+                    const input = document.getElementById(`param_${ep.id}_${p.key}`);
+                    if (!input) continue;
+                    if (p.tokenRef && token) input.value = token;
+                    if (p.configRef && cfg[p.configRef]) input.value = cfg[p.configRef];
+                    if (p.stateRef === 'customerId' && customerId) input.value = customerId;
+                    if (p.stateRef === 'subscriberId' && subscriberId) input.value = subscriberId;
+                }
+            }
+        }
+
+        // ==================== INIT ====================
+        renderTabs();
+        renderCards();
+    </script>
+</body>
+</html>

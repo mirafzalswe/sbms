@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.local
+.env.production
+*.env.backup
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime artifacts
+test_history/
+test_results.json
+*.log
+
+# Pipenv lock (optional — оставить если используется)
+# Pipfile.lock

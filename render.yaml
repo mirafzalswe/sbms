@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sbms-test
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    envVars:
+      - key: SBMS_BASE_URL
+        value: https://sbms.ucell
+      - key: TME_BASE_URL
+        value: https://tme.billing.domain
+      - key: REQUEST_TIMEOUT
+        value: "30"
+      - key: SBMS_LOGIN
+        sync: false
+      - key: SBMS_PASSWORD
+        sync: false
+      - key: TEST_MSISDN
+        sync: false

@@ -1,0 +1,12 @@
+services:
+  sbms-test:
+    build: .
+    container_name: sbms-test
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./test_history:/app/test_history
+      - ./DISPID.xlsx:/app/DISPID.xlsx:ro
