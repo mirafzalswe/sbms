@@ -124,6 +124,161 @@
         .subs-header .subs-reload { background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all .2s; }
         .subs-header .subs-reload:hover { border-color: #475569; color: #e2e8f0; }
 
+        /* View-as button (header of "Подписки абонента") */
+        .view-as-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #1e3a5f22; color: #60a5fa;
+            border: 1px solid #3b82f644; border-radius: 6px;
+            padding: 5px 11px; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all .15s;
+        }
+        .view-as-btn:hover { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
+        [data-theme="light"] .view-as-btn        { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        [data-theme="light"] .view-as-btn:hover  { background: #dbeafe; border-color: #2563eb; }
+
+        /* ===== VIEW-AS MODAL ===== */
+        .va-modal-bd {
+            position: fixed; inset: 0; background: rgba(2,6,23,.78);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9000; padding: 24px;
+        }
+        .va-modal-bd.show { display: flex; }
+        .va-modal {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            width: 100%; max-width: 1120px; max-height: 90vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+        }
+        .va-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-bottom: 1px solid #1e293b; flex-shrink: 0;
+        }
+        .va-head h3 { margin: 0; font-size: 15px; color: #e2e8f0; }
+        .va-head .va-sub { font-size: 11px; color: #64748b; margin-top: 3px; text-transform: none; letter-spacing: 0; }
+        .va-close {
+            background: transparent; border: 1px solid #334155; color: #94a3b8;
+            border-radius: 6px; width: 28px; height: 28px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px; line-height: 1;
+        }
+        .va-close:hover { border-color: #ef4444; color: #ef4444; }
+        .va-body { padding: 18px 20px; overflow: auto; min-height: 0; flex: 1; }
+
+        /* Step 1 — auth form */
+        .va-step1 { display: flex; flex-direction: column; gap: 14px; max-width: 540px; }
+        .va-roles { display: flex; gap: 8px; flex-wrap: wrap; }
+        .va-role {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 8px;
+            background: #1e293b; border: 1px solid #334155;
+            color: #94a3b8; cursor: pointer; font-size: 13px; font-weight: 600;
+            transition: all .15s;
+        }
+        .va-role:hover { border-color: #475569; color: #e2e8f0; }
+        .va-role.active { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
+        .va-role svg { opacity: .65; }
+        .va-role.active svg { opacity: 1; }
+        #vaPresetHint.preset { color: #60a5fa; }
+        [data-theme="light"] #vaPresetHint.preset { color: #2563eb; }
+        .va-creds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .va-creds label { display: block; font-size: 11px; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .3px; }
+        .va-creds input {
+            width: 100%; padding: 9px 12px; background: #0f172a;
+            border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 13px;
+        }
+        .va-creds input:focus { border-color: #3b82f6; outline: none; }
+        .va-actions { display: flex; gap: 10px; align-items: center; }
+        .va-submit {
+            padding: 9px 20px; background: #3b82f6; border: 1px solid #3b82f6; color: #fff;
+            border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all .15s;
+        }
+        .va-submit:hover:not(:disabled) { background: #2563eb; }
+        .va-submit:disabled { opacity: .55; cursor: wait; }
+        .va-error {
+            background: #7f1d1d22; border: 1px solid #ef444444; color: #fca5a5;
+            padding: 10px 14px; border-radius: 6px; font-size: 12px; display: none;
+        }
+        .va-error.show { display: block; }
+        .va-loading { color: #60a5fa; font-size: 12px; display: none; }
+        .va-loading.show { display: inline-flex; align-items: center; gap: 6px; }
+        .va-spinner {
+            width: 12px; height: 12px; border: 2px solid #3b82f644;
+            border-top-color: #3b82f6; border-radius: 50%;
+            animation: vaSpin .8s linear infinite;
+        }
+        @keyframes vaSpin { to { transform: rotate(360deg); } }
+
+        /* Step 2 — compare */
+        .va-compare-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+        .va-tabs { display: inline-flex; gap: 4px; background: #0f172a; padding: 3px; border: 1px solid #1e293b; border-radius: 8px; }
+        .va-tab {
+            padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;
+            color: #64748b; background: transparent; border: none; font-weight: 600;
+        }
+        .va-tab.active { background: #1e3a5f; color: #bfdbfe; }
+        .va-diff-summary { font-size: 12px; color: #64748b; margin-left: auto; }
+        .va-diff-summary .va-diff-num { color: #f59e0b; font-weight: 700; }
+        .va-back {
+            margin-left: 8px; background: transparent; border: 1px solid #334155;
+            color: #94a3b8; border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer;
+        }
+        .va-back:hover { border-color: #475569; color: #e2e8f0; }
+
+        .va-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .va-pane {
+            background: #0b1220; border: 1px solid #1e293b; border-radius: 8px;
+            display: flex; flex-direction: column; min-height: 240px; overflow: hidden;
+        }
+        .va-pane-hdr {
+            padding: 8px 12px; background: #0f172a; border-bottom: 1px solid #1e293b;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .va-pane-hdr.left  { color: #60a5fa; border-bottom-color: #1e3a5f; }
+        .va-pane-hdr.right { color: #fbbf24; border-bottom-color: #78350f; }
+        .va-pane-hdr .va-count { font-weight: 600; color: #64748b; }
+        .va-pane-body { flex: 1; overflow-y: auto; max-height: 420px; }
+        .va-row {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 12px; font-size: 12px; border-bottom: 1px solid #1e293b22;
+        }
+        .va-row:last-child { border-bottom: none; }
+        .va-row .va-name { flex: 1; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .va-row .va-id { color: #475569; font-family: 'SF Mono','Fira Code',monospace; font-size: 10px; min-width: 50px; }
+        .va-row .va-stat {
+            font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .3px; font-weight: 700;
+        }
+        .va-stat.act { background: #22c55e18; color: #22c55e; border: 1px solid #22c55e30; }
+        .va-stat.avl { background: #3b82f618; color: #60a5fa; border: 1px solid #3b82f630; }
+
+        /* diff highlights */
+        .va-row.only-left  { background: #22c55e0d; border-left: 2px solid #22c55e; }
+        .va-row.only-right { background: #ef44440d; border-left: 2px solid #ef4444; }
+        .va-row.placeholder { color: #475569; font-style: italic; justify-content: center; }
+        .va-empty { padding: 24px; text-align: center; color: #475569; font-size: 12px; }
+
+        /* Read-only ribbon */
+        .va-readonly {
+            position: absolute; top: 12px; right: 12px;
+            background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b44;
+            border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .5px;
+        }
+
+        /* Light theme */
+        [data-theme="light"] .va-modal-bd { background: rgba(15,23,42,.55); }
+        [data-theme="light"] .va-modal { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .va-head  { border-bottom-color: #e2e6ec; }
+        [data-theme="light"] .va-head h3 { color: #1a2332; }
+        [data-theme="light"] .va-role { background: #f0f2f5; border-color: #e2e6ec; color: #5a6577; }
+        [data-theme="light"] .va-role.active { background: #dbeafe; border-color: #2563eb; color: #1e40af; }
+        [data-theme="light"] .va-creds input { background: #f7f8fa; border-color: #e2e6ec; color: #1a2332; }
+        [data-theme="light"] .va-pane { background: #f7f8fa; border-color: #e2e6ec; }
+        [data-theme="light"] .va-pane-hdr { background: #fff; border-bottom-color: #e2e6ec; }
+        [data-theme="light"] .va-row .va-name { color: #1a2332; }
+        [data-theme="light"] .va-tabs { background: #f0f2f5; border-color: #e2e6ec; }
+        [data-theme="light"] .va-tab.active { background: #dbeafe; color: #1e40af; }
+
         /* Individual section reload button (inside toggle headers / panel headers) */
         .section-reload { background: transparent; border: 1px solid #334155; color: #475569; border-radius: 5px;
             padding: 1px 7px; font-size: 12px; cursor: pointer; transition: all .2s; line-height: 1.6; flex-shrink: 0; }
@@ -185,7 +340,32 @@
         .col-id     { width: 46px; font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; color: #475569; }
         .col-name   { /* fills rest — table-layout:fixed + max-width:0 trick */ max-width: 0; }
         .col-status { width: 110px; }
+        .col-doc    { width: 78px; }
         .col-action { width: 114px; }
+
+        /* Compact icon-only buttons: Confluence (docs) + MyCR (orders) */
+        .docs-cell {
+            display: inline-flex; gap: 4px; justify-content: center; align-items: center;
+            white-space: nowrap;
+        }
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px; padding: 0;
+            border-radius: 6px; cursor: pointer; transition: all .15s;
+            background: transparent; border: 1px solid transparent;
+            color: #64748b;
+        }
+        .icon-btn svg { width: 14px; height: 14px; display: block; }
+        .icon-btn:hover { transform: translateY(-1px); }
+        .icon-btn.doc-btn:hover   { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
+        .icon-btn.order-btn:hover { background: #78350f; border-color: #f59e0b; color: #fde68a; }
+        .icon-btn.doc-btn   { color: #60a5fa; border-color: #3b82f622; background: #1e3a5f15; }
+        .icon-btn.order-btn { color: #fbbf24; border-color: #f59e0b22; background: #78350f15; }
+        [data-theme="light"] .icon-btn         { color: #64748b; }
+        [data-theme="light"] .icon-btn.doc-btn         { color: #2563eb; background: #eff6ff; border-color: #bfdbfe; }
+        [data-theme="light"] .icon-btn.doc-btn:hover   { background: #dbeafe; border-color: #2563eb; color: #1e40af; }
+        [data-theme="light"] .icon-btn.order-btn       { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+        [data-theme="light"] .icon-btn.order-btn:hover { background: #fef3c7; border-color: #d97706; color: #92400e; }
         /* Prevent ellipsis on status and action cells */
         .list-body td.col-status,
         .list-body td.col-action { overflow: visible; text-overflow: clip; white-space: nowrap; }
@@ -219,15 +399,60 @@
 
         /* Tariff limits */
         .tariff-limits-table { border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+        .tariff-limits-table .tl-scroll { max-height: 380px; overflow-y: auto; }
+        .tariff-limits-table .tl-scroll::-webkit-scrollbar { width: 8px; }
+        .tariff-limits-table .tl-scroll::-webkit-scrollbar-track { background: #0b1220; }
+        .tariff-limits-table .tl-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .tariff-limits-table table { width: 100%; border-collapse: collapse; }
-        .tariff-limits-table th { text-align: left; padding: 10px 14px; font-size: 11px; color: #64748b; text-transform: uppercase; background: #0f172a; border-bottom: 1px solid #334155; }
+        .tariff-limits-table th { text-align: left; padding: 10px 14px; font-size: 11px; color: #64748b; text-transform: uppercase; background: #0f172a; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 1; }
         .tariff-limits-table td { padding: 9px 14px; font-size: 13px; border-bottom: 1px solid #1e293b44; }
         .tariff-limits-table tr:last-child td { border-bottom: none; }
         .tariff-limits-table .unit-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .tariff-limits-table .row-expired td { opacity: .55; }
         .unit-min { background: #22c55e22; color: #22c55e; }
         .unit-sms { background: #3b82f622; color: #3b82f6; }
         .unit-mb { background: #a78bfa22; color: #a78bfa; }
         .unit-money { background: #f59e0b22; color: #f59e0b; }
+
+        /* Фильтры над таблицей лимитов */
+        .tl-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: flex-end; }
+        .tl-filters .tlf-group { display: flex; flex-direction: column; gap: 4px; }
+        .tl-filters label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+        .tl-filters input, .tl-filters select {
+            background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
+            padding: 6px 10px; border-radius: 6px; font-size: 13px; min-width: 140px;
+        }
+        .tl-filters input:focus, .tl-filters select:focus { outline: none; border-color: #3b82f6; }
+        .tl-filters .tlf-reset {
+            background: transparent; color: #94a3b8; border: 1px solid #334155;
+            padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+        }
+        .tl-filters .tlf-reset:hover { border-color: #ef4444; color: #ef4444; }
+        .tl-summary { font-size: 12px; color: #64748b; margin-left: auto; align-self: center; }
+        .tl-status-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .tl-status-active { background: #22c55e22; color: #22c55e; }
+        .tl-status-expired { background: #ef444422; color: #ef4444; }
+        .tl-empty { text-align: center; color: #475569; padding: 20px; font-size: 13px; }
+
+        /* Жизненный цикл */
+        .lc-block { margin-top: 16px; padding: 12px 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; }
+        .lc-block-title { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+        .lc-meta { display: flex; flex-wrap: wrap; gap: 10px 20px; font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .lc-meta b { color: #e2e8f0; font-weight: 600; }
+        .lc-history { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; }
+        .lc-history::-webkit-scrollbar { width: 6px; }
+        .lc-history::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .lc-row { display: flex; gap: 10px; padding: 4px 0; font-size: 12px; border-bottom: 1px dashed #1e293b; }
+        .lc-row:last-child { border-bottom: none; }
+        .lc-row .lcs { min-width: 120px; color: #e2e8f0; font-weight: 500; }
+        .lc-row .lcd { color: #64748b; font-family: 'SF Mono', monospace; }
+        .lc-current { color: #22c55e; font-weight: 600; }
+        [data-theme="light"] .tariff-limits-table .tl-scroll::-webkit-scrollbar-track { background: #f0f2f5; }
+        [data-theme="light"] .tariff-limits-table .tl-scroll::-webkit-scrollbar-thumb { background: #c8cdd6; }
+        [data-theme="light"] .tl-filters input, [data-theme="light"] .tl-filters select { background: #fff; color: #1a2332; border-color: #e2e6ec; }
+        [data-theme="light"] .lc-block { background: #f8f9fb; border-color: #e2e6ec; }
+        [data-theme="light"] .lc-meta b { color: #1a2332; }
+        [data-theme="light"] .lc-row .lcs { color: #1a2332; }
 
         /* ===== ОБЩИЕ ЛИМИТЫ ===== */
         .lov-groups { display: flex; flex-direction: column; gap: 10px; }
@@ -452,21 +677,25 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Login</label>
-                    <input type="text" id="fLogin" value="DBS_CC_OPERATORS_PSO">
+                    <input type="text" id="fLogin" value="" placeholder="Введите логин SBMS" autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="fPassword" value="Ucell2026$$">
+                    <input type="password" id="fPassword" value="" placeholder="Введите пароль" autocomplete="current-password">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;gap:6px;">
+                    <button class="btn btn-primary" id="btnAuth" onclick="doAuth()" style="flex:1;">Войти</button>
+                    <button class="btn" id="btnLogout" onclick="doLogout()" style="display:none;background:#ef4444;color:#fff;">Выйти</button>
                 </div>
                 <div class="form-group" style="display:flex;align-items:flex-end;">
-                    <button class="btn btn-primary" id="btnAuth" onclick="doAuth()" style="width:100%;">Войти</button>
+                    <span id="authBadge"></span>
                 </div>
             </div>
             <div id="authStatus" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;"></div>
             <div class="form-row two" id="loadRow" style="display:none;">
                 <div class="form-group">
                     <label>MSISDN</label>
-                    <input type="text" id="fMsisdn" value="998500173054" placeholder="998XXXXXXXXX">
+                    <input type="text" id="fMsisdn" value="" placeholder="998XXXXXXXXX">
                 </div>
                 <div class="form-group" style="display:flex;align-items:flex-end;">
                     <button class="btn btn-run" id="btnLoad" onclick="loadCustomer()" style="width:100%;">Загрузить клиента</button>
@@ -489,20 +718,50 @@
                 <h2>Лимиты текущего тарифа</h2>
                 <button class="section-reload" onclick="reloadSection('limits',this)" title="Обновить лимиты тарифа">↻</button>
             </div>
+
+            <div class="tl-filters">
+                <div class="tlf-group">
+                    <label>Статус</label>
+                    <select id="tlfStatus" onchange="applyTariffLimitsFilters()">
+                        <option value="all">Все</option>
+                        <option value="active">Только действующие</option>
+                        <option value="expired">Только истёкшие</option>
+                    </select>
+                </div>
+                <div class="tlf-group">
+                    <label>Действует с</label>
+                    <input type="date" id="tlfDateFrom" onchange="applyTariffLimitsFilters()">
+                </div>
+                <div class="tlf-group">
+                    <label>Действует по</label>
+                    <input type="date" id="tlfDateTo" onchange="applyTariffLimitsFilters()">
+                </div>
+                <div class="tlf-group">
+                    <label>Поиск</label>
+                    <input type="text" id="tlfSearch" placeholder="название / ID" oninput="applyTariffLimitsFilters()">
+                </div>
+                <button type="button" class="tlf-reset" onclick="resetTariffLimitsFilters()">Сбросить</button>
+                <span class="tl-summary" id="tlfSummary">—</span>
+            </div>
+
             <div class="tariff-limits-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Тип</th>
-                            <th>Название скидки</th>
-                            <th style="text-align:right;">Выдано</th>
-                            <th style="text-align:right;">Использовано</th>
-                            <th style="text-align:right;">Остаток</th>
-                            <th>Действует до</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tariffLimitsBody"></tbody>
-                </table>
+                <div class="tl-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Тип</th>
+                                <th>Название скидки</th>
+                                <th style="text-align:right;">Выдано</th>
+                                <th style="text-align:right;">Использовано</th>
+                                <th style="text-align:right;">Остаток</th>
+                                <th>Действует с</th>
+                                <th>Действует до</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tariffLimitsBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -522,7 +781,13 @@
         <div class="panel hidden" id="listsPanel">
             <div class="subs-header">
                 <h2>Подписки абонента</h2>
-                <button class="subs-reload" onclick="loadCustomer()" title="Обновить данные">↻ Обновить</button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="view-as-btn" onclick="openViewAsModal()" title="Посмотреть подписки этого же номера от имени другой учётки (read-only)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Посмотреть как…
+                    </button>
+                    <button class="subs-reload" onclick="loadCustomer()" title="Обновить данные">↻ Обновить</button>
+                </div>
             </div>
             <div class="lists-grid">
                 <!-- Packs -->
@@ -546,6 +811,7 @@
                                 <col style="width:46px">
                                 <col>
                                 <col style="width:104px">
+                                <col style="width:78px">
                                 <col style="width:114px">
                             </colgroup>
                             <thead>
@@ -553,6 +819,7 @@
                                     <th>ID</th>
                                     <th>Название</th>
                                     <th>Статус</th>
+                                    <th style="text-align:center" title="Документация и приказы">Док.</th>
                                     <th style="text-align:center">Действие</th>
                                 </tr>
                             </thead>
@@ -582,6 +849,7 @@
                                 <col style="width:46px">
                                 <col>
                                 <col style="width:104px">
+                                <col style="width:78px">
                                 <col style="width:114px">
                             </colgroup>
                             <thead>
@@ -589,6 +857,7 @@
                                     <th>ID</th>
                                     <th>Название</th>
                                     <th>Статус</th>
+                                    <th style="text-align:center" title="Документация и приказы">Док.</th>
                                     <th style="text-align:center">Действие</th>
                                 </tr>
                             </thead>
@@ -615,8 +884,8 @@
                         <input type="text" class="list-search" placeholder="Поиск по тарифам..." oninput="filterList('availTariffs', this.value)">
                     </div>
                     <table>
-                        <colgroup><col style="width:52px"><col></colgroup>
-                        <thead><tr><th>ID</th><th>Название</th></tr></thead>
+                        <colgroup><col style="width:52px"><col><col style="width:78px"></colgroup>
+                        <thead><tr><th>ID</th><th>Название</th><th style="text-align:center" title="Документация и приказы">Док.</th></tr></thead>
                         <tbody id="availTariffsList"></tbody>
                     </table>
                 </div>
@@ -640,6 +909,7 @@
                             <th style="width:50px;">#</th>
                             <th style="width:80px;">ID</th>
                             <th>Название</th>
+                            <th style="width:78px;text-align:center;" title="Документация и приказы">Док.</th>
                             <th style="width:100px;">Действие</th>
                         </tr>
                     </thead>
@@ -667,6 +937,7 @@
                             <th style="width:50px;">#</th>
                             <th style="width:80px;">ID</th>
                             <th>Название</th>
+                            <th style="width:78px;text-align:center;" title="Документация и приказы">Док.</th>
                             <th style="width:100px;">Действие</th>
                         </tr>
                     </thead>
@@ -887,6 +1158,7 @@
         </div>
     </div>
 
+    <script src="/static/sbms-auth.js"></script>
     <script>
         // ==================== THEME ====================
         function getTheme() { return localStorage.getItem('sbms-theme') || 'dark'; }
@@ -909,70 +1181,70 @@
         let selectedPack = null;
         let lastReport = null;
         let currentSubscriberId = null;
-        let authToken = null;
 
-        // ==================== AUTH ====================
-        async function doAuth() {
-            const login = document.getElementById('fLogin').value.trim();
-            const password = document.getElementById('fPassword').value.trim();
-            const btn = document.getElementById('btnAuth');
+        // ==================== AUTH (SbmsAuth) ====================
+        SbmsAuth.mountBadge('#authBadge');
+        document.getElementById('fLogin').value = SbmsAuth.login || '';
+        Object.defineProperty(window, 'authToken', { get: () => SbmsAuth.token });
+
+        function _applyAuthUI(on) {
+            const authRow = document.getElementById('fLogin').closest('.form-row');
             const status = document.getElementById('authStatus');
-
-            if (!login || !password) { alert('Введите логин и пароль'); return; }
-
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span>Авторизация...';
-
-            try {
-                const resp = await fetch('/api/auth', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({login, password})
-                });
-                const result = await resp.json();
-
-                if (!resp.ok || result.error) {
-                    status.style.display = '';
-                    status.style.background = '#ef444422';
-                    status.style.color = '#ef4444';
-                    status.style.border = '1px solid #ef444444';
-                    status.textContent = 'Ошибка: ' + (result.error || 'HTTP ' + resp.status);
-                    authToken = null;
-                    return;
-                }
-
-                authToken = result.token;
+            document.getElementById('btnLogout').style.display = on ? '' : 'none';
+            document.getElementById('btnAuth').style.display = on ? 'none' : '';
+            if (on) {
+                document.getElementById('loadRow').style.display = '';
                 status.style.display = '';
                 status.style.background = '#22c55e18';
                 status.style.color = '#22c55e';
                 status.style.border = '1px solid #22c55e44';
-                status.textContent = 'Авторизован. Token: ' + authToken.substring(0, 20) + '...';
+                status.textContent = 'Авторизован как ' + (SbmsAuth.login || '—');
+            } else {
+                document.getElementById('loadRow').style.display = 'none';
+                status.style.display = 'none';
+            }
+        }
+        SbmsAuth.on((ev) => {
+            if (ev === 'login') _applyAuthUI(true);
+            else if (ev === 'logout') _applyAuthUI(false);
+        });
+        if (SbmsAuth.isValid()) _applyAuthUI(true);
 
-                // Скрываем поля логин/пароль, показываем MSISDN
-                document.getElementById('fLogin').closest('.form-row').style.display = 'none';
-                document.getElementById('loadRow').style.display = '';
+        async function doAuth() {
+            const login = document.getElementById('fLogin').value.trim();
+            const password = document.getElementById('fPassword').value.trim();
+            if (!login || !password) { alert('Введите логин и пароль'); return; }
 
+            const btn = document.getElementById('btnAuth');
+            const status = document.getElementById('authStatus');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Авторизация...';
+            try {
+                await SbmsAuth.authenticate(login, password);
+                document.getElementById('fPassword').value = '';
             } catch (e) {
                 status.style.display = '';
                 status.style.background = '#ef444422';
                 status.style.color = '#ef4444';
                 status.style.border = '1px solid #ef444444';
-                status.textContent = 'Ошибка сети: ' + e.message;
-                authToken = null;
+                status.textContent = 'Ошибка: ' + e.message;
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Войти';
             }
         }
 
+        function doLogout() { SbmsAuth.logout(); }
+
         function getAuthPayload(extra) {
             const payload = extra || {};
-            if (authToken) {
-                payload.authToken = authToken;
-            } else {
-                payload.login = document.getElementById('fLogin').value.trim();
-                payload.password = document.getElementById('fPassword').value.trim();
+            const token = SbmsAuth.token;
+            if (!token) {
+                // Не делаем тихий fallback на креденшиалы — требуем явный вход
+                SbmsAuth.promptLogin('Требуется авторизация').catch(() => {});
+                throw new Error('Нет активной сессии — выполните вход');
             }
+            payload.authToken = token;
             return payload;
         }
 
@@ -981,9 +1253,9 @@
             try {
                 const r = await fetch('/api/config');
                 const c = await r.json();
-                if (c.login) document.getElementById('fLogin').value = c.login;
-                if (c.password) document.getElementById('fPassword').value = c.password;
-                if (c.msisdn) document.getElementById('fMsisdn').value = c.msisdn;
+                if (c.msisdn && !document.getElementById('fMsisdn').value) {
+                    document.getElementById('fMsisdn').value = c.msisdn;
+                }
             } catch (e) {}
         }
 
@@ -1011,10 +1283,13 @@
                 }
 
                 customerData = await resp.json();
-                
+
                 // Сохраняем subscriberId для активации/деактивации пакетов и услуг
                 currentSubscriberId = customerData.customer?.subscriberId || null;
-                
+
+                // Сохраняем «admin»-снимок для последующего сравнения в View-as
+                window._lastCustomerData = customerData;
+
                 renderCustomerInfo(customerData.customer);
                 renderTariffLimits(customerData.customer);
                 renderTariffTable(customerData.availableRatePlans || []);
@@ -1061,12 +1336,10 @@
         }
 
         function renderCustomerInfo(c) {
-            // Если есть debug-данные (N/A ответы), показать в консоли
             if (c._debug) {
                 console.log('[DEBUG] Сырые ответы API (причина N/A):', c._debug);
             }
             const v = c.volumes || {};
-            const vt = c.volumesByTariff;
             const items = [
                 { l: 'ФИО', v: c.name },
                 { l: 'Текущий тариф', v: `${c.ratePlanName} (ID: ${c.ratePlanId})` },
@@ -1077,24 +1350,104 @@
                 { l: 'Минуты (всего)', v: v.minutes || 0, hl: true },
                 { l: 'SMS (всего)', v: v.sms || 0, hl: true },
                 { l: 'Интернет (всего)', v: fmtMb(v.mb), hl: true },
-            ];
-            items.push(
                 { l: 'Product ID', v: c.currentProductId || 'N/A' },
                 { l: 'Customer ID', v: c.customerId },
                 { l: 'Subscriber ID', v: c.subscriberId },
-            );
-            document.getElementById('infoGrid').innerHTML = items.map(i => {
+            ];
+
+            let html = items.map(i => {
                 const cls = i.hl ? ' style="color:#38bdf8;"' : '';
                 return `<div class="info-item"><div class="il">${i.l}</div><div class="iv"${cls}>${esc(String(i.v != null ? i.v : 'N/A'))}</div></div>`;
             }).join('');
+
+            html += renderLifecycleBlock(c);
+            document.getElementById('infoGrid').innerHTML = html;
+        }
+
+        // ==================== LIFECYCLE ====================
+        function fmtDate(s) {
+            if (!s) return '—';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return String(s);
+            return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+        }
+        function fmtDateShort(s) {
+            if (!s) return '—';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return String(s);
+            return d.toLocaleDateString('ru-RU');
+        }
+
+        function renderLifecycleBlock(c) {
+            const state = c.lifecycleState;
+            const det = c.lifecycleDetails || {};
+            const history = det.history || [];
+            if (!state && !Object.keys(det).length) return '';
+
+            const metaPairs = [];
+            const dateLabels = {
+                activationDate: 'Активация',
+                activatedDate: 'Активация',
+                beginDate: 'Начало',
+                startDate: 'Начало',
+                stateBeginDate: 'Начало текущего состояния',
+                stateStartDate: 'Начало текущего состояния',
+                lastChangeDate: 'Последняя смена',
+                changedAt: 'Последняя смена',
+                endDate: 'Окончание',
+                stateEndDate: 'Окончание состояния',
+                blockDate: 'Блокировка',
+            };
+            // Без истории — сам объект содержит даты
+            for (const [k, label] of Object.entries(dateLabels)) {
+                if (det[k]) metaPairs.push(`<span><b>${label}:</b> ${esc(fmtDate(det[k]))}</span>`);
+            }
+
+            let historyHtml = '';
+            if (history.length) {
+                const rows = history.slice().reverse().map(h => {
+                    const isCurrent = !h.endDate;
+                    const dates = [
+                        h.startDate ? `с ${fmtDateShort(h.startDate)}` : null,
+                        h.endDate ? `до ${fmtDateShort(h.endDate)}` : (isCurrent ? 'сейчас' : null),
+                    ].filter(Boolean).join(' · ');
+                    return `<div class="lc-row">
+                        <span class="lcs ${isCurrent ? 'lc-current' : ''}">${esc(h.state || '—')}</span>
+                        <span class="lcd">${esc(dates)}</span>
+                    </div>`;
+                }).join('');
+                historyHtml = `<div class="lc-history">${rows}</div>`;
+            }
+
+            return `
+                <div class="lc-block" style="grid-column:1/-1;">
+                    <div class="lc-block-title">Жизненный цикл абонента · текущее: <b style="color:#22c55e;">${esc(state || '—')}</b></div>
+                    ${metaPairs.length ? `<div class="lc-meta">${metaPairs.join('')}</div>` : ''}
+                    ${historyHtml || (metaPairs.length ? '' : '<div style="font-size:12px;color:#64748b;">История состояний недоступна.</div>')}
+                </div>`;
         }
 
         // ==================== TARIFF LIMITS DETAIL ====================
+        let _tariffLimitsCache = [];
+
         function renderTariffLimits(c) {
             const details = c.tariffDetails || [];
             const panel = document.getElementById('tariffLimitsPanel');
-            if (!details.length) { panel.classList.add('hidden'); return; }
+            if (!details.length) { panel.classList.add('hidden'); _tariffLimitsCache = []; return; }
+            _tariffLimitsCache = details;
+            panel.classList.remove('hidden');
+            applyTariffLimitsFilters();
+        }
 
+        function resetTariffLimitsFilters() {
+            document.getElementById('tlfStatus').value = 'all';
+            document.getElementById('tlfDateFrom').value = '';
+            document.getElementById('tlfDateTo').value = '';
+            document.getElementById('tlfSearch').value = '';
+            applyTariffLimitsFilters();
+        }
+
+        function applyTariffLimitsFilters() {
             const unitInfo = {
                 1:  { label: 'Минуты', cls: 'unit-min', fmt: v => v },
                 7:  { label: 'SMS', cls: 'unit-sms', fmt: v => v },
@@ -1102,25 +1455,113 @@
                 0:  { label: 'Деньги', cls: 'unit-money', fmt: v => v + ' сум' },
             };
 
+            const status = document.getElementById('tlfStatus').value;
+            const dfStr = document.getElementById('tlfDateFrom').value;
+            const dtStr = document.getElementById('tlfDateTo').value;
+            const search = document.getElementById('tlfSearch').value.trim().toLowerCase();
+            const dfrom = dfStr ? new Date(dfStr + 'T00:00:00').getTime() : null;
+            const dto = dtStr ? new Date(dtStr + 'T23:59:59').getTime() : null;
+            const now = Date.now();
+
+            const items = _tariffLimitsCache.filter(d => {
+                const end = d.endDate ? new Date(d.endDate).getTime() : null;
+                const start = d.startDate ? new Date(d.startDate).getTime() : null;
+                const isActive = !end || end >= now;
+
+                if (status === 'active' && !isActive) return false;
+                if (status === 'expired' && isActive) return false;
+
+                // Фильтр по пересечению окна действия с диапазоном
+                if (dfrom != null && end != null && end < dfrom) return false;
+                if (dto != null && start != null && start > dto) return false;
+
+                if (search) {
+                    const hay = `${d.discountDescription || ''} ${d.discountName || ''} ${d.discountPlanId || ''}`.toLowerCase();
+                    if (!hay.includes(search)) return false;
+                }
+                return true;
+            });
+
             const tbody = document.getElementById('tariffLimitsBody');
-            tbody.innerHTML = details.map(d => {
+            const summary = document.getElementById('tlfSummary');
+            if (!items.length) {
+                tbody.innerHTML = `<tr><td colspan="8" class="tl-empty">Ничего не найдено под заданные фильтры</td></tr>`;
+                summary.textContent = `0 из ${_tariffLimitsCache.length}`;
+                return;
+            }
+
+            tbody.innerHTML = items.map(d => {
                 const ui = unitInfo[d.measureUnitId] || { label: 'unit_' + d.measureUnitId, cls: '', fmt: v => v };
                 const fmt = ui.fmt;
-                const endDate = d.endDate ? new Date(d.endDate).toLocaleDateString('ru-RU') : '—';
-                // Приоритет: discountDescription (из Excel) > discountName (из API) > прочерк
+                const startDate = fmtDateShort(d.startDate);
+                const endDate = fmtDateShort(d.endDate);
+                const endMs = d.endDate ? new Date(d.endDate).getTime() : null;
+                const isActive = !endMs || endMs >= now;
+                const statusBadge = isActive
+                    ? '<span class="tl-status-badge tl-status-active">Действует</span>'
+                    : '<span class="tl-status-badge tl-status-expired">Истекла</span>';
                 const discountLabel = d.discountDescription || d.discountName || '—';
                 const discountIdLabel = d.discountPlanId ? ` <span style="color:#64748b;font-size:11px;">(ID: ${d.discountPlanId})</span>` : '';
-                return `<tr>
+                return `<tr class="${isActive ? '' : 'row-expired'}">
                     <td><span class="unit-badge ${ui.cls}">${ui.label}</span></td>
                     <td style="color:#94a3b8;">${esc(discountLabel)}${discountIdLabel}</td>
                     <td style="text-align:right;font-family:monospace;">${fmt(d.maxVolume)}</td>
                     <td style="text-align:right;font-family:monospace;color:#f97316;">${fmt(d.spentVolume)}</td>
                     <td style="text-align:right;font-family:monospace;color:#22c55e;font-weight:600;">${fmt(d.remaining)}</td>
+                    <td style="color:#64748b;font-size:12px;">${startDate}</td>
                     <td style="color:#64748b;font-size:12px;">${endDate}</td>
+                    <td>${statusBadge}</td>
                 </tr>`;
             }).join('');
 
-            panel.classList.remove('hidden');
+            const active = _tariffLimitsCache.filter(d => {
+                const e = d.endDate ? new Date(d.endDate).getTime() : null;
+                return !e || e >= now;
+            }).length;
+            summary.textContent = `${items.length} из ${_tariffLimitsCache.length} · действует: ${active}`;
+        }
+
+        // ==================== DOCS & ORDERS (Confluence + MyCR) ====================
+        // Confluence — описание тарифа/пакета/услуги (wiki).
+        // MyCR        — приказы по этим же сущностям.
+        // Обе системы работают в браузере по существующей сессии (SSO/cookie),
+        // поэтому достаточно открыть поисковую страницу в новой вкладке.
+        const CONFLUENCE_BASE = 'https://confluence.local.domain';
+        const MYCR_BASE       = 'https://mycr-new';
+
+        function openDocs(name) {
+            const q = (name || '').trim();
+            if (!q) return;
+            const url = `${CONFLUENCE_BASE}/dosearchsite.action?queryString=${encodeURIComponent(q)}`;
+            window.open(url, '_blank', 'noopener');
+        }
+
+        function openOrders(name) {
+            const q = (name || '').trim();
+            if (!q) return;
+            // MyCR: поиск приказов в категории FAQ.
+            // Пример рабочего URL: /search/search_main/?search_cross=bor+60&category=faq
+            // Пробелы кодируются как «+» (form-encoded), а не «%20».
+            const term = encodeURIComponent(q).replace(/%20/g, '+');
+            const url = `${MYCR_BASE}/search/search_main/?search_cross=${term}&category=faq`;
+            window.open(url, '_blank', 'noopener');
+        }
+
+        // Inline SVG (stroke icons, ~14x14 inside 26x26 button)
+        const ICON_DOC   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H10a3 3 0 0 1 2 .8A3 3 0 0 1 14 3h6.5A1.5 1.5 0 0 1 22 4.5v13a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 0 0-2 2 2 2 0 0 0-2-2H3.5A1.5 1.5 0 0 1 2 17.5v-13Z"/><path d="M12 5v16"/></svg>`;
+        const ICON_ORDER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/><path d="M16 5h2.5A1.5 1.5 0 0 1 20 6.5v13A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-13A1.5 1.5 0 0 1 5.5 5H8"/><path d="m9 13 2 2 4-4"/></svg>`;
+
+        function docBtn(name) {
+            const safe = (name || '').replace(/'/g, "\\'");
+            if (!safe) return `<span class="no-btn">—</span>`;
+            return `<span class="docs-cell">
+                        <button class="icon-btn doc-btn" aria-label="Документация в Confluence"
+                                title="Документация в Confluence: ${esc(name)}"
+                                onclick="openDocs('${safe}')">${ICON_DOC}</button>
+                        <button class="icon-btn order-btn" aria-label="Приказы в MyCR"
+                                title="Приказы в MyCR: ${esc(name)}"
+                                onclick="openOrders('${safe}')">${ICON_ORDER}</button>
+                    </span>`;
         }
 
         // ==================== LISTS: PACKS, SERVICES, TARIFFS ====================
@@ -1132,7 +1573,7 @@
             let packsHtml = '';
 
             if (activePacks.length > 0) {
-                packsHtml += `<tr class="group-sep group-active"><td colspan="4">● Активные — ${activePacks.length}</td></tr>`;
+                packsHtml += `<tr class="group-sep group-active"><td colspan="5">● Активные — ${activePacks.length}</td></tr>`;
                 activePacks.forEach(p => {
                     const instId   = p.packInstanceId || p.id || '';
                     const packId   = p.packId || '';
@@ -1149,13 +1590,14 @@
                         <td class="col-id">${packId}</td>
                         <td class="col-name" title="${esc(packName)}">${esc(packName)}</td>
                         <td class="col-status">${statusTag}</td>
+                        <td class="col-doc" style="text-align:center">${docBtn(packName)}</td>
                         <td class="col-action">${btn}</td>
                     </tr>`;
                 });
             }
 
             if (availPacks.length > 0) {
-                packsHtml += `<tr class="group-sep group-avail"><td colspan="4">○ Доступные — ${availPacks.length}</td></tr>`;
+                packsHtml += `<tr class="group-sep group-avail"><td colspan="5">○ Доступные — ${availPacks.length}</td></tr>`;
                 availPacks.forEach(p => {
                     const packId   = p.packId || '';
                     const packName = p.name || 'N/A';
@@ -1168,12 +1610,13 @@
                         <td class="col-id">${packId}</td>
                         <td class="col-name" title="${esc(packName)}">${esc(packName)}${fee}</td>
                         <td class="col-status"><span class="tag-avail">Доступен</span></td>
+                        <td class="col-doc" style="text-align:center">${docBtn(packName)}</td>
                         <td class="col-action">${btn}</td>
                     </tr>`;
                 });
             }
 
-            if (!packsHtml) packsHtml = `<tr><td colspan="4" style="text-align:center;color:#475569;padding:20px;">Нет данных</td></tr>`;
+            if (!packsHtml) packsHtml = `<tr><td colspan="5" style="text-align:center;color:#475569;padding:20px;">Нет данных</td></tr>`;
             document.getElementById('packsList').innerHTML = packsHtml;
         }
 
@@ -1185,7 +1628,7 @@
             let srvHtml = '';
 
             if (activeServices.length > 0) {
-                srvHtml += `<tr class="group-sep group-active"><td colspan="4">● Активные — ${activeServices.length}</td></tr>`;
+                srvHtml += `<tr class="group-sep group-active"><td colspan="5">● Активные — ${activeServices.length}</td></tr>`;
                 activeServices.forEach(s => {
                     const instId   = s.serviceInstanceId || s.serviceId || '';
                     const svcId    = s.serviceId || '';
@@ -1202,13 +1645,14 @@
                         <td class="col-id">${svcId}</td>
                         <td class="col-name" title="${esc(svcName)}">${esc(svcName)}</td>
                         <td class="col-status">${statusTag}</td>
+                        <td class="col-doc" style="text-align:center">${docBtn(svcName)}</td>
                         <td class="col-action">${btn}</td>
                     </tr>`;
                 });
             }
 
             if (availServices.length > 0) {
-                srvHtml += `<tr class="group-sep group-avail"><td colspan="4">○ Доступные — ${availServices.length}</td></tr>`;
+                srvHtml += `<tr class="group-sep group-avail"><td colspan="5">○ Доступные — ${availServices.length}</td></tr>`;
                 availServices.forEach(s => {
                     const svcId   = s.serviceId || '';
                     const svcName = s.name || 'N/A';
@@ -1221,12 +1665,13 @@
                         <td class="col-id">${svcId}</td>
                         <td class="col-name" title="${esc(svcName)}">${esc(svcName)}${fee}</td>
                         <td class="col-status"><span class="tag-avail">Доступна</span></td>
+                        <td class="col-doc" style="text-align:center">${docBtn(svcName)}</td>
                         <td class="col-action">${btn}</td>
                     </tr>`;
                 });
             }
 
-            if (!srvHtml) srvHtml = `<tr><td colspan="4" style="text-align:center;color:#475569;padding:20px;">Нет данных</td></tr>`;
+            if (!srvHtml) srvHtml = `<tr><td colspan="5" style="text-align:center;color:#475569;padding:20px;">Нет данных</td></tr>`;
             document.getElementById('servicesList').innerHTML = srvHtml;
         }
 
@@ -1235,9 +1680,11 @@
             document.getElementById('availTariffsCount').textContent = `(${tariffs.length})`;
             let tHtml = '';
             tariffs.forEach(t => {
-                tHtml += `<tr class="data-row" data-name="${esc(t.name||'').toLowerCase()}">
+                const name = t.name || 'N/A';
+                tHtml += `<tr class="data-row" data-name="${esc((t.name||'').toLowerCase())}">
                     <td class="col-id">${t.ratePlanId||''}</td>
-                    <td>${esc(t.name||'N/A')}</td>
+                    <td>${esc(name)}</td>
+                    <td class="col-doc" style="text-align:center">${docBtn(name)}</td>
                 </tr>`;
             });
             document.getElementById('availTariffsList').innerHTML = tHtml;
@@ -1428,6 +1875,7 @@
                     <td style="color:#475569;">${idx + 1}</td>
                     <td style="font-family:monospace;font-size:12px;">${rp.ratePlanId}</td>
                     <td>${esc(rp.name || 'N/A')}</td>
+                    <td style="text-align:center;">${docBtn(rp.name)}</td>
                     <td><button class="btn btn-sm btn-run" onclick="selectTariff(${rp.ratePlanId}, '${(rp.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Выбрать</button></td>
                 `;
                 tbody.appendChild(tr);
@@ -1493,6 +1941,7 @@
                     <td style="color:#475569;">${idx + 1}</td>
                     <td style="font-family:monospace;font-size:12px;">${pk.packId}</td>
                     <td>${esc(pk.name || 'N/A')}${pk.fee ? ` <span class="fee-badge">${esc(String(pk.fee))}&#8201;сум</span>` : ''}</td>
+                    <td style="text-align:center;">${docBtn(pk.name)}</td>
                     <td><button class="btn btn-sm btn-run" onclick="selectPack(${pk.packId}, '${(pk.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"> Выбрать</button></td>
                 `;
                 tbody.appendChild(tr);
@@ -1866,11 +2315,10 @@
         }
 
         function getCredentials() {
-            if (authToken) return {authToken};
-            return {
-                login:    (document.getElementById('fLogin')?.value    || '').trim() || undefined,
-                password: (document.getElementById('fPassword')?.value || '').trim() || undefined
-            };
+            const token = SbmsAuth.token;
+            if (token) return { authToken: token };
+            SbmsAuth.promptLogin('Требуется авторизация').catch(() => {});
+            throw new Error('Нет активной сессии — выполните вход');
         }
 
         async function activatePack(btnEl, packId, packName) {
@@ -1975,8 +2423,285 @@
         // ==================== UTILS ====================
         function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+        // =================================================================
+        // VIEW-AS (preview as another role) — read-only сравнение подписок.
+        // Не трогает админ-сессию: пароль другой учётки шлётся в одном POST,
+        // нигде не сохраняется. Полученные данные показываются в split-view.
+        // =================================================================
+        // Преднастроенные тестовые учётки. Кнопка-роль автозаполняет поля
+        // логин/пароль (но всё равно отправляется одним запросом, как и при ручном вводе).
+        // Для production-прохода заменить пресеты на чтение из защищённого источника.
+        const VA_ROLES = [
+            { id: 'B2B_OP', label: 'B2B · Оператор',     login: 'DBS_CC_OPERATORS_PSO',     password: 'Ucell2026$$',      preset: true },
+            { id: 'B2B_FO', label: 'B2B · Фронт-офис',   login: 'DBS_REG_FO_PSO',           password: 'September2025+',   preset: true },
+            { id: 'B2C_FO', label: 'B2C · Фронт-офис',   login: 'DMS_FO_REGION_SPEC_PSO',   password: 'Ucell+pso+2023+',  preset: true },
+            { id: 'B2C_OP', label: 'B2C · Оператор',     login: 'DCC_CALL_CENTER_OPERATORT_PSO', password: 'Ucell+pso+2023+', preset: true },
+            { id: 'CUSTOM', label: 'Другая (вручную)…',  login: '', password: '', preset: false },
+        ];
+        let _vaState = {
+            role: 'B2B_FO',
+            adminData: null,    // { activePacks, availablePacks, ... }
+            previewData: null,  // то же, но от имени preview-учётки
+            previewRoleLabel: '',
+            tab: 'packs',       // packs | services | tariffs
+        };
+
+        function openViewAsModal() {
+            const msisdn = (document.getElementById('fMsisdn').value || '').trim();
+            if (!msisdn) { alert('Сначала загрузите номер абонента'); return; }
+            if (!window.SbmsAuth || !SbmsAuth.isValid()) {
+                alert('Сначала войдите в основную (админ) учётку'); return;
+            }
+            // Сохраняем «admin» данные = то, что уже есть в текущем фронте
+            _vaState.adminData = window._lastCustomerData || null;
+            _vaState.previewData = null;
+            _vaState.role = 'B2B_FO';
+            _vaState.tab = 'packs';
+            _renderVaModalForm();
+            document.getElementById('vaModalBd').classList.add('show');
+            // Применить преднастроенную учётку для дефолтной роли
+            vaApplyRolePreset(_vaState.role);
+            setTimeout(() => {
+                const btn = document.getElementById('vaSubmit');
+                if (btn) btn.focus();
+            }, 50);
+        }
+
+        function closeViewAsModal() {
+            document.getElementById('vaModalBd').classList.remove('show');
+            // Очищаем введённые credentials в DOM (анти-leak)
+            const lp = document.getElementById('vaLogin');   if (lp) lp.value = '';
+            const pw = document.getElementById('vaPassword'); if (pw) pw.value = '';
+        }
+
+        function _renderVaModalForm() {
+            const sub = `Номер: ${esc(document.getElementById('fMsisdn').value || '')} · режим Read-only`;
+            const rolesHtml = VA_ROLES.map(r => {
+                const icon = r.preset
+                    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>`
+                    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>`;
+                return `<button type="button" class="va-role ${r.id===_vaState.role?'active':''}" data-role="${r.id}" onclick="vaSetRole('${r.id}')">${icon}${esc(r.label)}</button>`;
+            }).join('');
+            document.getElementById('vaSubtitle').textContent = sub;
+            document.getElementById('vaBody').innerHTML = `
+                <form class="va-step1" id="vaForm" autocomplete="off"
+                      onsubmit="event.preventDefault();submitViewAs();return false;">
+                    <div>
+                        <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Шаг 1 — выберите роль</div>
+                        <div class="va-roles" id="vaRoles">${rolesHtml}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Шаг 2 — учётка для просмотра</div>
+                        <div class="va-creds">
+                            <div>
+                                <label>Логин</label>
+                                <input type="text" id="vaLogin" name="va_login" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="login_b2b_fo">
+                            </div>
+                            <div>
+                                <label>Пароль</label>
+                                <input type="password" id="vaPassword" name="va_password" autocomplete="off" placeholder="••••••">
+                            </div>
+                        </div>
+                        <div id="vaPresetHint" style="margin-top:6px;font-size:11px;color:#475569;">Пароль используется только для одного запроса и не сохраняется.</div>
+                    </div>
+                    <div class="va-error" id="vaError"></div>
+                    <div class="va-actions">
+                        <button type="submit" class="va-submit" id="vaSubmit">Войти и загрузить</button>
+                        <span class="va-loading" id="vaLoading"><span class="va-spinner"></span> Загружаем под выбранной учёткой…</span>
+                    </div>
+                </form>`;
+        }
+
+        function vaSetRole(role) {
+            _vaState.role = role;
+            document.querySelectorAll('#vaRoles .va-role').forEach(b => {
+                b.classList.toggle('active', b.dataset.role === role);
+            });
+            vaApplyRolePreset(role);
+        }
+
+        function vaApplyRolePreset(role) {
+            const r = VA_ROLES.find(x => x.id === role);
+            const loginEl = document.getElementById('vaLogin');
+            const passEl  = document.getElementById('vaPassword');
+            const hint    = document.getElementById('vaPresetHint');
+            if (!loginEl || !passEl) return;
+            if (r && r.preset) {
+                loginEl.value = r.login;
+                passEl.value  = r.password;
+                if (hint) {
+                    hint.textContent = `Подставлены преднастроенные учётные данные для «${r.label}». Можно изменить вручную перед отправкой.`;
+                    hint.classList.add('preset');
+                }
+            } else {
+                // CUSTOM — даём пользователю ввести руками
+                loginEl.value = '';
+                passEl.value  = '';
+                if (hint) {
+                    hint.textContent = 'Введите свой логин и пароль выбранной учётки.';
+                    hint.classList.remove('preset');
+                }
+                setTimeout(() => loginEl.focus(), 30);
+            }
+        }
+
+        async function submitViewAs() {
+            const msisdn = (document.getElementById('fMsisdn').value || '').trim();
+            const form = document.getElementById('vaForm');
+            // Читаем через FormData → не зависит от менеджера паролей и autofill-quirks
+            const fd = form ? new FormData(form) : null;
+            const login = ((fd && fd.get('va_login')) || (document.getElementById('vaLogin')||{}).value || '').toString().trim();
+            const password = ((fd && fd.get('va_password')) || (document.getElementById('vaPassword')||{}).value || '').toString();
+            const errEl = document.getElementById('vaError');
+            errEl.classList.remove('show'); errEl.textContent = '';
+
+            if (!login || !password) {
+                errEl.textContent = 'Введите логин и пароль выбранной учётки (логин: ' + login.length + ', пароль: ' + password.length + ' символов прочитано)';
+                errEl.classList.add('show'); return;
+            }
+            const submit = document.getElementById('vaSubmit');
+            const loading = document.getElementById('vaLoading');
+            submit.disabled = true; loading.classList.add('show');
+
+            try {
+                const resp = await fetch('/api/preview/subscriptions', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        msisdn,
+                        role: _vaState.role,
+                        login, password,
+                        adminToken: SbmsAuth.token,
+                    }),
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok) {
+                    const msg = json.message || json.error || `HTTP ${resp.status}`;
+                    errEl.textContent = `Ошибка: ${msg}`;
+                    errEl.classList.add('show');
+                    return;
+                }
+                _vaState.previewData = json.data;
+                _vaState.previewRoleLabel = (VA_ROLES.find(r => r.id === _vaState.role) || {}).label || _vaState.role;
+                _renderVaCompare();
+            } catch (e) {
+                errEl.textContent = 'Сетевая ошибка: ' + (e.message || e);
+                errEl.classList.add('show');
+            } finally {
+                submit.disabled = false; loading.classList.remove('show');
+                // Сразу обнуляем поле пароля в DOM
+                const pw = document.getElementById('vaPassword'); if (pw) pw.value = '';
+            }
+        }
+
+        function _renderVaCompare() {
+            const adminLabel = 'Admin (текущая)';
+            const prevLabel  = _vaState.previewRoleLabel || 'Preview';
+            const tabs = [
+                {id:'packs',    label:'Пакеты'},
+                {id:'services', label:'Услуги'},
+                {id:'tariffs',  label:'Тарифы'},
+            ];
+            const tabsHtml = tabs.map(t =>
+                `<button class="va-tab ${t.id===_vaState.tab?'active':''}" onclick="vaSwitchTab('${t.id}')">${t.label}</button>`
+            ).join('');
+
+            document.getElementById('vaBody').innerHTML = `
+                <div class="va-compare-head">
+                    <div class="va-tabs">${tabsHtml}</div>
+                    <div class="va-diff-summary" id="vaDiffSummary">—</div>
+                    <button class="va-back" onclick="_renderVaModalForm()">← Сменить учётку</button>
+                </div>
+                <div class="va-split">
+                    <div class="va-pane">
+                        <div class="va-pane-hdr left"><span>${esc(adminLabel)}</span><span class="va-count" id="vaCountLeft">—</span></div>
+                        <div class="va-pane-body" id="vaPaneLeft"></div>
+                    </div>
+                    <div class="va-pane">
+                        <div class="va-pane-hdr right"><span>${esc(prevLabel)}</span><span class="va-count" id="vaCountRight">—</span></div>
+                        <div class="va-pane-body" id="vaPaneRight"></div>
+                    </div>
+                </div>`;
+            _renderVaTab();
+        }
+
+        function vaSwitchTab(tab) { _vaState.tab = tab; _renderVaCompare(); }
+
+        function _vaItemsForTab(src, tab) {
+            if (!src) return [];
+            if (tab === 'packs') {
+                const a = (src.activePacks||[]).map(p => ({id: p.packId||p.id||'', name: p.name||'N/A', status:'act'}));
+                const v = (src.availablePacks||[]).map(p => ({id: p.packId||p.id||'', name: p.name||'N/A', status:'avl'}));
+                return [...a, ...v];
+            }
+            if (tab === 'services') {
+                const a = (src.activeServices||[]).map(s => ({id: s.serviceId||'', name: s.name||'N/A', status:'act'}));
+                const v = (src.availableServices||[]).map(s => ({id: s.serviceId||'', name: s.name||'N/A', status:'avl'}));
+                return [...a, ...v];
+            }
+            if (tab === 'tariffs') {
+                return (src.availableRatePlans||[]).map(r => ({id: r.ratePlanId||'', name: r.name||'N/A', status:'avl'}));
+            }
+            return [];
+        }
+
+        function _renderVaTab() {
+            const adminItems = _vaItemsForTab(_vaState.adminData, _vaState.tab);
+            const prevItems  = _vaItemsForTab(_vaState.previewData, _vaState.tab);
+            const adminKeys = new Set(adminItems.map(i => String(i.id)));
+            const prevKeys  = new Set(prevItems.map(i => String(i.id)));
+
+            const onlyAdmin = adminItems.filter(i => !prevKeys.has(String(i.id))).length;
+            const onlyPrev  = prevItems.filter(i => !adminKeys.has(String(i.id))).length;
+            document.getElementById('vaDiffSummary').innerHTML =
+                `различий: <span class="va-diff-num">${onlyAdmin + onlyPrev}</span> · только Admin: ${onlyAdmin} · только Preview: ${onlyPrev}`;
+
+            const renderRows = (items, otherKeys, sideClass) => {
+                if (!items.length) return `<div class="va-empty">Нет данных</div>`;
+                return items.map(i => {
+                    const key = String(i.id);
+                    const cls = otherKeys.has(key) ? 'both' : sideClass;
+                    const stat = i.status === 'act'
+                        ? `<span class="va-stat act">актив.</span>`
+                        : `<span class="va-stat avl">доступ.</span>`;
+                    return `<div class="va-row ${cls}">
+                        <span class="va-id">${esc(key||'—')}</span>
+                        <span class="va-name" title="${esc(i.name)}">${esc(i.name)}</span>
+                        ${stat}
+                    </div>`;
+                }).join('');
+            };
+
+            document.getElementById('vaPaneLeft').innerHTML  = renderRows(adminItems, prevKeys, 'only-left');
+            document.getElementById('vaPaneRight').innerHTML = renderRows(prevItems,  adminKeys, 'only-right');
+            document.getElementById('vaCountLeft').textContent  = `${adminItems.length} поз.`;
+            document.getElementById('vaCountRight').textContent = `${prevItems.length} поз.`;
+        }
+
+        // Закрытие по Esc / клику на фон
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && document.getElementById('vaModalBd').classList.contains('show')) {
+                closeViewAsModal();
+            }
+        });
+
         // ==================== INIT ====================
         loadConfig();
     </script>
+
+    <!-- View-as modal -->
+    <div class="va-modal-bd" id="vaModalBd" onclick="if(event.target===this)closeViewAsModal()">
+        <div class="va-modal" role="dialog" aria-modal="true" aria-labelledby="vaTitle" style="position:relative;">
+            <div class="va-readonly">read-only</div>
+            <div class="va-head">
+                <div>
+                    <h3 id="vaTitle">Просмотр от имени другой учётки</h3>
+                    <div class="va-sub" id="vaSubtitle"></div>
+                </div>
+                <button class="va-close" onclick="closeViewAsModal()" title="Закрыть (Esc)" aria-label="Закрыть">×</button>
+            </div>
+            <div class="va-body" id="vaBody"></div>
+        </div>
+    </div>
 </body>
 </html>

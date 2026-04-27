@@ -46,11 +46,18 @@ _auth_cache = {}  # login -> {"token": str, "ts": float}
 TOKEN_TTL = 25 * 60  # 25 минут (сессия SBMS обычно 30 мин)
 
 
+class AuthRequired(Exception):
+    """Поднимается, когда у запроса нет ни валидного authToken, ни credentials."""
+    pass
+
+
 def _get_client(data=None):
     """Получить авторизованный SBMSClient. Приоритет:
-    1. authToken из запроса — используем напрямую (без повторной авторизации)
-    2. login из кеша — если токен ещё свежий
-    3. login+password — свежая авторизация + кеширование
+    1. authToken из запроса — используем напрямую
+    2. login+password из запроса — свежая авторизация + кеширование
+    3. login из кеша — если токен ещё свежий
+    4. .env credentials — только если явно разрешено (CLI/автотесты), UI всегда
+       должен прислать свои credentials либо authToken.
     """
     data = data or {}
     token = data.get("authToken")
@@ -59,19 +66,40 @@ def _get_client(data=None):
         client.token = token
         return client
 
-    login = data.get("login") or os.getenv("SBMS_LOGIN", "DBS_CC_OPERATORS_PSO")
-    password = data.get("password") or os.getenv("SBMS_PASSWORD", "Ucell2026$$")
-
+    login = data.get("login")
+    password = data.get("password")
     now = time.time()
-    if login in _auth_cache and now - _auth_cache[login]["ts"] < TOKEN_TTL:
+
+    if login and password:
+        client = SBMSClient(BASE_URL, TIMEOUT)
+        client.authenticate(login, password)
+        _auth_cache[login] = {"token": client.token, "ts": now}
+        return client
+
+    if login and login in _auth_cache and now - _auth_cache[login]["ts"] < TOKEN_TTL:
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.token = _auth_cache[login]["token"]
         return client
 
-    client = SBMSClient(BASE_URL, TIMEOUT)
-    client.authenticate(login, password)
-    _auth_cache[login] = {"token": client.token, "ts": now}
-    return client
+    # Фолбэк на .env допустим только для CLI-сценариев; UI всегда прислал бы credentials.
+    env_login = os.getenv("SBMS_LOGIN")
+    env_pass = os.getenv("SBMS_PASSWORD")
+    if env_login and env_pass and os.getenv("SBMS_ALLOW_ENV_AUTH") == "1":
+        if env_login in _auth_cache and now - _auth_cache[env_login]["ts"] < TOKEN_TTL:
+            client = SBMSClient(BASE_URL, TIMEOUT)
+            client.token = _auth_cache[env_login]["token"]
+            return client
+        client = SBMSClient(BASE_URL, TIMEOUT)
+        client.authenticate(env_login, env_pass)
+        _auth_cache[env_login] = {"token": client.token, "ts": now}
+        return client
+
+    raise AuthRequired("Требуется авторизация: пришлите authToken или login+password")
+
+
+@app.errorhandler(AuthRequired)
+def _auth_required(e):
+    return jsonify({"error": str(e), "code": "AUTH_REQUIRED"}), 401
 
 
 @app.after_request
@@ -248,20 +276,49 @@ def get_config():
 
 @app.route('/api/auth', methods=['POST'])
 def api_auth():
-    """Авторизация: получить токен. Вызывается один раз, токен переиспользуется."""
+    """Авторизация: получить токен. Credentials берутся из тела запроса.
+    Возвращает token + expiresIn (секунды) + expiresAt (unix timestamp)."""
     try:
         data = request.get_json() or {}
-        login = data.get("login") or os.getenv("SBMS_LOGIN", "DBS_CC_OPERATORS_PSO")
-        password = data.get("password") or os.getenv("SBMS_PASSWORD", "Ucell2026$$")
+        login = (data.get("login") or "").strip()
+        password = data.get("password") or ""
+        if not login or not password:
+            return jsonify({"error": "login и password обязательны", "code": "AUTH_MISSING"}), 400
 
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.authenticate(login, password)
+        ts = time.time()
+        _auth_cache[login] = {"token": client.token, "ts": ts}
 
-        _auth_cache[login] = {"token": client.token, "ts": time.time()}
-
-        return jsonify({"token": client.token, "expiresIn": TOKEN_TTL})
+        return jsonify({
+            "token": client.token,
+            "login": login,
+            "expiresIn": TOKEN_TTL,
+            "expiresAt": int(ts + TOKEN_TTL),
+        })
     except Exception as e:
-        return jsonify({"error": str(e)}), 401
+        return jsonify({"error": str(e), "code": "AUTH_FAILED"}), 401
+
+
+@app.route('/api/auth/verify', methods=['POST'])
+def api_auth_verify():
+    """Проверить, жив ли токен. Дёргает лёгкий эндпоинт SBMS."""
+    data = request.get_json() or {}
+    token = data.get("authToken")
+    if not token:
+        return jsonify({"valid": False, "error": "no token"}), 401
+    try:
+        client = SBMSClient(BASE_URL, TIMEOUT)
+        client.token = token
+        # searchBase с заведомо несуществующим MSISDN — быстрая проверка токена
+        resp = client._get("/OAPI/v1/customers/searchBase", {
+            "identification": "000000000000", "authToken": token
+        })
+        if resp.status_code in (200, 204):
+            return jsonify({"valid": True})
+        return jsonify({"valid": False, "status": resp.status_code}), 401
+    except Exception as e:
+        return jsonify({"valid": False, "error": str(e)}), 401
 
 
 @app.route('/api/test/run', methods=['POST'])
@@ -378,56 +435,78 @@ def tariff_load_customer():
 
         # Жизненный цикл абонента
         lifecycle_state = None
+        lifecycle_details = {}   # extra поля: дата активации, дата смены состояния, история
         lc_raw = None
+
+        def _pick_lc_state(d):
+            if not isinstance(d, dict):
+                return None
+            return (d.get("def") or d.get("lcStateName") or d.get("stateName") or d.get("name"))
+
+        def _pick_lc_dates(d):
+            """Собрать вероятные поля дат из объекта lifecycle."""
+            if not isinstance(d, dict):
+                return {}
+            keys = ("activationDate", "activatedDate", "beginDate", "startDate",
+                    "stateBeginDate", "stateStartDate", "endDate", "stateEndDate",
+                    "lastChangeDate", "changedAt", "blockDate")
+            return {k: d[k] for k in keys if d.get(k)}
+
         try:
             lc_data = client.get_lifecycle_actual(sid)
             lc_raw = lc_data
             if lc_data and isinstance(lc_data, dict):
-                # Поля-кандидаты: def, lcStateName, name, stateName
-                lifecycle_state = (lc_data.get("def")
-                                   or lc_data.get("lcStateName")
-                                   or lc_data.get("stateName")
-                                   or lc_data.get("name"))
+                lifecycle_state = _pick_lc_state(lc_data)
+                lifecycle_details.update(_pick_lc_dates(lc_data))
                 # Если вложенные items/lcState
                 if not lifecycle_state:
                     for key in ("items", "lcStates", "lcStatesList"):
                         sub = lc_data.get(key)
                         if isinstance(sub, list) and sub:
                             first = sub[0] if isinstance(sub[0], dict) else {}
-                            lifecycle_state = (first.get("def")
-                                               or first.get("lcStateName")
-                                               or first.get("stateName")
-                                               or first.get("name"))
+                            lifecycle_state = _pick_lc_state(first)
+                            lifecycle_details.update(_pick_lc_dates(first))
                             if lifecycle_state:
                                 break
-                # Если ответ — список на верхнем уровне
             elif lc_data and isinstance(lc_data, list) and lc_data:
                 first = lc_data[0] if isinstance(lc_data[0], dict) else {}
-                lifecycle_state = (first.get("def")
-                                   or first.get("lcStateName")
-                                   or first.get("name"))
-            # Fallback: второй эндпоинт через customerId
-            if not lifecycle_state:
-                lc_info = client.get_lifecycle_info(cid)
-                if lc_info and isinstance(lc_info, dict):
-                    lc_items2 = lc_info.get("items") or lc_info.get("searchResults") or []
-                    if lc_items2 and isinstance(lc_items2[0], dict):
-                        first = lc_items2[0]
-                        lifecycle_state = (first.get("def")
-                                           or first.get("lcStateName")
-                                           or first.get("stateName")
-                                           or first.get("name"))
-                        if not lifecycle_state:
-                            for key in ("lcStatesList", "lcStates"):
-                                sub = first.get(key)
-                                if isinstance(sub, list) and sub and isinstance(sub[0], dict):
-                                    lifecycle_state = (sub[0].get("def")
-                                                       or sub[0].get("lcStateName")
-                                                       or sub[0].get("name"))
-                                    if lifecycle_state:
-                                        break
+                lifecycle_state = _pick_lc_state(first)
+                lifecycle_details.update(_pick_lc_dates(first))
+
+            # Вторая попытка + история состояний — через customerId
+            lc_info = client.get_lifecycle_info(cid)
+            if lc_info and isinstance(lc_info, dict):
+                lc_items2 = lc_info.get("items") or lc_info.get("searchResults") or []
+                if lc_items2 and isinstance(lc_items2[0], dict):
+                    first = lc_items2[0]
                     if not lifecycle_state:
-                        lc_raw = lc_info
+                        lifecycle_state = _pick_lc_state(first)
+                    lifecycle_details.update({k: v for k, v in _pick_lc_dates(first).items()
+                                              if k not in lifecycle_details})
+                    history = []
+                    for key in ("lcStatesList", "lcStates"):
+                        sub = first.get(key)
+                        if isinstance(sub, list):
+                            for st in sub:
+                                if not isinstance(st, dict):
+                                    continue
+                                history.append({
+                                    "state": _pick_lc_state(st),
+                                    "startDate": (st.get("beginDate") or st.get("startDate")
+                                                  or st.get("stateBeginDate")),
+                                    "endDate": (st.get("endDate") or st.get("stateEndDate")),
+                                })
+                            break
+                    if history:
+                        lifecycle_details["history"] = history
+                        if not lifecycle_state:
+                            # В истории последнее состояние без endDate — текущее
+                            for st in history:
+                                if not st.get("endDate"):
+                                    lifecycle_state = st.get("state")
+                                    break
+                if not lifecycle_state and not lifecycle_details:
+                    lc_raw = lc_info
         except Exception as e:
             print(f"[WARN] lifecycle error: {e}")
 
@@ -440,6 +519,7 @@ def tariff_load_customer():
                 "ratePlanId": rp_id,
                 "status": ((sr.get("firstSubscriber") or {}).get("status") or {}).get("name", "N/A"),
                 "lifecycleState": lifecycle_state,
+                "lifecycleDetails": lifecycle_details or None,
                 "balance": balance,
                 "currentFee": current_fee,
                 "currentProductId": current_product_id,
@@ -777,6 +857,103 @@ def api_limits_all():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# PREVIEW (View-as) — read-only просмотр от имени другой учётки
+# ============================================================
+@app.route("/api/preview/subscriptions", methods=["POST"])
+def preview_subscriptions():
+    """Read-only preview подписок номера от имени другой учётки (B2B FO / B2C FO / etc).
+
+    Не затрагивает админ-сессию: создаёт ИЗОЛИРОВАННЫЙ SBMSClient,
+    его токен НЕ кладётся в _auth_cache. Anti-abuse: требуется живой админ-токен
+    в поле adminToken (проверяется тривиально — наличие непустого значения).
+
+    Body: {msisdn, role, login, password, adminToken}
+    Returns: {ok, role, msisdn, currentRatePlan, data: {activePacks, ...}}
+    """
+    data = request.get_json(silent=True) or {}
+    msisdn = (data.get("msisdn") or "").strip()
+    role = (data.get("role") or "custom").strip()
+    p_login = (data.get("login") or "").strip()
+    p_password = data.get("password") or ""
+    admin_token = (data.get("adminToken") or "").strip()
+
+    # Маскированный лог — без пароля
+    print(f"[PREVIEW] msisdn={msisdn} role={role} login={p_login} pwd=*** admin_token={'set' if admin_token else 'missing'}")
+
+    if not admin_token:
+        return jsonify({"error": "ADMIN_AUTH_REQUIRED",
+                        "message": "Сначала войдите в основную (админ) учётку"}), 401
+
+    if not msisdn or not p_login or not p_password:
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "Поля msisdn / login / password обязательны"}), 400
+
+    # Изолированный клиент: НЕ через _get_client, кеш не трогаем
+    pclient = SBMSClient(BASE_URL, TIMEOUT)
+    try:
+        pclient.authenticate(p_login, p_password)
+    except Exception as e:
+        return jsonify({"error": "AUTH_FAILED",
+                        "message": f"Не удалось войти под {p_login}: {str(e)[:200]}"}), 401
+
+    try:
+        sd = pclient.search_customer(msisdn)
+        if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+            return jsonify({"error": "SUBSCRIBER_NOT_FOUND",
+                            "message": f"Номер {msisdn} не найден под учёткой {p_login}"}), 404
+
+        sr = sd["searchResults"][0]
+        cid = sr.get("customerId")
+        sid = sr.get("subscriberId")
+        rate_plan = (sr.get("firstSubscriber") or {}).get("ratePlan") or {}
+
+        def _items(d):
+            return d.get("items", []) if isinstance(d, dict) else []
+
+        active_packs = _items(pclient.get_active_packs(sid))
+        avail_packs = _items(pclient.get_available_packs(sid))
+        active_svc = _items(pclient.get_active_services(sid))
+        avail_svc = _items(pclient.get_available_services(sid))
+
+        avail_rps = pclient.get_available_rateplans(sid)
+        flat_rps = []
+        for it in (_items(avail_rps) or []):
+            rp = it.get("ratePlan") or {}
+            flat_rps.append({
+                "ratePlanId": rp.get("ratePlanId") or it.get("ratePlanId") or it.get("id"),
+                "name": rp.get("name") or it.get("name", "N/A"),
+                "isArchived": it.get("isArchived"),
+            })
+
+        result = {
+            "ok": True,
+            "role": role,
+            "msisdn": msisdn,
+            "subscriberId": sid,
+            "customerId": cid,
+            "currentRatePlan": {
+                "ratePlanId": rate_plan.get("ratePlanId"),
+                "name": rate_plan.get("name"),
+            },
+            "data": {
+                "activePacks": active_packs,
+                "availablePacks": avail_packs,
+                "activeServices": active_svc,
+                "availableServices": avail_svc,
+                "availableRatePlans": flat_rps,
+            },
+        }
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "PREVIEW_FAILED", "message": str(e)[:300]}), 500
+    finally:
+        # Токен preview-сессии нам больше не нужен; в SBMS истечёт сам.
+        pclient.token = None
+
+    return jsonify(result)
 
 
 # ============================================================

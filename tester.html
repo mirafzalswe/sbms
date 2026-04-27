@@ -630,12 +630,17 @@
                 <div class="form-row two">
                     <div class="form-group">
                         <label>Login</label>
-                        <input type="text" id="fLogin" value="DBS_CC_OPERATORS_PSO">
+                        <input type="text" id="fLogin" value="" placeholder="Введите логин SBMS" autocomplete="username">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="fPassword" value="Ucell2026$$">
+                        <input type="password" id="fPassword" value="" placeholder="Введите пароль" autocomplete="current-password">
                     </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+                    <button class="btn btn-secondary" id="btnLogin" type="button" onclick="doLogin()">Войти</button>
+                    <button class="btn btn-secondary" id="btnLogout" type="button" onclick="doLogout()" style="display:none;">Выйти</button>
+                    <span id="authBadge"></span>
                 </div>
 
                 <div class="btn-group">
@@ -738,6 +743,7 @@
         </div>
     </div>
 
+    <script src="/static/sbms-auth.js"></script>
     <script>
         let lastReport = null;
 
@@ -765,14 +771,41 @@
         }
         applyTheme(getTheme());
 
+        // ==================== AUTH (SbmsAuth) ====================
+        SbmsAuth.mountBadge('#authBadge');
+        document.getElementById('fLogin').value = SbmsAuth.login || '';
+        function _tuneAuthUI() {
+            const on = SbmsAuth.isValid();
+            document.getElementById('btnLogin').style.display = on ? 'none' : '';
+            document.getElementById('btnLogout').style.display = on ? '' : 'none';
+        }
+        SbmsAuth.on(_tuneAuthUI);
+        _tuneAuthUI();
+
+        async function doLogin() {
+            const login = document.getElementById('fLogin').value.trim();
+            const password = document.getElementById('fPassword').value.trim();
+            if (!login || !password) {
+                try { await SbmsAuth.promptLogin(); } catch (_) {}
+                return;
+            }
+            try {
+                await SbmsAuth.authenticate(login, password);
+                document.getElementById('fPassword').value = '';
+            } catch (e) {
+                alert('Ошибка входа: ' + e.message);
+            }
+        }
+        function doLogout() { SbmsAuth.logout(); }
+
         // ==================== LOAD CONFIG ====================
         async function loadConfig() {
             try {
                 const resp = await fetch('/api/config');
                 const cfg = await resp.json();
-                if (cfg.login) document.getElementById('fLogin').value = cfg.login;
-                if (cfg.password && cfg.password !== '********') document.getElementById('fPassword').value = cfg.password;
-                if (cfg.msisdn) document.getElementById('fMsisdn').value = cfg.msisdn;
+                if (cfg.msisdn && !document.getElementById('fMsisdn').value) {
+                    document.getElementById('fMsisdn').value = cfg.msisdn;
+                }
             } catch (e) {}
         }
 
@@ -817,10 +850,16 @@
                 msisdn: document.getElementById('fMsisdn').value.trim(),
                 testType: document.getElementById('fTestType').value,
                 targetName: document.getElementById('fTargetName').value.trim(),
-                login: document.getElementById('fLogin').value.trim(),
-                password: document.getElementById('fPassword').value.trim(),
                 expected: {}
             };
+            const token = SbmsAuth.token;
+            if (token) {
+                tc.authToken = token;
+            } else {
+                // Разовая отправка креденшиалов — сервер авторизует и закеширует токен
+                tc.login = document.getElementById('fLogin').value.trim();
+                tc.password = document.getElementById('fPassword').value.trim();
+            }
 
             const fee = document.getElementById('fMonthlyFee').value;
             if (fee && !isNaN(parseFloat(fee))) tc.expected.monthlyFee = parseFloat(fee);

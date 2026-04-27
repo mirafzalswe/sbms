@@ -349,6 +349,7 @@
             <a href="/tester" style="color:#22c55e;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #22c55e44;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#22c55e22'" onmouseout="this.style.background='transparent'">QA Tester</a>
             <a href="/tariff-test" style="color:#eab308;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #eab30844;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#eab30822'" onmouseout="this.style.background='transparent'">Тест тарифа</a>
             <a href="/tme" style="color:#f472b6;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border:1px solid #f472b644;border-radius:6px;margin-right:12px;transition:all 0.2s;" onmouseover="this.style.background='#f472b622'" onmouseout="this.style.background='transparent'">TME</a>
+            <span id="authBadge" style="margin-right:12px;"></span>
             <span class="status-dot" id="serverStatus"></span>
             <span id="serverStatusText" style="font-size:13px; color:#94a3b8;">Not connected</span>
             <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
@@ -365,19 +366,19 @@
             <div class="config-grid">
                 <div class="config-field">
                     <label>Login</label>
-                    <input type="text" id="login" value="DBS_CC_OPERATORS_PSO">
+                    <input type="text" id="login" value="" placeholder="Введите логин SBMS" autocomplete="username">
                 </div>
                 <div class="config-field">
                     <label>Password</label>
-                    <input type="password" id="password" value="Ucell2026$$">
+                    <input type="password" id="password" value="" placeholder="Введите пароль" autocomplete="current-password">
                 </div>
                 <div class="config-field">
                     <label>Test MSISDN</label>
-                    <input type="text" id="msisdn" value="998500173054">
+                    <input type="text" id="msisdn" value="" placeholder="998XXXXXXXXX">
                 </div>
                 <div class="config-field">
                     <label>Token (auto)</label>
-                    <input type="text" id="tokenField" value="" placeholder="Получается автоматически" readonly>
+                    <input type="text" id="tokenField" value="" placeholder="Появится после входа" readonly>
                 </div>
                 <div class="config-field">
                     <label>Customer ID (auto)</label>
@@ -389,9 +390,10 @@
                 </div>
             </div>
             <div class="actions">
+                <button class="btn btn-success" onclick="doLogin()" id="loginBtn">Войти</button>
+                <button class="btn btn-danger" onclick="doLogout()" id="logoutBtn" style="display:none">Выйти</button>
                 <button class="btn btn-primary" onclick="runCoreTests()">Run Core Tests (1-6)</button>
-                <button class="btn btn-success" onclick="runSingleEndpoint('get_session')">1. Get Session</button>
-                <button class="btn btn-danger" onclick="clearResults()">Clear All</button>
+                <button class="btn btn-danger" onclick="clearResults()">Clear Results</button>
             </div>
         </div>
 
@@ -430,6 +432,7 @@
         </div>
     </div>
 
+    <script src="/static/sbms-auth.js"></script>
     <script>
         // ==================== THEME ====================
         function getTheme() { return localStorage.getItem('sbms-theme') || 'dark'; }
@@ -447,8 +450,66 @@
         }
         applyTheme(getTheme());
 
+        // ==================== AUTH (SbmsAuth) ====================
+        SbmsAuth.mountBadge('#authBadge');
+        // Предзаполнить поле логина, если запомнен с прошлой сессии
+        document.getElementById('login').value = SbmsAuth.login || '';
+        // Подхватить токен, если сессия жива
+        let token = SbmsAuth.token || null;
+        SbmsAuth.on((event) => {
+            if (event === 'login') {
+                token = SbmsAuth.token;
+                document.getElementById('tokenField').value = token;
+                document.getElementById('password').value = '';
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = '';
+                document.getElementById('serverStatus').className = 'status-dot green';
+                document.getElementById('serverStatusText').textContent = 'Connected';
+                refreshParamInputs();
+                log('Успешная авторизация. Токен получен.', 'log-pass');
+            } else if (event === 'logout') {
+                token = null;
+                document.getElementById('tokenField').value = '';
+                document.getElementById('loginBtn').style.display = '';
+                document.getElementById('logoutBtn').style.display = 'none';
+                document.getElementById('serverStatus').className = 'status-dot';
+                document.getElementById('serverStatusText').textContent = 'Not connected';
+                refreshParamInputs();
+            }
+        });
+        if (SbmsAuth.isValid()) {
+            document.getElementById('tokenField').value = token;
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = '';
+            document.getElementById('serverStatus').className = 'status-dot green';
+            document.getElementById('serverStatusText').textContent = 'Connected';
+        }
+
+        async function doLogin() {
+            const login = document.getElementById('login').value.trim();
+            const password = document.getElementById('password').value;
+            if (!login || !password) {
+                try { await SbmsAuth.promptLogin(); } catch (_) {}
+                return;
+            }
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.textContent = 'Вход...';
+            try {
+                await SbmsAuth.authenticate(login, password);
+            } catch (e) {
+                log('Ошибка входа: ' + e.message, 'log-fail');
+                alert('Ошибка входа: ' + e.message);
+            } finally {
+                btn.disabled = false; btn.textContent = 'Войти';
+            }
+        }
+
+        function doLogout() {
+            SbmsAuth.logout();
+            log('Выход выполнен. Сессия очищена.', 'log-info');
+        }
+
         // ==================== STATE ====================
-        let token = null;
         let customerId = null;
         let subscriberId = null;
         let totalTime = 0;
@@ -473,11 +534,11 @@
                     const xml = parser.parseFromString(data, 'text/xml');
                     const el = xml.querySelector('SESSION_ID');
                     if (el && el.textContent) {
-                        token = el.textContent;
-                        document.getElementById('tokenField').value = token;
-                        document.getElementById('serverStatus').className = 'status-dot green';
-                        document.getElementById('serverStatusText').textContent = 'Connected';
-                        return { ok: true, msg: `Token: ${token.substring(0, 25)}...` };
+                        const t = el.textContent;
+                        // Зарегистрировать токен в едином менеджере сессий
+                        const loginName = (document.getElementById('login').value || '').trim();
+                        SbmsAuth.setSession(t, 25 * 60, loginName);
+                        return { ok: true, msg: `Token: ${t.substring(0, 25)}...` };
                     }
                     return { ok: false, msg: 'SESSION_ID not found in response' };
                 }
@@ -1317,7 +1378,7 @@
 
         function getParamValue(p) {
             const cfg = getConfig();
-            if (p.tokenRef) return token || '';
+            if (p.tokenRef) return SbmsAuth.token || token || '';
             if (p.configRef) return cfg[p.configRef] || '';
             if (p.stateRef) {
                 if (p.stateRef === 'customerId') return customerId || document.getElementById('customerIdField').value || '';
@@ -1348,14 +1409,13 @@
         }
 
         function clearResults() {
-            token = null;
+            // Сессию (token) не трогаем — чистим только результаты тестов
             customerId = null;
             subscriberId = null;
             totalTime = 0;
             passCount = 0;
             failCount = 0;
             updateStats();
-            document.getElementById('tokenField').value = '';
             document.getElementById('customerIdField').value = '';
             document.getElementById('subscriberIdField').value = '';
             document.querySelectorAll('.ep-status').forEach(el => {
@@ -1366,8 +1426,7 @@
             document.querySelectorAll('.ep-http').forEach(el => { el.textContent = '-'; el.className = 'http-status ep-http'; });
             document.querySelectorAll('.response-area').forEach(el => el.classList.remove('visible'));
             document.getElementById('log').innerHTML = '<span class="log-dim">[Ready] Cleared.</span>';
-            document.getElementById('serverStatus').className = 'status-dot';
-            document.getElementById('serverStatusText').textContent = 'Not connected';
+            // Не сбрасываем коннект-статус — сессия могла остаться жива
         }
 
         // ==================== RENDER ====================
@@ -1459,6 +1518,10 @@
                 } else {
                     data = await resp.text();
                 }
+                if (resp.status === 401 || resp.status === 403) {
+                    SbmsAuth.clearSession('expired');
+                    log('Сессия SBMS истекла — требуется повторный вход.', 'log-warn');
+                }
                 return { ok: resp.ok, status: resp.status, data, elapsed };
             } catch (e) {
                 const elapsed = performance.now() - start;
@@ -1470,6 +1533,13 @@
         async function runSingleEndpoint(id) {
             const ep = endpoints.find(e => e.id === id);
             if (!ep) return;
+
+            // Все эндпоинты кроме авторизации требуют валидной сессии
+            if (id !== 'get_session' && !SbmsAuth.isValid()) {
+                log('Нет активной сессии. Требуется вход.', 'log-warn');
+                try { await SbmsAuth.promptLogin('Требуется авторизация для выполнения запросов'); }
+                catch (_) { return false; }
+            }
 
             const cfg = getConfig();
 
