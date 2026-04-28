@@ -27,6 +27,7 @@
 | GET | `/` | `dashboard.html` |
 | GET | `/tester` | `tester.html` — QA страница |
 | GET | `/tariff-test` | `tariff_test.html` — стенд смены тарифа |
+| GET | `/matrix-test` | `matrix_test.html` — матрица переходов (admin меняет → viewer проверяет доступные) |
 | GET | `/tme` | `tme.html` — TME (Trouble Management Engine) |
 | ANY | `/proxy/<path>` | прозрачный прокси к `SBMS_BASE_URL` |
 | POST | `/api/auth` | авторизация, возврат `authToken` |
@@ -42,6 +43,10 @@
 | POST | `/api/packs/activate` · `/api/packs/deactivate` | пакеты |
 | POST | `/api/services/activate` · `/api/services/deactivate` | услуги |
 | POST | `/api/limits/all` | агрегация остатков (rtDiscounts + next charges) |
+| POST | `/api/matrix/parse` | распарсить файл матрицы (PDF/DOCX/XLSX/CSV/JSON) → каноничный JSON |
+| POST | `/api/matrix/run` | прогон матрицы (синхронный) |
+| POST | `/api/matrix/run-stream` | прогон с SSE-стримом прогресса по строкам |
+| GET | `/api/matrix/history` · `/api/matrix/history/<id>` | отчёты матрицы |
 
 ## SBMS API — ключевые запросы
 

@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Матрица переходов — UCELL SBMS</title>
+<style>
+    :root {
+        --bg: #0f172a;
+        --bg-2: #1e293b;
+        --bg-3: #0b1220;
+        --border: #334155;
+        --border-soft: #1e293b;
+        --text: #e2e8f0;
+        --text-2: #94a3b8;
+        --text-3: #64748b;
+        --brand: #6B1F8A;
+        --brand-hover: #581873;
+        --brand-soft: #6B1F8A1F;
+        --brand-glow: #6B1F8A55;
+        --brand-text: #ffffff;
+        --pass: #22c55e;
+        --fail: #ef4444;
+        --warn: #eab308;
+        --info: #38bdf8;
+        --skip: #64748b;
+        --pass-soft: #22c55e22;
+        --fail-soft: #ef444422;
+        --warn-soft: #eab30822;
+        --info-soft: #38bdf822;
+        --skip-soft: #64748b22;
+    }
+    [data-theme="light"] {
+        --bg: #f3f4f8;
+        --bg-2: #ffffff;
+        --bg-3: #f7f8fb;
+        --border: #d8dde6;
+        --border-soft: #e2e6ec;
+        --text: #1f2937;
+        --text-2: #4b5563;
+        --text-3: #8893a4;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px;
+    }
+
+    /* ========== TOPBAR ========== */
+    .topbar {
+        background: var(--bg-2); border-bottom: 1px solid var(--border);
+        padding: 0 16px; display: flex; align-items: center; gap: 14px;
+        height: 52px; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar .brand { display: inline-flex; align-items: center; gap: 10px; }
+    .topbar .brand img {
+        height: 22px; width: auto; background: #fff; padding: 2px 6px; border-radius: 5px;
+    }
+    [data-theme="light"] .topbar .brand img { background: transparent; padding: 0; }
+    .topbar h1 { font-size: 16px; color: var(--brand); font-weight: 800; letter-spacing: .5px; margin: 0; }
+    .topbar nav { display: flex; gap: 2px; margin-left: 8px; }
+    .topbar nav a {
+        color: var(--text-2); text-decoration: none; font-size: 12px; font-weight: 500;
+        height: 28px; padding: 0 10px; border-radius: 6px;
+        display: inline-flex; align-items: center; transition: all .15s;
+    }
+    .topbar nav a:hover { background: var(--bg); color: var(--text); }
+    .topbar nav a.active { background: var(--brand); color: var(--brand-text); }
+    .topbar .spacer { flex: 1; }
+    .topbar .icon-btn {
+        width: 32px; height: 28px; border-radius: 6px; cursor: pointer;
+        background: var(--bg); border: 1px solid var(--border); color: var(--text-2);
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .topbar .icon-btn:hover { color: var(--text); border-color: var(--text-3); }
+    .topbar .icon-btn svg { width: 14px; height: 14px; }
+
+    /* ========== LAYOUT ========== */
+    .container { max-width: 1600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .card {
+        background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+        padding: 16px 18px;
+    }
+    .card h2 {
+        font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .6px;
+        margin: 0 0 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card h2 .step {
+        width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff;
+        display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    }
+    .card .hint { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+
+    /* ========== FORMS ========== */
+    .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; }
+    label.fld { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+    label.fld input, label.fld select {
+        height: 34px; padding: 0 12px; border-radius: 6px;
+        background: var(--bg); border: 1px solid var(--border); color: var(--text);
+        font-size: 13px; font-family: inherit;
+    }
+    label.fld input::placeholder { color: var(--text-3); }
+    label.fld input:focus, label.fld select:focus {
+        outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-glow);
+    }
+    .field-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+        height: 34px; padding: 0 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+        border: 1px solid transparent; cursor: pointer; transition: all .15s;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--brand); color: var(--brand-text); }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-hover); }
+    .btn-ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text-3); }
+    .btn-danger { background: var(--fail); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
+
+    /* ========== UPLOAD ========== */
+    .uploader {
+        border: 2px dashed var(--border); border-radius: 10px; padding: 22px;
+        text-align: center; transition: all .2s; cursor: pointer; background: var(--bg-3);
+    }
+    .uploader:hover, .uploader.dragover {
+        border-color: var(--brand); background: var(--brand-soft);
+    }
+    .uploader.has-file { border-style: solid; border-color: var(--pass); background: var(--bg-3); }
+    .uploader .up-icon {
+        width: 38px; height: 38px; margin: 0 auto 8px; display: block; color: var(--text-3);
+    }
+    .uploader.has-file .up-icon { color: var(--pass); }
+    .uploader .up-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .uploader .up-sub   { font-size: 12px; color: var(--text-3); }
+    .uploader input[type=file] { display: none; }
+
+    .file-info {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; padding: 8px 12px; background: var(--bg-3); border: 1px solid var(--border);
+        border-radius: 6px; margin-top: 10px; font-size: 12px;
+    }
+    .file-info strong { color: var(--text); }
+    .file-info .stats { color: var(--text-2); font-family: monospace; }
+
+    /* ========== ALERTS ========== */
+    .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+    .alert-error { background: var(--fail-soft); border: 1px solid #ef444466; color: #fca5a5; }
+    .alert-warn  { background: var(--warn-soft); border: 1px solid #eab30866; color: #fde68a; }
+    .alert-info  { background: var(--info-soft); border: 1px solid #38bdf866; color: #7dd3fc; }
+    .alert-success { background: var(--pass-soft); border: 1px solid #22c55e66; color: #86efac; }
+
+    /* ========== KPI ========== */
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .kpi {
+        background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px 14px; position: relative; overflow: hidden;
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .kpi::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: currentColor; opacity: .85;
+    }
+    .kpi .n { font-size: 22px; font-weight: 700; line-height: 1; }
+    .kpi .l { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+
+    /* ========== PROGRESS ========== */
+    .progress-wrap {
+        background: var(--bg-3); border-radius: 8px; height: 26px; overflow: hidden;
+        position: relative; border: 1px solid var(--border);
+    }
+    .progress-bar {
+        height: 100%; background: linear-gradient(90deg, var(--brand), var(--pass));
+        transition: width .3s; min-width: 36px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .progress-step { font-size: 12px; color: var(--text-2); margin-top: 6px; font-family: monospace; }
+    .progress-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    /* ========== MATRIX TABLE ========== */
+    .matrix-wrap {
+        max-height: 70vh; overflow: auto; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--bg-3); position: relative;
+    }
+    .matrix-table {
+        border-collapse: separate; border-spacing: 0; font-size: 11.5px;
+        width: max-content; min-width: 100%;
+    }
+    .matrix-table th, .matrix-table td {
+        padding: 6px 8px; border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft);
+        text-align: center; vertical-align: middle; white-space: nowrap;
+    }
+    /* Шапка — sticky сверху */
+    .matrix-table thead th {
+        background: var(--bg-2); position: sticky; top: 0; z-index: 5;
+        color: var(--text-2); font-size: 11px; font-weight: 600;
+    }
+    .matrix-table thead th .col-id {
+        display: block; font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 1px;
+    }
+    /* Первый столбец (исходные тарифы) — sticky слева */
+    .matrix-table th.row-head, .matrix-table td.row-head {
+        position: sticky; left: 0; background: var(--bg-2); text-align: left;
+        font-weight: 600; min-width: 200px; z-index: 4;
+        border-right: 2px solid var(--border);
+    }
+    .matrix-table thead th.row-head { z-index: 6; top: 0; }
+    .matrix-table td.row-head { color: var(--text); }
+    .matrix-table td.row-head .row-id { font-size: 10px; color: var(--text-3); display: block; font-family: monospace; }
+
+    /* Клетки результата */
+    .cell {
+        font-weight: 700; font-size: 13px; line-height: 1; min-width: 38px;
+        display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+    }
+    .cell-pass { background: var(--pass-soft); color: var(--pass); }
+    .cell-fail { background: var(--fail-soft); color: var(--fail); }
+    .cell-info { background: var(--info-soft); color: var(--info); }
+    .cell-skip { background: var(--skip-soft); color: var(--text-3); }
+    .cell-pending { background: transparent; color: var(--text-3); }
+    .cell-blocked { background: var(--warn-soft); color: var(--warn); }
+    /* Mini-баджик "ожидание/факт" в углу */
+    .cell-tooltip { cursor: help; position: relative; }
+    .cell-fail::after, .cell-pass.has-mismatch::after { content: ''; }
+
+    /* Текущая обрабатываемая строка */
+    .matrix-table tr.row-current td.row-head { background: var(--brand-soft); border-left: 3px solid var(--brand); }
+    .matrix-table tr.row-current { background: var(--brand-soft); }
+    .matrix-table tr.row-current td { background: var(--brand-soft); }
+
+    /* Пропущенная строка (не была выбрана для прогона) */
+    .matrix-table tr.row-skipped { opacity: .45; }
+    .matrix-table tr.row-skipped td.row-head { font-style: italic; color: var(--text-3); }
+
+    /* Клик по строке — раскрытие деталей */
+    .matrix-table tr.row-clickable td.row-head { cursor: pointer; }
+    .matrix-table tr.row-clickable:hover td { background: #ffffff08; }
+    [data-theme="light"] .matrix-table tr.row-clickable:hover td { background: #00000005; }
+    .row-detail-panel {
+        background: var(--bg-3); border-top: 1px solid var(--border-soft);
+        padding: 0; font-size: 12px;
+    }
+    .row-detail-panel.open .row-detail-inner { padding: 12px 14px; display: block; }
+    .row-detail-inner { display: none; }
+
+    /* Легенда */
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
+    .legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .lg .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+    .legend .lg .sw.pass    { background: var(--pass-soft);    border: 1px solid var(--pass); }
+    .legend .lg .sw.fail    { background: var(--fail-soft);    border: 1px solid var(--fail); }
+    .legend .lg .sw.info    { background: var(--info-soft);    border: 1px solid var(--info); }
+    .legend .lg .sw.blocked { background: var(--warn-soft);    border: 1px solid var(--warn); }
+    .legend .lg .sw.pending { background: transparent;          border: 1px dashed var(--text-3); }
+
+    /* Mismatch list */
+    .mismatch-list { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+    .mismatch-list .ml-col h3 { font-size: 12px; color: var(--text-2); text-transform: uppercase; margin: 0 0 8px; }
+    .mismatch-list ul { list-style: none; padding: 0; margin: 0; max-height: 220px; overflow: auto; }
+    .mismatch-list li {
+        padding: 6px 10px; background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: 6px;
+        margin-bottom: 4px; font-size: 12px; display: flex; justify-content: space-between; gap: 8px;
+    }
+    .mismatch-list li .l { color: var(--text); }
+    .mismatch-list li .r { color: var(--text-3); font-family: monospace; }
+
+    /* Сжатые превью */
+    details { background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: 6px; padding: 8px 10px; margin-top: 8px; }
+    details summary { cursor: pointer; font-size: 12px; color: var(--text-2); }
+    details pre { margin: 8px 0 0; max-height: 240px; overflow: auto; font-size: 11px; color: var(--text-2); background: var(--bg); padding: 8px; border-radius: 4px; }
+
+    /* ========== ШАГ-NUM (нумерация шагов) ========== */
+    .card.locked { opacity: .55; pointer-events: none; filter: grayscale(.4); }
+    .card .step.done { background: var(--pass); }
+    .card .step.locked { background: var(--text-3); }
+
+    /* ========== PREVIEW (списки тарифов после загрузки) ========== */
+    .preview-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    .preview-col {
+        background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px 14px; min-height: 200px;
+    }
+    .preview-col h3 {
+        font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px;
+        margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .preview-col .pc-sub { font-size: 11px; color: var(--text-3); margin-bottom: 10px; }
+    .preview-col .pc-count {
+        background: var(--brand); color: #fff; border-radius: 10px; padding: 1px 8px;
+        font-size: 11px; font-weight: 700;
+    }
+    .preview-col ul {
+        list-style: none; padding: 0; margin: 0; max-height: 280px; overflow: auto;
+        border: 1px solid var(--border-soft); border-radius: 6px; background: var(--bg-2);
+    }
+    .preview-col li {
+        padding: 6px 12px; border-bottom: 1px solid var(--border-soft);
+        font-size: 12px; display: flex; justify-content: space-between; gap: 8px;
+        align-items: center;
+    }
+    .preview-col li:last-child { border-bottom: none; }
+    .preview-col li .name { color: var(--text); }
+    .preview-col li .pid { color: var(--text-3); font-family: monospace; font-size: 11px; }
+    .preview-col li .badge-cnt {
+        background: var(--bg-3); color: var(--text-2); border-radius: 10px; padding: 1px 7px;
+        font-size: 10px; font-weight: 700;
+    }
+    .preview-col li .badge-cnt.plus  { background: var(--pass-soft); color: var(--pass); }
+    .preview-col li .badge-cnt.minus { background: var(--fail-soft); color: var(--fail); }
+    .preview-col li.clickable { cursor: pointer; transition: background .12s; }
+    .preview-col li.clickable:hover { background: var(--brand-soft); }
+    .preview-col li.active {
+        background: var(--brand-soft); border-left: 3px solid var(--brand);
+        padding-left: 9px;
+    }
+    .preview-col li.active .name { color: var(--brand); font-weight: 600; }
+    .preview-col li.unselected { opacity: .42; }
+    .preview-col li.unselected .name { text-decoration: line-through; color: var(--text-3); }
+    .preview-col li .empty { color: var(--text-3); font-style: italic; padding: 10px 12px; display: block; }
+    .preview-col li .row-cb {
+        cursor: pointer; width: 16px; height: 16px; flex-shrink: 0; margin-right: 4px;
+        accent-color: var(--brand);
+    }
+
+    /* Тулбар выбора */
+    .src-toolbar {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding: 8px 10px; margin-bottom: 8px;
+        background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px;
+        font-size: 12px;
+    }
+    .src-toolbar .sel-count {
+        flex: 1; color: var(--text-2); font-weight: 600;
+    }
+    .src-toolbar .sel-count strong { color: var(--brand); font-variant-numeric: tabular-nums; }
+    .src-toolbar button { font-size: 11px; }
+
+    .confirm-bar {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft);
+    }
+    .confirm-bar .summary-line {
+        font-size: 12px; color: var(--text-2); flex: 1;
+    }
+    .confirm-bar .summary-line strong { color: var(--text); }
+
+    /* ========== ACCOUNT PRESETS (карточки выбора учёток) ========== */
+    .acc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+    .acc-card {
+        background: var(--bg-3); border: 2px solid var(--border); border-radius: 8px;
+        padding: 12px 14px; cursor: pointer; transition: all .15s; position: relative;
+    }
+    .acc-card:hover { border-color: var(--text-3); }
+    .acc-card.selected { border-color: var(--brand); background: var(--brand-soft); }
+    .acc-card.selected::after {
+        content: '✓'; position: absolute; right: 10px; top: 8px;
+        color: var(--brand); font-weight: 700; font-size: 14px;
+    }
+    .acc-card .acc-tag {
+        display: inline-block; font-size: 10px; padding: 2px 7px;
+        background: var(--bg-2); color: var(--text-2); border-radius: 10px;
+        text-transform: uppercase; letter-spacing: .4px; font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .acc-card.selected .acc-tag { background: var(--brand); color: #fff; }
+    .acc-card .acc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .acc-card .acc-login { font-size: 11px; color: var(--text-3); font-family: monospace; word-break: break-all; }
+
+    .role-block { margin-top: 16px; }
+    .role-block .role-title {
+        font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .6px;
+        font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .role-block .role-title .role-badge {
+        font-size: 10px; padding: 2px 8px; border-radius: 10px;
+        background: var(--brand); color: #fff;
+    }
+    .role-block .role-title .role-badge.viewer { background: var(--info); color: #001a2e; }
+    .role-block .role-desc { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+
+    /* ========== ЖУРНАЛ ПРОЦЕССА (плавающая кнопка + drawer) ========== */
+    .log-fab {
+        position: fixed; right: 18px; bottom: 18px; z-index: 1000;
+        background: var(--brand); color: #fff; border: none; border-radius: 999px;
+        padding: 12px 18px; font-size: 13px; font-weight: 700;
+        box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer;
+        display: flex; align-items: center; gap: 8px;
+        transition: transform .15s, box-shadow .15s;
+    }
+    .log-fab:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .log-fab .fab-dot {
+        width: 8px; height: 8px; border-radius: 50%; background: #fff;
+        box-shadow: 0 0 0 0 rgba(255,255,255,.7); animation: fab-pulse 1.6s infinite;
+    }
+    .log-fab.is-running { background: var(--pass); }
+    .log-fab.has-error  { background: var(--fail); }
+    .log-fab .fab-counter {
+        background: rgba(0,0,0,.25); padding: 1px 8px; border-radius: 10px;
+        font-size: 11px; font-variant-numeric: tabular-nums;
+    }
+    @keyframes fab-pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.7); }
+        70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+
+    .log-drawer {
+        position: fixed; right: 0; top: 0; bottom: 0; width: min(560px, 92vw);
+        background: var(--bg-2); border-left: 1px solid var(--border);
+        box-shadow: -8px 0 28px rgba(0,0,0,.35);
+        z-index: 1001; display: flex; flex-direction: column;
+        transform: translateX(100%); transition: transform .25s ease;
+    }
+    .log-drawer.open { transform: translateX(0); }
+    .log-drawer .ld-head {
+        padding: 14px 16px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        background: var(--bg-3);
+    }
+    .log-drawer .ld-title {
+        font-size: 14px; font-weight: 700; color: var(--text); flex: 1;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .log-drawer .ld-status {
+        font-size: 11px; padding: 2px 8px; border-radius: 10px;
+        background: var(--bg-2); color: var(--text-2); font-weight: 700;
+        text-transform: uppercase; letter-spacing: .4px;
+    }
+    .log-drawer .ld-status.running { background: var(--pass-soft); color: var(--pass); }
+    .log-drawer .ld-status.error   { background: var(--fail-soft); color: var(--fail); }
+    .log-drawer .ld-status.idle    { background: var(--bg-3);      color: var(--text-3); }
+    .log-drawer .ld-actions {
+        display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--border);
+        background: var(--bg-3); flex-wrap: wrap;
+    }
+    .log-drawer .ld-actions .ld-filters { display: inline-flex; gap: 4px; margin-left: auto; }
+    .log-drawer .ld-actions .ld-filter {
+        font-size: 11px; padding: 3px 9px; border-radius: 10px;
+        background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border);
+        cursor: pointer; user-select: none;
+    }
+    .log-drawer .ld-actions .ld-filter.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .log-drawer .ld-meta {
+        padding: 8px 16px; border-bottom: 1px solid var(--border-soft);
+        font-size: 11px; color: var(--text-3); display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .log-drawer .ld-meta strong { color: var(--text-2); }
+    .log-drawer .ld-body {
+        flex: 1; overflow: auto; padding: 6px 0; background: var(--bg);
+        font-family: 'JetBrains Mono', Menlo, Consolas, monospace;
+        font-size: 11.5px; line-height: 1.5;
+    }
+    .log-entry {
+        padding: 4px 14px 4px 14px; border-left: 3px solid transparent;
+        display: grid; grid-template-columns: 70px 56px 1fr; gap: 10px;
+        align-items: start; word-break: break-word;
+    }
+    .log-entry:hover { background: var(--bg-2); }
+    .log-entry .lt { color: var(--text-3); white-space: nowrap; }
+    .log-entry .ll {
+        text-transform: uppercase; font-weight: 700; font-size: 10px;
+        padding: 1px 6px; border-radius: 4px; height: 16px; line-height: 14px;
+        text-align: center;
+    }
+    .log-entry .lm { color: var(--text); white-space: pre-wrap; }
+    .log-entry.lvl-info  { border-left-color: var(--info); }
+    .log-entry.lvl-info  .ll { background: var(--info-soft); color: var(--info); }
+    .log-entry.lvl-pass  { border-left-color: var(--pass); }
+    .log-entry.lvl-pass  .ll { background: var(--pass-soft); color: var(--pass); }
+    .log-entry.lvl-warn  { border-left-color: var(--warn); }
+    .log-entry.lvl-warn  .ll { background: var(--warn-soft); color: var(--warn); }
+    .log-entry.lvl-fail  { border-left-color: var(--fail); }
+    .log-entry.lvl-fail  .ll { background: var(--fail-soft); color: var(--fail); }
+    .log-entry.lvl-step  { border-left-color: var(--brand); }
+    .log-entry.lvl-step  .ll { background: var(--brand-soft); color: var(--brand); }
+    .log-entry.lvl-debug { border-left-color: var(--text-3); }
+    .log-entry.lvl-debug .ll { background: var(--bg-3); color: var(--text-3); }
+    .log-entry.hidden-by-filter { display: none; }
+    .log-empty { padding: 30px 20px; text-align: center; color: var(--text-3); font-style: italic; font-family: inherit; }
+
+    .log-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.35);
+        z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .log-overlay.open { opacity: 1; pointer-events: auto; }
+
+    /* Hidden helper */
+    .hidden { display: none !important; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+        .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .mismatch-list { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <img src="/static/logoUcell.png" alt="UCELL" onerror="this.style.display='none'">
+        <h1>SBMS</h1>
+    </div>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/tariff-test">Тариф / Пакет</a>
+        <a href="/matrix-test" class="active">Матрица переходов</a>
+        <a href="/tester">Тестер</a>
+    </nav>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="themeToggle" title="Сменить тему">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/></svg>
+    </button>
+</header>
+
+<div class="container">
+
+    <!-- ============== ШАГ 1 — ФАЙЛ МАТРИЦЫ ============== -->
+    <div class="card" id="step1">
+        <h2><span class="step">1</span>Файл матрицы переходов</h2>
+        <div class="hint">
+            Поддерживаемые форматы: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>XLSX</strong>, <strong>CSV</strong>, <strong>JSON</strong>.
+            В таблице должна быть шапка с целевыми тарифами (с указанием ID в скобках, например <code>Foydali 45 (ID 58)</code>) и левая колонка с исходными тарифами в том же формате.
+        </div>
+
+        <label class="uploader" id="dropZone" for="fileInput">
+            <svg class="up-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v5h5"/>
+                <path d="M4 8V4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V14"/>
+                <path d="M8 13l4-4 4 4"/>
+                <path d="M12 9v9"/>
+            </svg>
+            <div class="up-title" id="upTitle">Перетащите файл сюда или нажмите, чтобы выбрать</div>
+            <div class="up-sub">PDF / DOCX / XLSX / CSV / JSON</div>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.csv,.tsv,.json">
+        </label>
+
+        <div id="fileInfo" class="hidden"></div>
+        <div id="parseAlert"></div>
+    </div>
+
+    <!-- ============== ШАГ 2 — ПРЕВЬЮ И ПОДТВЕРЖДЕНИЕ ============== -->
+    <div class="card locked" id="step2">
+        <h2><span class="step locked">2</span>Что будет проверено</h2>
+        <div class="hint" id="previewHint">
+            Загрузите файл на шаге 1, чтобы увидеть список тарифов.
+        </div>
+
+        <div class="preview-grid hidden" id="previewGrid">
+            <div class="preview-col">
+                <h3>
+                    Исходные тарифы
+                    <span class="pc-count" id="srcCount">0</span>
+                </h3>
+                <div class="pc-sub">
+                    Кликните на тариф — справа появятся <strong>доступные</strong> и <strong>недоступные</strong> для него целевые тарифы (по матрице).
+                    Снимите галочки слева, чтобы исключить какие-то тарифы из прогона.
+                </div>
+                <div class="src-toolbar">
+                    <span class="sel-count" id="selCount">Выбрано: <strong id="selN">0</strong> из <strong id="selM">0</strong></span>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllRows(true)">✓ Выбрать все</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllRows(false)">⊘ Снять все</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="invertRowSelection()" title="Инвертировать выбор">⇄ Инверт.</button>
+                </div>
+                <ul id="srcList"></ul>
+            </div>
+            <div class="preview-col" id="tgtCol">
+                <div id="tgtHeaderAll">
+                    <h3>
+                        Целевые тарифы
+                        <span class="pc-count" id="tgtCount">0</span>
+                    </h3>
+                    <div class="pc-sub">
+                        Полный список целевых тарифов из матрицы. Кликните слева на исходный тариф, чтобы отфильтровать.
+                    </div>
+                    <ul id="tgtList"></ul>
+                </div>
+                <div id="tgtHeaderRow" class="hidden">
+                    <h3 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-ghost btn-sm" type="button" onclick="clearRowSelection()" style="padding:0 8px;">← Все целевые</button>
+                        <span>Для: <span id="tgtRowName" style="color:var(--brand);"></span></span>
+                    </h3>
+                    <div class="pc-sub" id="tgtRowSummary"></div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px; margin-bottom:6px;">
+                        <span style="font-size:11px; color:var(--pass); text-transform:uppercase; font-weight:700; letter-spacing:.4px;">
+                            ✓ Доступны <span id="tgtAvailCount" class="pc-count" style="background:var(--pass);">0</span>
+                        </span>
+                    </div>
+                    <ul id="tgtAvailList"></ul>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px; margin-bottom:6px;">
+                        <span style="font-size:11px; color:var(--fail); text-transform:uppercase; font-weight:700; letter-spacing:.4px;">
+                            ✗ Не доступны <span id="tgtBlockCount" class="pc-count" style="background:var(--fail);">0</span>
+                        </span>
+                    </div>
+                    <ul id="tgtBlockList"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="confirm-bar hidden" id="confirmBar">
+            <div class="summary-line" id="summaryLine"></div>
+            <button class="btn btn-ghost" type="button" onclick="resetMatrix()">Загрузить другой файл</button>
+            <button class="btn btn-primary" id="btnConfirm" type="button" onclick="confirmMatrix()">
+                Подтвердить и продолжить
+                <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M6 12l-4-4 1.4-1.4L6 9.2l6.6-6.6L14 4l-8 8z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============== ШАГ 3 — НОМЕР И УЧЁТКИ ============== -->
+    <div class="card locked" id="step3">
+        <h2><span class="step locked">3</span>Номер абонента и учётки</h2>
+
+        <div class="hint">
+            Введите номер тестового абонента и выберите учётки для двух ролей.
+            Пароли для пресетов уже подставлены — <strong>достаточно кликнуть по карточке</strong>.
+        </div>
+
+        <div class="field-grid">
+            <label class="fld">MSISDN
+                <input type="text" id="msisdn" placeholder="998500173054" inputmode="numeric">
+            </label>
+            <label class="fld">Пауза после смены (сек)
+                <input type="number" id="waitAfter" value="5" min="0" max="60">
+            </label>
+            <label class="fld">Таймаут заказа (сек)
+                <input type="number" id="orderTimeout" value="60" min="10" max="300">
+            </label>
+        </div>
+
+        <!-- ADMIN ROLE -->
+        <div class="role-block">
+            <div class="role-title">
+                <span class="role-badge">ADMIN</span>
+                Учётка, которая будет переключать тариф абонента
+            </div>
+            <div class="role-desc">
+                Под этой учёткой по очереди вызывается смена тарифа на каждый исходный тариф из списка.
+                Введите логин и пароль вручную.
+            </div>
+            <div class="field-grid" style="margin-top:10px;">
+                <label class="fld">Логин
+                    <input type="text" id="adminLogin" placeholder="например, DBS_CC_OPERATORS_PSO" autocomplete="off">
+                </label>
+                <label class="fld">Пароль
+                    <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="new-password">
+                </label>
+            </div>
+            <div id="adminAuthAlert"></div>
+        </div>
+
+        <!-- VIEWER ROLE -->
+        <div class="role-block">
+            <div class="role-title">
+                <span class="role-badge viewer">VIEWER</span>
+                Учётка, под которой проверяется список доступных переходов
+            </div>
+            <div class="role-desc">
+                После каждой смены вызывается availableForChange/search под этой учёткой —
+                полученный список сравнивается с целевыми тарифами в матрице.
+            </div>
+            <div class="acc-grid" id="viewerAccGrid"></div>
+            <div id="viewerAuthAlert"></div>
+        </div>
+
+        <div class="field-row" style="margin-top:14px;">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="testAuth('admin')">Проверить admin</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="testAuth('viewer')">Проверить viewer</button>
+        </div>
+    </div>
+
+    <!-- ============== ШАГ 4 — ЗАПУСК ============== -->
+    <div class="card locked" id="step4">
+        <h2><span class="step locked">4</span>Запуск</h2>
+
+        <div class="field-row">
+            <button class="btn btn-primary" id="btnRun" onclick="startRun()">
+                <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M3 2l11 6-11 6V2z"/></svg>
+                <span id="btnRunLabel">Запустить прогон</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" type="button" id="btnSelectAll4" onclick="selectAllRows(true)">
+                Тестировать все
+            </button>
+            <button class="btn btn-danger hidden" id="btnStop" onclick="stopRun()">
+                Остановить
+            </button>
+            <span id="runStatus" style="font-size:12px; color: var(--text-3);"></span>
+        </div>
+        <div style="font-size:12px; color: var(--text-3); margin-top: 8px;" id="runHint">
+            Будет проверено <strong id="runHintN">0</strong> исходных тарифов из <strong id="runHintM">0</strong>.
+            Изменить выбор можно на шаге 2.
+        </div>
+
+        <div class="alert alert-warn" style="margin-top:12px;">
+            ⚠ Внимание: каждая строка матрицы реально переключает тариф на номере. Между переходами есть пауза.
+            Для одной полной матрицы (например 25×12) прогон займёт 5–15 минут.
+        </div>
+    </div>
+
+    <!-- ============== ПРОГРЕСС ============== -->
+    <div class="card hidden" id="progressCard">
+        <h2>Прогресс</h2>
+        <div class="progress-wrap">
+            <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+        </div>
+        <div class="progress-step" id="progressStep">Подготовка...</div>
+        <div class="progress-meta">
+            <span>Строк: <strong id="pmRows">0/0</strong></span>
+            <span>Время: <strong id="pmTime">0s</strong></span>
+            <span>Текущая: <strong id="pmCurrent">—</strong></span>
+        </div>
+    </div>
+
+    <!-- ============== KPI ============== -->
+    <div class="card hidden" id="kpiCard">
+        <h2>Сводка результатов</h2>
+        <div class="kpi-grid">
+            <div class="kpi" style="color: var(--info);">
+                <div class="n" id="kTotal">0</div>
+                <div class="l">Всего ячеек</div>
+            </div>
+            <div class="kpi" style="color: var(--pass);">
+                <div class="n" id="kPass">0</div>
+                <div class="l">Совпало (pass)</div>
+            </div>
+            <div class="kpi" style="color: var(--fail);">
+                <div class="n" id="kFail">0</div>
+                <div class="l">Расхождений (fail)</div>
+            </div>
+            <div class="kpi" style="color: var(--warn);">
+                <div class="n" id="kBlocked">0</div>
+                <div class="l">Заблокировано</div>
+            </div>
+            <div class="kpi" style="color: var(--text-3);">
+                <div class="n" id="kSkip">0</div>
+                <div class="l">Пропущено</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============== РЕЗУЛЬТАТЫ — МАТРИЦА ============== -->
+    <div class="card hidden" id="resultCard">
+        <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Матрица результатов</span>
+            <span style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="downloadJSON()">JSON</button>
+                <button class="btn btn-ghost btn-sm" onclick="downloadHTML()">HTML-отчёт</button>
+                <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">CSV</button>
+            </span>
+        </h2>
+
+        <div class="legend">
+            <span class="lg"><span class="sw pass"></span>Совпало</span>
+            <span class="lg"><span class="sw fail"></span>Расхождение</span>
+            <span class="lg"><span class="sw info"></span>Только информация (нет ожидания)</span>
+            <span class="lg"><span class="sw blocked"></span>Заблокировано (admin не смог перевести)</span>
+            <span class="lg"><span class="sw pending"></span>Ожидает</span>
+        </div>
+
+        <div class="matrix-wrap" id="matrixWrap">
+            <table class="matrix-table" id="matrixTable">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="mismatch-list hidden" id="mismatchList">
+            <div class="ml-col">
+                <h3>Ожидалось <strong style="color:var(--pass);">+</strong>, фактически <strong style="color:var(--fail);">не доступно</strong></h3>
+                <ul id="mlMissing"></ul>
+            </div>
+            <div class="ml-col">
+                <h3>Ожидалось <strong style="color:var(--fail);">-</strong>, фактически <strong style="color:var(--pass);">доступно</strong></h3>
+                <ul id="mlExtra"></ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============== ЖУРНАЛ ПРОЦЕССА ============== -->
+<button type="button" class="log-fab" id="logFab" onclick="toggleLogDrawer()" title="Открыть журнал процесса (Ctrl+L)">
+    <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h8v2H2z"/></svg>
+    <span id="logFabLabel">Журнал</span>
+    <span class="fab-counter" id="logFabCounter">0</span>
+</button>
+<div class="log-overlay" id="logOverlay" onclick="toggleLogDrawer(false)"></div>
+<aside class="log-drawer" id="logDrawer" aria-hidden="true">
+    <div class="ld-head">
+        <div class="ld-title">
+            Журнал процесса
+            <span class="ld-status idle" id="ldStatus">idle</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="toggleLogDrawer(false)">✕</button>
+    </div>
+    <div class="ld-actions">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="clearLogs()">Очистить</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="copyLogs()">Скопировать</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="downloadLogs()">Скачать .log</button>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);">
+            <input type="checkbox" id="logAutoscroll" checked> авто-скролл
+        </label>
+        <span class="ld-filters" id="logFilters">
+            <span class="ld-filter on" data-lvl="step"  onclick="toggleLogFilter('step', this)">step</span>
+            <span class="ld-filter on" data-lvl="info"  onclick="toggleLogFilter('info', this)">info</span>
+            <span class="ld-filter on" data-lvl="pass"  onclick="toggleLogFilter('pass', this)">pass</span>
+            <span class="ld-filter on" data-lvl="warn"  onclick="toggleLogFilter('warn', this)">warn</span>
+            <span class="ld-filter on" data-lvl="fail"  onclick="toggleLogFilter('fail', this)">fail</span>
+            <span class="ld-filter on" data-lvl="debug" onclick="toggleLogFilter('debug', this)">debug</span>
+        </span>
+    </div>
+    <div class="ld-meta">
+        <span>Всего: <strong id="ldTotalCount">0</strong></span>
+        <span>Строк: <strong id="ldRowsCount">0/0</strong></span>
+        <span>Ошибок: <strong id="ldErrCount">0</strong></span>
+        <span>Время: <strong id="ldElapsed">—</strong></span>
+    </div>
+    <div class="ld-body" id="ldBody">
+        <div class="log-empty" id="ldEmpty">Журнал пуст. Запустите прогон — здесь появятся события.</div>
+    </div>
+</aside>
+
+<script>
+"use strict";
+
+// ============================================================
+// СОСТОЯНИЕ
+// ============================================================
+const state = {
+    spec: null,         // {columns, rows, _stats, _filename}
+    selectedRows: new Set(),  // row.id выделенные пользователем
+    report: null,       // финальный отчёт
+    currentRowIdx: 0,
+    runStartedAt: 0,
+    abortRequested: false,
+    activeStream: null, // EventSource или AbortController
+    logs: [],           // {ts, level, msg}
+    logErrCount: 0,
+    logFilter: { step:true, info:true, pass:true, warn:true, fail:true, debug:true },
+};
+
+// ============================================================
+// ЖУРНАЛ ПРОЦЕССА
+// ============================================================
+const LOG_MAX = 2000;
+
+function _ts() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+}
+
+function addLog(level, msg) {
+    level = level || 'info';
+    const entry = { ts: _ts(), level, msg: String(msg) };
+    state.logs.push(entry);
+    if (state.logs.length > LOG_MAX) state.logs.splice(0, state.logs.length - LOG_MAX);
+    if (level === 'fail' || level === 'warn') state.logErrCount++;
+    _renderLogEntry(entry);
+    _updateLogCounters();
+    if (level === 'fail') {
+        const fab = document.getElementById('logFab');
+        if (fab) fab.classList.add('has-error');
+    }
+}
+
+function _renderLogEntry(e) {
+    const body = document.getElementById('ldBody');
+    if (!body) return;
+    const empty = document.getElementById('ldEmpty');
+    if (empty) empty.remove();
+    const div = document.createElement('div');
+    div.className = `log-entry lvl-${e.level}`;
+    if (!state.logFilter[e.level]) div.classList.add('hidden-by-filter');
+    div.innerHTML = `<span class="lt">${e.ts}</span><span class="ll">${e.level}</span><span class="lm"></span>`;
+    div.querySelector('.lm').textContent = e.msg;
+    body.appendChild(div);
+    const auto = document.getElementById('logAutoscroll');
+    if (auto && auto.checked) body.scrollTop = body.scrollHeight;
+}
+
+function _updateLogCounters() {
+    const totalEl = document.getElementById('ldTotalCount');
+    const errEl   = document.getElementById('ldErrCount');
+    const fabCnt  = document.getElementById('logFabCounter');
+    if (totalEl) totalEl.textContent = state.logs.length;
+    if (errEl)   errEl.textContent = state.logErrCount;
+    if (fabCnt)  fabCnt.textContent = state.logs.length;
+}
+
+function _setLogStatus(label, kind) {
+    const el = document.getElementById('ldStatus');
+    if (!el) return;
+    el.textContent = label;
+    el.className = 'ld-status ' + (kind || 'idle');
+    const fab = document.getElementById('logFab');
+    if (!fab) return;
+    fab.classList.toggle('is-running', kind === 'running');
+    if (kind === 'running') fab.classList.remove('has-error');
+}
+
+function clearLogs() {
+    state.logs = [];
+    state.logErrCount = 0;
+    const body = document.getElementById('ldBody');
+    if (body) body.innerHTML = '<div class="log-empty" id="ldEmpty">Журнал пуст.</div>';
+    _updateLogCounters();
+    const fab = document.getElementById('logFab');
+    if (fab) fab.classList.remove('has-error');
+}
+
+function _logsAsText() {
+    return state.logs.map(e => `[${e.ts}] [${e.level.toUpperCase()}] ${e.msg}`).join('\n');
+}
+
+function copyLogs() {
+    if (!state.logs.length) { alert('Журнал пуст'); return; }
+    const text = _logsAsText();
+    navigator.clipboard.writeText(text)
+        .then(() => addLog('info', '✓ Журнал скопирован в буфер обмена'))
+        .catch(() => alert('Не удалось скопировать'));
+}
+
+function downloadLogs() {
+    if (!state.logs.length) { alert('Журнал пуст'); return; }
+    const blob = new Blob([_logsAsText()], { type: 'text/plain;charset=utf-8' });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    triggerDownload(blob, `matrix_run_${ts}.log`);
+}
+
+function toggleLogFilter(lvl, btn) {
+    state.logFilter[lvl] = !state.logFilter[lvl];
+    btn.classList.toggle('on', state.logFilter[lvl]);
+    document.querySelectorAll('#ldBody .log-entry.lvl-' + lvl).forEach(el => {
+        el.classList.toggle('hidden-by-filter', !state.logFilter[lvl]);
+    });
+}
+
+function toggleLogDrawer(force) {
+    const drawer = document.getElementById('logDrawer');
+    const overlay = document.getElementById('logOverlay');
+    const open = (force === undefined) ? !drawer.classList.contains('open') : !!force;
+    drawer.classList.toggle('open', open);
+    overlay.classList.toggle('open', open);
+    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open) {
+        const body = document.getElementById('ldBody');
+        const auto = document.getElementById('logAutoscroll');
+        if (body && auto && auto.checked) body.scrollTop = body.scrollHeight;
+        const fab = document.getElementById('logFab');
+        if (fab) fab.classList.remove('has-error');
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const drawer = document.getElementById('logDrawer');
+        if (drawer && drawer.classList.contains('open')) toggleLogDrawer(false);
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        toggleLogDrawer();
+    }
+});
+
+// ============================================================
+// ТЕМА
+// ============================================================
+function getTheme() { return localStorage.getItem('matrix-theme') || 'dark'; }
+function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+}
+applyTheme(getTheme());
+document.getElementById('themeToggle').addEventListener('click', () => {
+    const next = getTheme() === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('matrix-theme', next);
+    applyTheme(next);
+});
+
+// ============================================================
+// ПРЕСЕТЫ УЧЁТОК
+// ============================================================
+const ACCOUNTS = [
+    { id: 'B2B_OP', tag: 'B2B · Оператор',           name: 'B2B Operator',
+      login: 'DBS_CC_OPERATORS_PSO',          password: 'Ucell2026$$' },
+    { id: 'B2B_FO', tag: 'B2B · Фронт-офис',         name: 'B2B Front Office',
+      login: 'DBS_REG_FO_PSO',                password: 'September2025+' },
+    { id: 'B2C_FO', tag: 'B2C · Фронт-офис',         name: 'B2C Front Office',
+      login: 'DMS_FO_REGION_SPEC_PSO',        password: 'Ucell+pso+2023+' },
+    { id: 'B2C_OP', tag: 'B2C · Оператор',           name: 'B2C Operator',
+      login: 'DCC_CALL_CENTER_OPERATORT_PSO', password: 'Ucell+pso+2023+' },
+];
+
+// Выбранная viewer-учётка (id из ACCOUNTS); admin вводится пользователем вручную
+state.selectedViewerId = localStorage.getItem('matrix-viewer-id') || 'B2C_OP';
+state.confirmed = false;  // подтвердил ли пользователь матрицу
+
+// Восстановление полей с числами/MSISDN
+['msisdn', 'waitAfter', 'orderTimeout'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = localStorage.getItem('matrix-' + id);
+    if (v != null) el.value = v;
+    el.addEventListener('input', () => localStorage.setItem('matrix-' + id, el.value));
+});
+
+// Восстановление admin-логина (пароль не сохраняем)
+const adminLoginEl = document.getElementById('adminLogin');
+const adminPasswordEl = document.getElementById('adminPassword');
+const savedAdminLogin = localStorage.getItem('matrix-admin-login');
+if (savedAdminLogin) adminLoginEl.value = savedAdminLogin;
+adminLoginEl.addEventListener('input', () => {
+    localStorage.setItem('matrix-admin-login', adminLoginEl.value);
+    const alertEl = document.getElementById('adminAuthAlert');
+    if (alertEl) alertEl.innerHTML = '';
+});
+adminPasswordEl.addEventListener('input', () => {
+    const alertEl = document.getElementById('adminAuthAlert');
+    if (alertEl) alertEl.innerHTML = '';
+});
+
+function renderAccountGrid(role, gridId) {
+    const grid = document.getElementById(gridId);
+    grid.innerHTML = '';
+    ACCOUNTS.forEach(acc => {
+        const card = document.createElement('div');
+        card.className = 'acc-card' + (acc.id === state.selectedViewerId ? ' selected' : '');
+        card.dataset.accId = acc.id;
+        card.innerHTML = `
+            <span class="acc-tag">${escapeHtml(acc.tag)}</span>
+            <div class="acc-name">${escapeHtml(acc.name)}</div>
+            <div class="acc-login">${escapeHtml(acc.login)}</div>
+        `;
+        card.addEventListener('click', () => selectAccount(role, acc.id));
+        grid.appendChild(card);
+    });
+}
+
+function selectAccount(role, accId) {
+    state.selectedViewerId = accId;
+    localStorage.setItem('matrix-viewer-id', accId);
+    renderAccountGrid('viewer', 'viewerAccGrid');
+    const alertEl = document.getElementById('viewerAuthAlert');
+    if (alertEl) alertEl.innerHTML = '';
+}
+
+function getAccount(role) {
+    if (role === 'admin') {
+        const login = (document.getElementById('adminLogin').value || '').trim();
+        const password = document.getElementById('adminPassword').value || '';
+        if (!login || !password) return null;
+        return { id: 'CUSTOM', tag: 'ADMIN (вручную)', name: login, login, password };
+    }
+    return ACCOUNTS.find(a => a.id === state.selectedViewerId) || null;
+}
+
+renderAccountGrid('viewer', 'viewerAccGrid');
+
+// ============================================================
+// ФАЙЛ — drag&drop + выбор + parse
+// ============================================================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover');
+}));
+['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover');
+}));
+dropZone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files && files[0]) handleFile(files[0]);
+});
+fileInput.addEventListener('change', e => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+    document.getElementById('parseAlert').innerHTML = '';
+    document.getElementById('upTitle').textContent = 'Парсим файл...';
+    addLog('step', `📂 Загрузка файла «${file.name}» (${(file.size/1024).toFixed(1)} КБ)`);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const resp = await fetch('/api/matrix/parse', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Ошибка парсинга');
+        state.spec = data;
+        state.confirmed = false;
+        renderFileInfo(file, data);
+        renderPreview(data);
+        // Шаг 2 разблокирован, шаги 3 и 4 ждут подтверждения
+        unlockStep('step2');
+        lockStep('step3');
+        lockStep('step4');
+        document.getElementById('resultCard').classList.add('hidden');
+        document.querySelector('#step1 .step').classList.add('done');
+        dropZone.classList.add('has-file');
+        document.getElementById('upTitle').textContent = '✓ Файл обработан — посмотрите превью ниже';
+        const s = data._stats || {};
+        addLog('pass', `✓ Файл распарсен: ${s.rows||0} строк × ${s.columns||0} колонок (+${s.expected_plus||0} / −${s.expected_minus||0})`);
+    } catch (e) {
+        dropZone.classList.remove('has-file');
+        document.getElementById('upTitle').textContent = 'Перетащите файл сюда или нажмите, чтобы выбрать';
+        document.getElementById('parseAlert').innerHTML =
+            `<div class="alert alert-error">Ошибка: ${escapeHtml(e.message)}</div>`;
+        addLog('fail', `✗ Парсинг файла не удался: ${e.message}`);
+    }
+}
+
+function lockStep(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('locked');
+    const s = el.querySelector('.step'); if (s) { s.classList.add('locked'); s.classList.remove('done'); }
+}
+function unlockStep(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('locked');
+    const s = el.querySelector('.step'); if (s) s.classList.remove('locked');
+}
+function markStepDone(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const s = el.querySelector('.step'); if (s) { s.classList.add('done'); s.classList.remove('locked'); }
+}
+
+// ============================================================
+// ПРЕВЬЮ — списки исходных и целевых тарифов + матрица + summary
+// ============================================================
+function renderPreview(spec) {
+    document.getElementById('previewHint').textContent =
+        'Проверьте списки тарифов ниже. Когда всё корректно — нажмите «Подтвердить и продолжить».';
+    document.getElementById('previewGrid').classList.remove('hidden');
+    document.getElementById('confirmBar').classList.remove('hidden');
+
+    // Подсчёт +/- по каждой строке/колонке
+    const rowStats = {}; // row.id -> {plus, minus}
+    const colStats = {}; // col.id -> {plus, minus}
+    spec.rows.forEach(r => {
+        rowStats[r.id] = { plus: 0, minus: 0 };
+        Object.values(r.expected || {}).forEach(v => {
+            if (v === '+') rowStats[r.id].plus++;
+            else if (v === '-') rowStats[r.id].minus++;
+        });
+    });
+    spec.columns.forEach(c => {
+        colStats[c.id] = { plus: 0, minus: 0 };
+        spec.rows.forEach(r => {
+            const v = (r.expected || {})[String(c.id)];
+            if (v === '+') colStats[c.id].plus++;
+            else if (v === '-') colStats[c.id].minus++;
+        });
+    });
+
+    // Сохраняем колонки в кеше для быстрого поиска по ID
+    state.colsById = new Map(spec.columns.map(c => [String(c.id), c]));
+    state.rowStats = rowStats;
+    state.colStats = colStats;
+    state.previewRowId = null;
+
+    // По умолчанию — все строки выбраны для прогона
+    state.selectedRows = new Set(spec.rows.map(r => Number(r.id)));
+
+    // Список исходных — чекбокс + кликабельная строка
+    document.getElementById('srcCount').textContent = spec.rows.length;
+    document.getElementById('srcList').innerHTML = spec.rows.map(r => {
+        const s = rowStats[r.id];
+        return `<li class="clickable" data-row-id="${r.id}" onclick="selectRowForPreview(${r.id})">
+            <span style="display:flex; align-items:center; gap:6px; min-width:0;">
+                <input type="checkbox" class="row-cb" data-row-id="${r.id}" checked
+                       onclick="event.stopPropagation(); toggleRowSelection(${r.id}, this.checked);">
+                <span class="name">${escapeHtml(r.name)}</span>
+            </span>
+            <span style="display:flex; gap:6px; align-items:center;">
+                <span class="badge-cnt plus" title="доступно по матрице">+${s.plus}</span>
+                <span class="badge-cnt minus" title="недоступно по матрице">−${s.minus}</span>
+                <span class="pid">ID ${r.id}</span>
+            </span>
+        </li>`;
+    }).join('');
+    updateSelectionUI();
+
+    // Целевые — общий список (показывается, пока ни одна строка слева не выбрана)
+    document.getElementById('tgtCount').textContent = spec.columns.length;
+    document.getElementById('tgtList').innerHTML = spec.columns.map(c => {
+        const s = colStats[c.id];
+        return `<li>
+            <span class="name">${escapeHtml(c.name)}</span>
+            <span style="display:flex; gap:6px; align-items:center;">
+                <span class="badge-cnt plus">+${s.plus}</span>
+                <span class="badge-cnt minus">−${s.minus}</span>
+                <span class="pid">ID ${c.id}</span>
+            </span>
+        </li>`;
+    }).join('');
+    document.getElementById('tgtHeaderAll').classList.remove('hidden');
+    document.getElementById('tgtHeaderRow').classList.add('hidden');
+
+    // Summary line
+    const stats = spec._stats || {};
+    document.getElementById('summaryLine').innerHTML = `
+        Будет проверено <strong>${stats.cells || 0}</strong> ячеек:
+        <strong>${stats.rows || 0}</strong> исходных тарифов × <strong>${stats.columns || 0}</strong> целевых.
+        Ожидаем <strong style="color:var(--pass);">+${stats.expected_plus || 0}</strong> доступных
+        и <strong style="color:var(--fail);">−${stats.expected_minus || 0}</strong> недоступных.
+    `;
+}
+
+// ============================================================
+// ВЫБОР ИСХОДНОГО ТАРИФА В ПРЕВЬЮ
+// При клике на левый список — справа показываем только доступные/недоступные
+// для этого тарифа, на основе матрицы. Это валидация: пользователь глазами
+// проверяет, что парсер всё разобрал корректно.
+// ============================================================
+function selectRowForPreview(rowId) {
+    if (!state.spec) return;
+    const row = state.spec.rows.find(r => Number(r.id) === Number(rowId));
+    if (!row) return;
+    state.previewRowId = Number(rowId);
+
+    // Подсветить активный пункт слева
+    document.querySelectorAll('#srcList li').forEach(li => {
+        li.classList.toggle('active', Number(li.dataset.rowId) === Number(rowId));
+    });
+
+    // Разделить целевые тарифы на доступные / недоступные
+    const expected = row.expected || {};
+    const available = [];
+    const blocked = [];
+    state.spec.columns.forEach(c => {
+        const v = expected[String(c.id)] || '';
+        if (v === '+') available.push(c);
+        else if (v === '-') blocked.push(c);
+        // пустые expected (нет данных в матрице) сюда не попадают
+    });
+
+    document.getElementById('tgtRowName').textContent = `${row.name} (ID ${row.id})`;
+    document.getElementById('tgtRowSummary').innerHTML =
+        `По матрице: <strong style="color:var(--pass);">${available.length} доступных</strong> и ` +
+        `<strong style="color:var(--fail);">${blocked.length} недоступных</strong> ` +
+        `из ${state.spec.columns.length} целевых тарифов.`;
+
+    document.getElementById('tgtAvailCount').textContent = available.length;
+    document.getElementById('tgtBlockCount').textContent = blocked.length;
+
+    document.getElementById('tgtAvailList').innerHTML = available.length
+        ? available.map(c => `<li>
+            <span class="name">${escapeHtml(c.name)}</span>
+            <span style="display:flex; gap:6px; align-items:center;">
+                <span class="badge-cnt plus">+</span>
+                <span class="pid">ID ${c.id}</span>
+            </span>
+        </li>`).join('')
+        : `<li><span class="empty">— ни одного доступного перехода —</span></li>`;
+
+    document.getElementById('tgtBlockList').innerHTML = blocked.length
+        ? blocked.map(c => `<li>
+            <span class="name">${escapeHtml(c.name)}</span>
+            <span style="display:flex; gap:6px; align-items:center;">
+                <span class="badge-cnt minus">−</span>
+                <span class="pid">ID ${c.id}</span>
+            </span>
+        </li>`).join('')
+        : `<li><span class="empty">— нет запрещённых переходов —</span></li>`;
+
+    document.getElementById('tgtHeaderAll').classList.add('hidden');
+    document.getElementById('tgtHeaderRow').classList.remove('hidden');
+}
+
+function clearRowSelection() {
+    state.previewRowId = null;
+    document.querySelectorAll('#srcList li.active').forEach(li => li.classList.remove('active'));
+    document.getElementById('tgtHeaderAll').classList.remove('hidden');
+    document.getElementById('tgtHeaderRow').classList.add('hidden');
+}
+
+// ============================================================
+// ВЫБОР СТРОК ДЛЯ ПРОГОНА (чекбоксы)
+// state.selectedRows — Set<number>: какие исходные тарифы будут протестированы
+// ============================================================
+function toggleRowSelection(rowId, checked) {
+    rowId = Number(rowId);
+    if (checked) state.selectedRows.add(rowId);
+    else state.selectedRows.delete(rowId);
+    updateRowVisualSelection(rowId, checked);
+    updateSelectionUI();
+}
+
+function updateRowVisualSelection(rowId, checked) {
+    const li = document.querySelector(`#srcList li[data-row-id="${rowId}"]`);
+    if (li) li.classList.toggle('unselected', !checked);
+}
+
+function selectAllRows(on) {
+    if (!state.spec) return;
+    state.selectedRows = on
+        ? new Set(state.spec.rows.map(r => Number(r.id)))
+        : new Set();
+    document.querySelectorAll('#srcList li').forEach(li => {
+        const cb = li.querySelector('.row-cb');
+        if (cb) cb.checked = on;
+        li.classList.toggle('unselected', !on);
+    });
+    updateSelectionUI();
+}
+
+function invertRowSelection() {
+    if (!state.spec) return;
+    const inverted = new Set();
+    state.spec.rows.forEach(r => {
+        const id = Number(r.id);
+        if (!state.selectedRows.has(id)) inverted.add(id);
+    });
+    state.selectedRows = inverted;
+    document.querySelectorAll('#srcList li').forEach(li => {
+        const id = Number(li.dataset.rowId);
+        const checked = state.selectedRows.has(id);
+        const cb = li.querySelector('.row-cb');
+        if (cb) cb.checked = checked;
+        li.classList.toggle('unselected', !checked);
+    });
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const total = state.spec ? state.spec.rows.length : 0;
+    const sel = state.selectedRows ? state.selectedRows.size : 0;
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('selN', sel);
+    setText('selM', total);
+    setText('runHintN', sel);
+    setText('runHintM', total);
+
+    const btn = document.getElementById('btnRun');
+    const lbl = document.getElementById('btnRunLabel');
+    if (btn && lbl) {
+        if (sel === 0) {
+            lbl.textContent = 'Выберите хотя бы один тариф';
+            btn.disabled = true;
+        } else if (sel === total) {
+            lbl.textContent = `Запустить прогон (все ${total})`;
+            btn.disabled = false;
+        } else {
+            lbl.textContent = `Запустить прогон выбранных (${sel} из ${total})`;
+            btn.disabled = false;
+        }
+    }
+    const allBtn = document.getElementById('btnSelectAll4');
+    if (allBtn) allBtn.classList.toggle('hidden', sel === total);
+
+    // hint фразы
+    const hint = document.getElementById('runHint');
+    if (hint) {
+        if (sel === 0) hint.textContent = 'Не выбрано ни одного тарифа.';
+        else if (sel === total) hint.innerHTML = `Будет проверено <strong>все ${total}</strong> исходных тарифов.`;
+        else hint.innerHTML = `Будет проверено <strong>${sel}</strong> из <strong>${total}</strong> исходных тарифов. <a href="#" onclick="event.preventDefault();selectAllRows(true);" style="color:var(--brand);">Тестировать все</a>`;
+    }
+}
+
+function confirmMatrix() {
+    if (!state.spec) return;
+    state.confirmed = true;
+    markStepDone('step2');
+    unlockStep('step3');
+    unlockStep('step4');
+    document.getElementById('resultCard').classList.remove('hidden');
+    renderEmptyMatrix(state.spec);
+    document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetMatrix() {
+    state.spec = null;
+    state.confirmed = false;
+    state.previewRowId = null;
+    fileInput.value = '';
+    document.getElementById('previewGrid').classList.add('hidden');
+    document.getElementById('confirmBar').classList.add('hidden');
+    document.getElementById('tgtHeaderAll').classList.remove('hidden');
+    document.getElementById('tgtHeaderRow').classList.add('hidden');
+    document.getElementById('previewHint').textContent =
+        'Загрузите файл на шаге 1, чтобы увидеть список тарифов.';
+    document.getElementById('fileInfo').classList.add('hidden');
+    document.getElementById('upTitle').textContent = 'Перетащите файл сюда или нажмите, чтобы выбрать';
+    dropZone.classList.remove('has-file');
+    document.querySelector('#step1 .step').classList.remove('done');
+    lockStep('step2'); lockStep('step3'); lockStep('step4');
+    document.getElementById('resultCard').classList.add('hidden');
+    document.getElementById('step1').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderFileInfo(file, spec) {
+    const s = spec._stats || {};
+    document.getElementById('fileInfo').classList.remove('hidden');
+    document.getElementById('fileInfo').className = 'file-info';
+    document.getElementById('fileInfo').innerHTML = `
+        <div>
+            <strong>${escapeHtml(file.name)}</strong>
+            <span style="color:var(--text-3);">— ${(file.size/1024).toFixed(1)} КБ</span>
+        </div>
+        <div class="stats">
+            ${s.rows||0} строк · ${s.columns||0} колонок · ${s.cells||0} ячеек
+            (+${s.expected_plus||0} / −${s.expected_minus||0})
+        </div>
+    `;
+}
+
+// ============================================================
+// РЕНДЕР ПУСТОЙ МАТРИЦЫ (по spec, без результатов)
+// ============================================================
+function renderEmptyMatrix(spec) {
+    const thead = document.querySelector('#matrixTable thead');
+    const tbody = document.querySelector('#matrixTable tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<th class="row-head">
+        <div>Переход С тарифного плана</div>
+        <span class="col-id">↓ исходный  ·  → целевой</span>
+    </th>`;
+    spec.columns.forEach(c => {
+        const th = document.createElement('th');
+        th.innerHTML = `${escapeHtml(c.name)}<span class="col-id">ID ${c.id}</span>`;
+        tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+
+    spec.rows.forEach(r => {
+        const row = document.createElement('tr');
+        row.id = `mrow-${r.id}`;
+        row.dataset.rowId = r.id;
+        const willBeRun = state.selectedRows && state.selectedRows.has(Number(r.id));
+        if (!willBeRun) row.classList.add('row-skipped');
+        row.innerHTML = `<td class="row-head">
+            ${escapeHtml(r.name)}
+            <span class="row-id">ID ${r.id}${!willBeRun ? ' · пропущен' : ''}</span>
+        </td>`;
+        spec.columns.forEach(c => {
+            const exp = (r.expected || {})[String(c.id)] || '';
+            const td = document.createElement('td');
+            td.dataset.row = r.id;
+            td.dataset.col = c.id;
+            td.innerHTML = renderCell({ expected: exp, status: willBeRun ? 'pending' : 'skip' });
+            row.appendChild(td);
+        });
+        tbody.appendChild(row);
+    });
+}
+
+function renderCell(cell) {
+    const exp = cell.expected || '';
+    const act = cell.actual || '';
+    const status = cell.status || 'pending';
+    const cls = {
+        pass: 'cell-pass', fail: 'cell-fail', info: 'cell-info',
+        skip: 'cell-skip', blocked: 'cell-blocked', pending: 'cell-pending',
+    }[status] || 'cell-pending';
+
+    const sym = status === 'pending' ? (exp || '·') :
+                status === 'blocked' ? '⏸' :
+                act || '·';
+
+    let title = `Ожидание: ${exp || '—'}\nФакт: ${act || '—'}\nСтатус: ${status}`;
+    return `<span class="cell ${cls} cell-tooltip" title="${escapeHtml(title)}">${escapeHtml(sym)}</span>`;
+}
+
+// ============================================================
+// ПРОВЕРКА АВТОРИЗАЦИИ (admin/viewer)
+// ============================================================
+async function testAuth(scope) {
+    const acc = getAccount(scope);
+    const alertEl = document.getElementById(scope + 'AuthAlert');
+    if (!acc) {
+        const msg = scope === 'admin'
+            ? 'Введите логин и пароль admin-учётки'
+            : 'Сначала выберите учётку';
+        alertEl.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+        return;
+    }
+    alertEl.innerHTML = `<div class="alert alert-info">Проверяем <code>${escapeHtml(acc.login)}</code>...</div>`;
+    addLog('info', `Проверка авторизации (${scope}): ${acc.login}`);
+    try {
+        const r = await fetch('/api/auth', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ login: acc.login, password: acc.password }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Ошибка авторизации');
+        alertEl.innerHTML = `<div class="alert alert-success">✓ <strong>${escapeHtml(acc.tag)}</strong> — токен получен (живёт ~${Math.round((d.expiresIn||1500)/60)} мин)</div>`;
+        addLog('pass', `✓ Авторизация (${scope}/${acc.tag}): токен получен (TTL ~${Math.round((d.expiresIn||1500)/60)} мин)`);
+    } catch (e) {
+        alertEl.innerHTML = `<div class="alert alert-error">${escapeHtml(acc.tag)}: ${escapeHtml(e.message)}</div>`;
+        addLog('fail', `✗ Авторизация (${scope}/${acc.tag}): ${e.message}`);
+    }
+}
+
+// ============================================================
+// ЗАПУСК ПРОГОНА
+// ============================================================
+function gatherCreds() {
+    const admin  = getAccount('admin');
+    const viewer = getAccount('viewer');
+    return {
+        msisdn: document.getElementById('msisdn').value.trim(),
+        admin:  admin  ? { login: admin.login,  password: admin.password  } : { login: '', password: '' },
+        viewer: viewer ? { login: viewer.login, password: viewer.password } : { login: '', password: '' },
+        wait_after_change: parseFloat(document.getElementById('waitAfter').value || '5'),
+        order_timeout: parseInt(document.getElementById('orderTimeout').value || '60', 10),
+    };
+}
+
+function validateRunInputs(c) {
+    if (!state.spec) return 'Сначала загрузите файл матрицы';
+    if (!state.confirmed) return 'Сначала подтвердите матрицу на шаге 2';
+    if (!c.msisdn) return 'Введите MSISDN';
+    if (!c.admin.login)    return 'Введите логин admin-учётки';
+    if (!c.admin.password) return 'Введите пароль admin-учётки';
+    if (!c.viewer.login)   return 'Выберите viewer-учётку';
+    if (c.admin.login === c.viewer.login)
+        return 'Admin и viewer не могут быть одной и той же учёткой — выберите разные';
+    return null;
+}
+
+async function startRun() {
+    const c = gatherCreds();
+    const err = validateRunInputs(c);
+    if (err) { alert(err); return; }
+    if (!state.selectedRows || state.selectedRows.size === 0) {
+        alert('На шаге 2 выберите хотя бы один исходный тариф');
+        return;
+    }
+
+    const total = state.spec.rows.length;
+    const sel = state.selectedRows.size;
+    const isPartial = sel < total;
+    if (isPartial) {
+        if (!confirm(`Будет проверено ${sel} из ${total} исходных тарифов.\nПродолжить?`)) return;
+    }
+
+    // Сбросить визуал
+    state.report = null;
+    state.runStartedAt = Date.now();
+    state.abortRequested = false;
+    document.getElementById('progressCard').classList.remove('hidden');
+    document.getElementById('kpiCard').classList.remove('hidden');
+    document.getElementById('btnStop').classList.remove('hidden');
+    document.getElementById('btnRun').disabled = true;
+    setProgress(0, 'Авторизация и подготовка...');
+    setKPI({pass:0, fail:0, skip:0, blocked:0, total: 0});
+    renderEmptyMatrix(state.spec);
+
+    // Сброс журнала и активация
+    clearLogs();
+    _setLogStatus('running', 'running');
+    addLog('step', `🚀 Старт прогона матрицы. Строк: ${sel}/${total}, колонок: ${state.spec.columns.length}`);
+    addLog('info', `MSISDN: ${c.msisdn} · admin=${c.admin.login} · viewer=${c.viewer.login}`);
+    addLog('info', `wait_after_change=${c.wait_after_change}s · order_timeout=${c.order_timeout}s`);
+
+    const body = {
+        msisdn: c.msisdn,
+        spec: { columns: state.spec.columns, rows: state.spec.rows },
+        admin: c.admin,
+        viewer: c.viewer,
+        wait_after_change: c.wait_after_change,
+        order_timeout: c.order_timeout,
+        only_rows: isPartial ? [...state.selectedRows] : null,
+    };
+
+    // SSE через fetch + ReadableStream (POST с body)
+    const ac = new AbortController();
+    state.activeStream = ac;
+    let totalRows = 0;
+
+    try {
+        addLog('debug', 'POST /api/matrix/run-stream — открываем SSE-канал');
+        const resp = await fetch('/api/matrix/run-stream', {
+            method: 'POST', signal: ac.signal,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+        });
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({error: 'Ошибка запуска'}));
+            throw new Error(d.error || 'Ошибка запуска');
+        }
+        addLog('debug', `SSE-канал открыт (HTTP ${resp.status})`);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+            if (state.abortRequested) { ac.abort(); break; }
+            const {done, value} = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, {stream: true});
+            let idx;
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+                const chunk = buf.slice(0, idx).trim();
+                buf = buf.slice(idx + 2);
+                if (!chunk.startsWith('data:')) continue;
+                const evt = JSON.parse(chunk.slice(5).trim());
+                handleEvent(evt);
+                if (evt.event === 'start') totalRows = evt.total_rows;
+                if (evt.event === 'final' || evt.event === 'error') {
+                    if (evt.event === 'error') {
+                        addLog('fail', `✗ Сервер вернул ошибку: ${evt.error || 'неизвестная ошибка'}`);
+                        alert('Ошибка: ' + evt.error);
+                    }
+                }
+            }
+        }
+        if (state.abortRequested) {
+            addLog('warn', '⏹ Прогон остановлен пользователем');
+            _setLogStatus('остановлен', 'idle');
+        } else {
+            _setLogStatus('завершён', 'idle');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            addLog('fail', `✗ Ошибка прогона: ${e.message}`);
+            _setLogStatus('ошибка', 'error');
+            alert('Ошибка прогона: ' + e.message);
+        } else {
+            addLog('warn', 'Поток данных прерван (abort)');
+            _setLogStatus('прерван', 'idle');
+        }
+    } finally {
+        document.getElementById('btnStop').classList.add('hidden');
+        updateSelectionUI();  // вернёт btnRun.disabled и текст по селекшну
+        state.activeStream = null;
+    }
+}
+
+function stopRun() {
+    state.abortRequested = true;
+    if (state.activeStream) try { state.activeStream.abort(); } catch (e) {}
+    document.getElementById('runStatus').textContent = 'Остановлено пользователем';
+    addLog('warn', '⏹ Запрошена остановка прогона');
+}
+
+function handleEvent(evt) {
+    if (evt.event === 'start') {
+        document.getElementById('pmRows').textContent = `0/${evt.total_rows}`;
+        document.getElementById('runStatus').textContent =
+            `Абонент: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · исходный rateplan=${evt.initial_rateplan || '—'}`;
+        addLog('info', `👤 Абонент найден: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · текущий rateplan=${evt.initial_rateplan || '—'}`);
+        addLog('info', `🎯 К прогону: ${evt.total_rows} строк, ~${evt.total_cells} ячеек`);
+        const meta = document.getElementById('ldRowsCount');
+        if (meta) meta.textContent = `0/${evt.total_rows}`;
+        return;
+    }
+    if (evt.event === 'row_start') {
+        const tr = document.getElementById('mrow-' + evt.row_id);
+        document.querySelectorAll('.matrix-table tr.row-current').forEach(r => r.classList.remove('row-current'));
+        if (tr) {
+            tr.classList.add('row-current');
+            tr.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+        }
+        document.getElementById('pmCurrent').textContent =
+            `${evt.row_name} (ID ${evt.row_id}) — переключаем...`;
+        document.getElementById('progressStep').textContent =
+            `Строка ${evt.row_index + 1}: меняем тариф на «${evt.row_name}» под admin'ом...`;
+        addLog('step', `▶ Строка ${evt.row_index + 1}: → «${evt.row_name}» (ID ${evt.row_id}) — admin меняет тариф`);
+        return;
+    }
+    if (evt.event === 'row_done') {
+        applyRowResult(evt.row);
+        const total = state.spec.rows.length;
+        const done = evt.row_index + 1;
+        const pct = Math.round((done / total) * 100);
+        setProgress(pct, `Готово ${done}/${total} строк`);
+        document.getElementById('pmRows').textContent = `${done}/${total}`;
+        document.getElementById('pmTime').textContent = formatDuration(evt.elapsed) + ' / прошло';
+        const c = evt.counters;
+        const totalCells = (c.pass || 0) + (c.fail || 0) + (c.skip || 0) + (c.blocked || 0);
+        setKPI({...c, total: totalCells});
+
+        const r = evt.row || {};
+        const meta = document.getElementById('ldRowsCount');
+        if (meta) meta.textContent = `${done}/${total}`;
+        const elEl = document.getElementById('ldElapsed');
+        if (elEl) elEl.textContent = formatDuration(evt.elapsed);
+
+        if (r.blocked) {
+            addLog('warn', `⏸ «${r.row_name}» (ID ${r.row_id}): blocked — ${r.block_reason || 'смена тарифа не удалась'}`);
+            // Показываем raw ответ change_rateplan — там должен быть orderId или ошибка
+            if (r.change_response) {
+                addLog('debug', `  change_rateplan ответ: ${JSON.stringify(r.change_response).slice(0, 400)}`);
+            }
+            // Показываем что вернул /orders при поллинге
+            if (r.wait_debug) {
+                const d = r.wait_debug;
+                addLog('debug', `  orders poll: ${d.polls || 0} запросов · orderId="${d.order_id_searched || '?'}" · последний statusId=${d.status_id ?? '?'} · statusName="${d.status_name || '?'}"`);
+                if (Array.isArray(d.seen_statuses) && d.seen_statuses.length) {
+                    addLog('debug', `  все промежуточные статусы: ${d.seen_statuses.join(' → ')}`);
+                }
+                if (d.target_rp !== undefined) {
+                    addLog('debug', `  ratePlan: текущий=${d.current_rp ?? '?'} · целевой=${d.target_rp ?? '?'} (если совпадают — смена прошла, статус заказа просто отстал)`);
+                }
+                if (d.first_resp) {
+                    addLog('debug', `  первый ответ /orders: items=${d.first_resp.items_count} · keys=${JSON.stringify(d.first_resp.keys)} · raw=${String(d.first_resp.raw || '').slice(0, 300)}`);
+                }
+                if (d.last_error) addLog('fail', `  ошибка при опросе /orders: ${d.last_error}`);
+                if (d.change_resp_keys) addLog('debug', `  change_resp keys: ${JSON.stringify(d.change_resp_keys)}`);
+            }
+        } else {
+            const cells = r.cells || [];
+            const pass = cells.filter(x => x.status === 'pass').length;
+            const fail = cells.filter(x => x.status === 'fail').length;
+            const info = cells.filter(x => x.status === 'info').length;
+            const lvl = fail > 0 ? 'fail' : 'pass';
+            const sym = fail > 0 ? '✗' : '✓';
+            addLog(lvl, `${sym} «${r.row_name}» (ID ${r.row_id}): pass=${pass} fail=${fail} info=${info} · order=${r.order_id || '—'} (${r.order_status || '—'}) · доступно=${r.available_count || 0} тарифов · ${r.duration}s`);
+            if (fail > 0) {
+                cells.filter(x => x.status === 'fail').slice(0, 5).forEach(cell => {
+                    const ex = cell.expected || '—';
+                    const ac = cell.actual || '—';
+                    addLog('fail', `  └ ${r.row_name} → ${cell.to_name} (ID ${cell.to_id}): ожидали «${ex}», факт «${ac}»`);
+                });
+                if (fail > 5) addLog('fail', `  └ … и ещё ${fail - 5} расхождений (см. матрицу)`);
+            }
+            if (r.viewer_error) addLog('warn', `  └ viewer error: ${r.viewer_error}`);
+        }
+        return;
+    }
+    if (evt.event === 'final') {
+        state.report = evt.report;
+        document.getElementById('progressStep').textContent = `Прогон завершён за ${formatDuration(evt.report.duration)}`;
+        setProgress(100, 'Готово');
+        renderMismatchList(evt.report);
+        const c = evt.report.counters || {};
+        const lvl = (c.fail || 0) > 0 ? 'fail' : 'pass';
+        const sym = (c.fail || 0) > 0 ? '⚠' : '✓';
+        addLog(lvl, `${sym} Прогон завершён за ${formatDuration(evt.report.duration)} · pass=${c.pass||0} fail=${c.fail||0} blocked=${c.blocked||0} skip=${c.skip||0}`);
+        addLog('info', `📁 Отчёт сохранён: id=${evt.report.id}`);
+        _setLogStatus('завершён', (c.fail || 0) > 0 ? 'error' : 'idle');
+        return;
+    }
+}
+
+function applyRowResult(rowResult) {
+    const tr = document.getElementById('mrow-' + rowResult.row_id);
+    if (!tr) return;
+    tr.classList.remove('row-current');
+    if (rowResult.blocked) tr.classList.add('row-blocked');
+    rowResult.cells.forEach(cell => {
+        const td = tr.querySelector(`td[data-col="${cell.to_id}"]`);
+        if (td) td.innerHTML = renderCell(cell);
+    });
+}
+
+function setProgress(pct, label) {
+    const bar = document.getElementById('progressBar');
+    bar.style.width = pct + '%';
+    bar.textContent = pct + '%';
+    if (label) document.getElementById('progressStep').textContent = label;
+}
+
+function setKPI(c) {
+    document.getElementById('kTotal').textContent = c.total || 0;
+    document.getElementById('kPass').textContent = c.pass || 0;
+    document.getElementById('kFail').textContent = c.fail || 0;
+    document.getElementById('kBlocked').textContent = c.blocked || 0;
+    document.getElementById('kSkip').textContent = c.skip || 0;
+}
+
+function renderMismatchList(report) {
+    const missing = []; // ожидали +, нет в списке
+    const extra = [];   // ожидали -, есть в списке
+    (report.results || []).forEach(r => {
+        (r.cells || []).forEach(c => {
+            if (c.status !== 'fail') return;
+            const item = `${r.row_name} (ID ${r.row_id}) → ${c.to_name} (ID ${c.to_id})`;
+            if (c.expected === '+' && c.actual !== '+') missing.push(item);
+            if (c.expected === '-' && c.actual === '+') extra.push(item);
+        });
+    });
+    document.getElementById('mismatchList').classList.toggle('hidden', !missing.length && !extra.length);
+    document.getElementById('mlMissing').innerHTML = missing.length
+        ? missing.map(i => `<li><span class="l">${escapeHtml(i)}</span><span class="r">отсутствует</span></li>`).join('')
+        : `<li style="color:var(--text-3);">Все «+» совпали</li>`;
+    document.getElementById('mlExtra').innerHTML = extra.length
+        ? extra.map(i => `<li><span class="l">${escapeHtml(i)}</span><span class="r">видно лишнее</span></li>`).join('')
+        : `<li style="color:var(--text-3);">Все «−» совпали</li>`;
+}
+
+// ============================================================
+// СКАЧИВАНИЕ
+// ============================================================
+function downloadJSON() {
+    if (!state.report) { alert('Нет отчёта'); return; }
+    const blob = new Blob([JSON.stringify(state.report, null, 2)], { type: 'application/json' });
+    triggerDownload(blob, `matrix_${state.report.id || 'report'}.json`);
+}
+
+function downloadCSV() {
+    if (!state.report) { alert('Нет отчёта'); return; }
+    const rep = state.report;
+    const cols = rep.spec.columns;
+    const head = ['Источник\\Цель', ...cols.map(c => `${c.name} (ID ${c.id})`)];
+    const lines = [head.map(csvCell).join(',')];
+    rep.results.forEach(r => {
+        const cellById = new Map(r.cells.map(c => [c.to_id, c]));
+        const row = [`${r.row_name} (ID ${r.row_id})`];
+        cols.forEach(c => {
+            const cell = cellById.get(c.id);
+            row.push(cell ? `${cell.expected || ''}/${cell.actual || ''}` : '');
+        });
+        lines.push(row.map(csvCell).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    triggerDownload(blob, `matrix_${rep.id || 'report'}.csv`);
+}
+
+function downloadHTML() {
+    if (!state.report) { alert('Нет отчёта'); return; }
+    const rep = state.report;
+    const cols = rep.spec.columns;
+
+    const headHTML = `<th class="rh">Переход С → НА</th>` +
+        cols.map(c => `<th>${escapeHtml(c.name)}<br><span class="cid">ID ${c.id}</span></th>`).join('');
+
+    const bodyHTML = rep.results.map(r => {
+        const cellById = new Map(r.cells.map(c => [c.to_id, c]));
+        const cells = cols.map(c => {
+            const cell = cellById.get(c.id);
+            const exp = cell ? (cell.expected || '·') : '·';
+            const act = cell ? (cell.actual || '·') : '';
+            const status = cell ? cell.status : 'pending';
+            return `<td class="c-${status}" title="ожидание: ${escapeHtml(exp)} | факт: ${escapeHtml(act)}">${
+                status === 'blocked' ? '⏸' : (act || exp)
+            }</td>`;
+        }).join('');
+        return `<tr class="${r.blocked ? 'row-blocked' : ''}"><td class="rh"><b>${escapeHtml(r.row_name)}</b><br><span class="cid">ID ${r.row_id}</span></td>${cells}</tr>`;
+    }).join('');
+
+    const c = rep.counters || {};
+    const totalCells = (c.pass||0) + (c.fail||0) + (c.skip||0) + (c.blocked||0);
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Матрица переходов — отчёт ${escapeHtml(rep.msisdn)}</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;padding:24px;}
+h1{font-size:20px;color:#6B1F8A;margin-bottom:4px;}
+.meta{color:#64748b;font-size:13px;margin-bottom:16px;}
+.kpi{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.kpi .k{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 16px;min-width:130px;border-left:3px solid currentColor;}
+.kpi .k .n{font-size:22px;font-weight:700;}
+.kpi .k .l{font-size:11px;color:#94a3b8;text-transform:uppercase;}
+table{border-collapse:collapse;background:#1e293b;border:1px solid #334155;font-size:11.5px;}
+th,td{padding:6px 8px;border:1px solid #1e293b;text-align:center;}
+th{background:#0b1220;color:#94a3b8;font-size:11px;}
+.cid{font-size:10px;color:#64748b;font-weight:400;}
+.rh{text-align:left;background:#1e293b;font-weight:600;min-width:200px;}
+td.c-pass{background:#22c55e22;color:#22c55e;font-weight:700;}
+td.c-fail{background:#ef444422;color:#ef4444;font-weight:700;}
+td.c-info{background:#38bdf822;color:#38bdf8;}
+td.c-skip{background:#64748b22;color:#94a3b8;}
+td.c-blocked{background:#eab30822;color:#eab308;}
+tr.row-blocked .rh{background:#eab30822;border-left:3px solid #eab308;}
+.section{margin-top:20px;}
+.section h2{font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.mm{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mm .col{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;}
+.mm li{font-size:12px;padding:4px 0;border-bottom:1px solid #1e293b;}
+.foot{color:#475569;font-size:11px;margin-top:24px;text-align:center;}
+.scroll{max-width:100%;overflow:auto;border:1px solid #334155;border-radius:8px;}
+</style></head><body>
+<h1>Матрица переходов — отчёт</h1>
+<div class="meta">${escapeHtml(rep.started_at)} → ${escapeHtml(rep.finished_at)} (${formatDuration(rep.duration)})<br>
+MSISDN: <b>${escapeHtml(rep.msisdn)}</b> · subscriberId: <b>${escapeHtml(String(rep.subscriber_id||''))}</b> · абонент: <b>${escapeHtml(rep.customer_name||'—')}</b></div>
+<div class="kpi">
+    <div class="k" style="color:#38bdf8;"><div class="n">${totalCells}</div><div class="l">Всего ячеек</div></div>
+    <div class="k" style="color:#22c55e;"><div class="n">${c.pass||0}</div><div class="l">Pass</div></div>
+    <div class="k" style="color:#ef4444;"><div class="n">${c.fail||0}</div><div class="l">Fail</div></div>
+    <div class="k" style="color:#eab308;"><div class="n">${c.blocked||0}</div><div class="l">Blocked</div></div>
+    <div class="k" style="color:#94a3b8;"><div class="n">${c.skip||0}</div><div class="l">Skip / Info</div></div>
+</div>
+<div class="scroll"><table><thead><tr>${headHTML}</tr></thead><tbody>${bodyHTML}</tbody></table></div>
+<div class="section"><h2>Сравнение с матрицей: расхождения</h2>${renderMismatchSection(rep)}</div>
+<div class="foot">UCELL SBMS · Matrix Test Report · сгенерировано ${new Date().toLocaleString('ru-RU')}</div>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    triggerDownload(blob, `matrix_${rep.id || 'report'}.html`);
+}
+
+function renderMismatchSection(rep) {
+    const missing = [], extra = [];
+    (rep.results || []).forEach(r => {
+        (r.cells || []).forEach(c => {
+            if (c.status !== 'fail') return;
+            const item = `${r.row_name} (ID ${r.row_id}) → ${c.to_name} (ID ${c.to_id})`;
+            if (c.expected === '+' && c.actual !== '+') missing.push(item);
+            if (c.expected === '-' && c.actual === '+') extra.push(item);
+        });
+    });
+    return `<div class="mm">
+        <div class="col"><h3 style="color:#ef4444;">Ожидалось +, фактически нет:</h3><ul>${
+            missing.length ? missing.map(m => `<li>${escapeHtml(m)}</li>`).join('') : '<li style="color:#64748b;">Все «+» совпали</li>'
+        }</ul></div>
+        <div class="col"><h3 style="color:#ef4444;">Ожидалось −, фактически есть:</h3><ul>${
+            extra.length ? extra.map(m => `<li>${escapeHtml(m)}</li>`).join('') : '<li style="color:#64748b;">Все «−» совпали</li>'
+        }</ul></div>
+    </div>`;
+}
+
+function triggerDownload(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+
+// ============================================================
+// УТИЛИТЫ
+// ============================================================
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+}
+function csvCell(v) {
+    const s = String(v ?? '');
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+function formatDuration(sec) {
+    sec = Number(sec) || 0;
+    if (sec < 60) return sec.toFixed(1) + 's';
+    const m = Math.floor(sec / 60); const s = Math.round(sec - m * 60);
+    return `${m}m ${s}s`;
+}
+</script>
+
+</body>
+</html>

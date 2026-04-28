@@ -185,11 +185,164 @@ def tariff_test():
     return resp
 
 
+@app.route('/matrix-test')
+def matrix_test_page():
+    resp = send_file('matrix_test.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
 @app.route('/tme')
 def tme_page():
     resp = send_file('tme.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
+
+
+# ============================================================
+# MATRIX TEST — матрица переходов между тарифами
+# ============================================================
+import matrix_parser as _matrix_parser
+import matrix_runner as _matrix_runner
+
+
+@app.route('/api/matrix/parse', methods=['POST'])
+def api_matrix_parse():
+    """Принимает файл матрицы (PDF/DOCX/XLSX/CSV/JSON) и возвращает каноничный JSON."""
+    if 'file' not in request.files:
+        return jsonify({"error": "Файл не приложен (поле 'file' пустое)"}), 400
+    f = request.files['file']
+    name = f.filename or ""
+    content = f.read()
+    if not content:
+        return jsonify({"error": "Файл пустой"}), 400
+    try:
+        spec = _matrix_parser.parse(name, content)
+    except Exception as e:
+        return jsonify({"error": str(e), "filename": name}), 400
+    spec["_stats"] = _matrix_parser.stats(spec)
+    spec["_filename"] = name
+    return jsonify(spec)
+
+
+@app.route('/api/matrix/run', methods=['POST'])
+def api_matrix_run():
+    """Запускает прогон матрицы. Возвращает report (синхронно).
+
+    Body JSON:
+    {
+      "msisdn": "...",
+      "spec": { columns, rows },
+      "admin": {"login": "...", "password": "..."},
+      "viewer": {"login": "...", "password": "..."},
+      "only_rows": [optional list of row.id],
+      "wait_after_change": 5,
+      "order_timeout": 60
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    msisdn = (data.get("msisdn") or "").strip()
+    spec = data.get("spec")
+    admin_creds = data.get("admin") or {}
+    viewer_creds = data.get("viewer") or {}
+    if not msisdn or not spec or not admin_creds.get("login") or not viewer_creds.get("login"):
+        return jsonify({"error": "Нужны msisdn, spec, admin{login,password}, viewer{login,password}"}), 400
+
+    try:
+        admin_client = _get_client(admin_creds)
+    except Exception as e:
+        return jsonify({"error": f"Admin auth failed: {e}", "scope": "admin"}), 401
+    try:
+        viewer_client = _get_client(viewer_creds)
+    except Exception as e:
+        return jsonify({"error": f"Viewer auth failed: {e}", "scope": "viewer"}), 401
+
+    only_rows = data.get("only_rows") or None
+    wait_after = float(data.get("wait_after_change", 5))
+    order_timeout = int(data.get("order_timeout", 60))
+
+    try:
+        report = _matrix_runner.run_matrix(
+            msisdn=msisdn,
+            spec=spec,
+            admin_client=admin_client,
+            viewer_client=viewer_client,
+            only_rows=only_rows,
+            wait_after_change=wait_after,
+            order_timeout=order_timeout,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    return jsonify(report)
+
+
+@app.route('/api/matrix/run-stream', methods=['POST'])
+def api_matrix_run_stream():
+    """SSE-вариант: транслирует прогресс прогона построчно.
+    Тело такое же, как у /api/matrix/run."""
+    data = request.get_json(silent=True) or {}
+    msisdn = (data.get("msisdn") or "").strip()
+    spec = data.get("spec")
+    admin_creds = data.get("admin") or {}
+    viewer_creds = data.get("viewer") or {}
+    if not msisdn or not spec or not admin_creds.get("login") or not viewer_creds.get("login"):
+        return jsonify({"error": "Нужны msisdn, spec, admin{login,password}, viewer{login,password}"}), 400
+    try:
+        admin_client = _get_client(admin_creds)
+        viewer_client = _get_client(viewer_creds)
+    except Exception as e:
+        return jsonify({"error": f"Auth failed: {e}"}), 401
+    only_rows = data.get("only_rows") or None
+    wait_after = float(data.get("wait_after_change", 5))
+    order_timeout = int(data.get("order_timeout", 60))
+
+    import queue, threading
+    q: "queue.Queue[dict]" = queue.Queue()
+
+    def cb(evt):
+        q.put(evt)
+
+    def worker():
+        try:
+            report = _matrix_runner.run_matrix(
+                msisdn=msisdn, spec=spec,
+                admin_client=admin_client, viewer_client=viewer_client,
+                only_rows=only_rows, wait_after_change=wait_after,
+                order_timeout=order_timeout, progress_cb=cb,
+            )
+            q.put({"event": "final", "report": report})
+        except Exception as e:
+            q.put({"event": "error", "error": str(e)})
+        finally:
+            q.put({"event": "_close"})
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def stream():
+        while True:
+            evt = q.get()
+            if evt.get("event") == "_close":
+                break
+            yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
+
+    return Response(stream(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+
+@app.route('/api/matrix/history')
+def api_matrix_history():
+    return jsonify(_matrix_runner.list_matrix_reports())
+
+
+@app.route('/api/matrix/history/<report_id>')
+def api_matrix_history_detail(report_id):
+    rep = _matrix_runner.get_matrix_report(report_id)
+    if not rep:
+        return jsonify({"error": "report not found"}), 404
+    return jsonify(rep)
 
 
 # ============================================================
@@ -854,6 +1007,393 @@ def api_limits_all():
 
         return jsonify({"groups": result_groups, "totalItems": len(items)})
 
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# HISTORY — последние изменения по номеру (тариф, пакеты, услуги, платежи, lifecycle)
+# ============================================================
+
+def _parse_dt(value):
+    """Распарсить дату из ответа SBMS (ISO или DD.MM.YYYY HH:MM:SS) → datetime или None."""
+    from datetime import datetime
+    if not value:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(value / 1000 if value > 1e12 else value)
+        except Exception:
+            return None
+    s = str(value).strip()
+    if not s:
+        return None
+    fmts = [
+        "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S", "%Y-%m-%d",
+        "%d.%m.%Y %H:%M:%S", "%d.%m.%Y",
+        "%d/%m/%Y %H:%M:%S", "%d/%m/%Y",
+    ]
+    for f in fmts:
+        try:
+            return datetime.strptime(s.split("+")[0].split("Z")[0], f)
+        except Exception:
+            pass
+    return None
+
+
+def _iso(dt):
+    return dt.isoformat() if dt else None
+
+
+def _get_first(d, *keys):
+    """Вернуть первое непустое значение из словаря по списку ключей."""
+    if not isinstance(d, dict):
+        return None
+    for k in keys:
+        v = d.get(k)
+        if v not in (None, "", []):
+            return v
+    return None
+
+
+@app.route('/api/history', methods=['POST'])
+def api_history():
+    """Сводная история изменений по номеру.
+
+    Body: {msisdn, login?/password?/authToken?, days?, limit?}
+    Returns: { events: [{type, date, title, description, status, amount, raw}, ...] }
+    События отсортированы по дате DESC (самые новые сверху).
+    """
+    from datetime import datetime, timedelta
+
+    try:
+        data = request.get_json() or {}
+        msisdn = data.get("msisdn")
+        if not msisdn:
+            return jsonify({"error": "msisdn обязателен"}), 400
+
+        days = int(data.get("days") or 90)
+        limit = int(data.get("limit") or 200)
+
+        client = _get_client(data)
+
+        # 1) Найти абонента
+        sd = client.search_customer(msisdn)
+        if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+            return jsonify({"error": "Клиент не найден"}), 404
+        sr = sd["searchResults"][0]
+        cid = sr.get("customerId")
+        sid = sr.get("subscriberId")
+
+        now = datetime.now()
+        date_from = now - timedelta(days=days)
+        date_to = now + timedelta(days=1)
+
+        events = []
+        warnings = []
+
+        # 2) Заказы на смену тарифа
+        try:
+            orders = client.search_rateplan_orders(sid, limit=limit)
+            items = (orders or {}).get("items") or (orders or {}).get("ratePlanOrders") or []
+
+            # Сортируем по дате, чтобы корректно вывести "переход X → Y"
+            def _ord_date(o):
+                return _parse_dt(_get_first(o, "startDate", "changeDate",
+                                            "executionDate", "createDate")) \
+                    or _parse_dt("1970-01-01")
+            items_sorted = sorted(items, key=_ord_date)
+            prev_name = None
+            for o in items_sorted:
+                if not isinstance(o, dict):
+                    continue
+                rp = o.get("ratePlan") if isinstance(o.get("ratePlan"), dict) else {}
+                new_name = rp.get("name") or _get_first(o, "ratePlanName", "name")
+                status_obj = o.get("status") if isinstance(o.get("status"), dict) else {}
+                status_name = status_obj.get("name") if isinstance(status_obj, dict) else (
+                    str(status_obj) if status_obj else "")
+                dt = _parse_dt(_get_first(o, "startDate", "changeDate",
+                                          "executionDate", "createDate", "endDate"))
+
+                if prev_name and new_name and prev_name != new_name:
+                    subtitle = f"{prev_name} → {new_name}"
+                elif new_name:
+                    subtitle = new_name
+                else:
+                    subtitle = f"Заказ #{o.get('ratePlanOrderId') or ''}"
+
+                desc_parts = []
+                user = o.get("changeUser")
+                if user:
+                    desc_parts.append(f"оператор: {user}")
+                if o.get("subscriberComment"):
+                    desc_parts.append(str(o["subscriberComment"]))
+                if o.get("ratePlanOrderId"):
+                    desc_parts.append(f"order {o['ratePlanOrderId']}")
+
+                events.append({
+                    "type": "tariff_change",
+                    "date": _iso(dt),
+                    "title": "Смена тарифа",
+                    "subtitle": subtitle,
+                    "description": " · ".join(desc_parts) if desc_parts else "",
+                    "status": status_name,
+                    "amount": None,
+                    "raw": o,
+                })
+                if new_name:
+                    prev_name = new_name
+        except Exception as e:
+            warnings.append(f"orders: {e}")
+
+        # 3) История пакетов и услуг (PSIX combhist — XML с ROW-ами)
+        try:
+            sd_str = date_from.strftime("%d.%m.%Y") + "+00:00:00"
+            ed_str = date_to.strftime("%d.%m.%Y") + "+23:59:59"
+            ch = client.get_combined_history(cid, sid, sd_str, ed_str, limit=limit)
+            ch_items = (ch or {}).get("items") or []
+
+            for it in ch_items:
+                if not isinstance(it, dict):
+                    continue
+                action_raw = (it.get("action") or "").upper()           # PACKAGE_ACTION, SERVICE_ACTION, RATE_PLAN_ACTION
+                event_text = (it.get("event") or "").strip()            # "Ожидает оплаты", "Отключен", "Подключён"
+                obj_name = it.get("name") or it.get("description") or "—"
+                obj_desc = it.get("description") or ""
+                dt = _parse_dt(it.get("startDate") or it.get("naviDate"))
+                ev_lc = event_text.lower()
+
+                is_pack = "PACKAGE" in action_raw or "PACK" in action_raw
+                is_service = "SERVICE" in action_raw or "SERV" in action_raw
+                is_tariff = "RATE_PLAN" in action_raw or "TARIFF" in action_raw or "RTPL" in action_raw
+                is_deact = any(w in ev_lc for w in (
+                    "отключ", "deact", "remove", "delete", "off", "снят"
+                ))
+                is_pending = any(w in ev_lc for w in ("ожида", "pending", "очеред"))
+
+                if is_tariff:
+                    base = "tariff_change"
+                    title = "Смена тарифа"
+                elif is_pack:
+                    base = "pack_deactivate" if is_deact else "pack_activate"
+                    title = "Отключение пакета" if is_deact else "Подключение пакета"
+                elif is_service:
+                    base = "service_deactivate" if is_deact else "service_activate"
+                    title = "Отключение услуги" if is_deact else "Подключение услуги"
+                else:
+                    base = "subscription_deactivate" if is_deact else "subscription_activate"
+                    title = "Отключение подписки" if is_deact else "Подключение подписки"
+
+                # Если событие "ожидает оплаты" — это активация в очереди
+                if is_pending and not is_deact and not base.endswith("_deactivate"):
+                    title = title.replace("Подключение", "Заявка на подключение")
+
+                desc_parts = []
+                if obj_desc and obj_desc != obj_name:
+                    desc_parts.append(obj_desc)
+                if it.get("naviUser"):
+                    desc_parts.append(f"оператор: {it['naviUser']}")
+                if it.get("comment"):
+                    desc_parts.append(it["comment"])
+
+                events.append({
+                    "type": base,
+                    "date": _iso(dt),
+                    "title": title,
+                    "subtitle": obj_name,
+                    "description": " · ".join(desc_parts) if desc_parts else "",
+                    "status": event_text,
+                    "amount": it.get("amount"),
+                    "raw": it,
+                })
+        except Exception as e:
+            warnings.append(f"combined_history: {e}")
+
+        # 4) История lifecycle (состояние абонента: Active / Suspend / Closed / S1)
+        try:
+            lc = client.get_lifecycle_history(sid)
+            lc_items = []
+            if isinstance(lc, dict):
+                for k in ("items", "lcStatesList", "lcStates", "history", "data"):
+                    v = lc.get(k)
+                    if isinstance(v, list):
+                        lc_items = v
+                        break
+            elif isinstance(lc, list):
+                lc_items = lc
+
+            for st in lc_items:
+                if not isinstance(st, dict):
+                    continue
+                lc_state = st.get("lcState") if isinstance(st.get("lcState"), dict) else {}
+                state_name = (
+                    lc_state.get("def") or lc_state.get("name")
+                    or _get_first(st, "def", "lcStateName", "stateName", "name", "state")
+                    or "—"
+                )
+                conv = st.get("conversionType") if isinstance(st.get("conversionType"), dict) else {}
+                conv_def = conv.get("def") if isinstance(conv, dict) else None
+                dt = _parse_dt(_get_first(st, "lcStateDate", "startDate", "beginDate",
+                                          "stateBeginDate", "actionDate", "changeDate"))
+                audit = st.get("audit") if isinstance(st.get("audit"), dict) else {}
+                user = audit.get("naviUser") if isinstance(audit, dict) else None
+
+                desc_parts = []
+                if conv_def:
+                    desc_parts.append(conv_def)
+                if user and user != "BIS":
+                    desc_parts.append(f"оператор: {user}")
+                if st.get("note"):
+                    desc_parts.append(str(st["note"]))
+
+                events.append({
+                    "type": "lifecycle",
+                    "date": _iso(dt),
+                    "title": "Изменение состояния",
+                    "subtitle": state_name,
+                    "description": " · ".join(desc_parts) if desc_parts else "Жизненный цикл абонента",
+                    "status": state_name,
+                    "amount": None,
+                    "raw": st,
+                })
+        except Exception as e:
+            warnings.append(f"lifecycle_history: {e}")
+
+        # 5) Платежи (FIM payments — отдельный реестр, может быть пуст у некоторых учёток)
+        try:
+            df_str = date_from.strftime("%Y-%m-%dT%H:%M:%S")
+            pays = client.get_payments(cid, date_from=df_str, limit=limit)
+            p_items = (pays or {}).get("items") or (pays or {}).get("payments") or []
+            for p in p_items:
+                if not isinstance(p, dict):
+                    continue
+                dt = _parse_dt(_get_first(p, "paymentDate", "date", "createDate"))
+                amount = _get_first(p, "amount", "sum", "value")
+                method = (p.get("paymentMethod") or {}) if isinstance(p.get("paymentMethod"), dict) else {}
+                method_name = method.get("name") or _get_first(p, "method", "channel") or "—"
+                events.append({
+                    "type": "payment",
+                    "date": _iso(dt),
+                    "title": "Пополнение баланса",
+                    "subtitle": f"+{amount} сум" if amount is not None else "Платёж",
+                    "description": method_name,
+                    "status": _get_first((p.get("status") or {}), "name") if isinstance(p.get("status"), dict) else "",
+                    "amount": amount,
+                    "raw": p,
+                })
+        except Exception as e:
+            warnings.append(f"payments: {e}")
+
+        # 6) Дневная разбивка движений по балансу — пополнения + АП + разовые
+        # Источник: /OAPI/v1/sbms/customers/{cid}/balances/events/days
+        # eventTypeId: 1=Вызовы, 6=АП, 7=Разовые, 9=Платежи, 11=Корректировки,
+        #              13=Обещанные платежи, 14=Биллинговые скидки, 15=ФА
+        EV_TYPE_TITLE = {
+            9:  ("payment",          "Пополнение баланса",      "income"),
+            6:  ("charge_recurring", "Списание абонплаты",       "spend"),
+            7:  ("charge_one_time",  "Разовое списание",         "spend"),
+            11: ("adjustment",       "Корректировка баланса",    "both"),
+            13: ("promised_payment", "Обещанный платёж",         "income"),
+            14: ("adjustment",       "Биллинговая скидка",       "income"),
+            1:  ("charge_one_time",  "Списание за вызовы/SMS/трафик", "spend"),
+        }
+
+        # Чтобы не плодить дубли с FIM-payments — запомним даты, где payments уже добавили
+        existing_payment_days = {(ev["date"] or "")[:10] for ev in events if ev["type"] == "payment"}
+
+        try:
+            # balance_events — тяжёлый endpoint (~5 КБ на день).
+            # Ограничиваем максимум 90 днями, чтобы запрос успевал.
+            be_from = max(date_from, now - timedelta(days=90))
+            df_str = be_from.strftime("%Y-%m-%dT%H:%M:%S")
+            dt_str = date_to.strftime("%Y-%m-%dT%H:%M:%S")
+            be = client.get_balance_events_days(cid, df_str, dt_str)
+            be_items = (be or {}).get("items") or []
+            for day in be_items:
+                if not isinstance(day, dict):
+                    continue
+                day_date = _parse_dt(day.get("balanceDate"))
+                aggregates = day.get("aggregateEvents") or []
+                for agg in aggregates:
+                    if not isinstance(agg, dict):
+                        continue
+                    et = agg.get("eventType") or {}
+                    et_id = et.get("eventTypeId")
+                    et_name = et.get("name") or ""
+                    cfg = EV_TYPE_TITLE.get(et_id)
+                    if not cfg:
+                        continue
+                    ev_type, title, kind = cfg
+                    income = abs(float(agg.get("incomeAmount") or 0))
+                    spend = abs(float(agg.get("spendAmount") or 0))
+
+                    # Пропустить пустые
+                    if income == 0 and spend == 0:
+                        continue
+                    # Не дублировать платежи, которые уже пришли из FIM
+                    if ev_type == "payment" and day_date and day_date.strftime("%Y-%m-%d") in existing_payment_days:
+                        continue
+
+                    if kind == "income":
+                        amount = income; sign = "+"
+                    elif kind == "spend":
+                        amount = spend;  sign = "−"
+                    else:  # "both"
+                        if income >= spend:
+                            amount = income; sign = "+"
+                        else:
+                            amount = spend;  sign = "−"
+
+                    if amount == 0:
+                        continue
+
+                    fmt_amount = f"{int(round(amount)):,}".replace(",", " ")
+                    subtitle = f"{sign}{fmt_amount} сум"
+
+                    events.append({
+                        "type": ev_type,
+                        "date": _iso(day_date),
+                        "title": title,
+                        "subtitle": subtitle,
+                        "description": et_name,
+                        "status": "",
+                        "amount": amount if sign == "+" else -amount,
+                        "raw": agg,
+                    })
+        except Exception as e:
+            warnings.append(f"balance_events: {e}")
+
+        # Сортировка: самые свежие сверху, события без даты — в конец
+        def _sort_key(ev):
+            d = ev.get("date") or ""
+            return (1 if d else 0, d)
+
+        events.sort(key=_sort_key, reverse=True)
+
+        # Усечение по limit
+        events = events[:limit]
+
+        # Подсчёт по типам — для UI-фильтра
+        counts = {}
+        for ev in events:
+            counts[ev["type"]] = counts.get(ev["type"], 0) + 1
+
+        return jsonify({
+            "msisdn": msisdn,
+            "customerId": cid,
+            "subscriberId": sid,
+            "rangeDays": days,
+            "from": _iso(date_from),
+            "to": _iso(date_to),
+            "totalEvents": len(events),
+            "counts": counts,
+            "events": events,
+            "warnings": warnings or None,
+        })
+    except AuthRequired:
+        raise
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

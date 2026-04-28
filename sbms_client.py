@@ -300,6 +300,111 @@ class SBMSClient:
                 return None
         return None
 
+    # ======================== HISTORY / ORDERS / PAYMENTS ========================
+
+    def get_combined_history(self, customer_id, subscriber_id,
+                             start_date, end_date, limit=10000, offset=0):
+        """История активаций/деактиваций пакетов и услуг через PSIX combhist.
+
+        Endpoint возвращает XML (SELFCARE wrapper). Парсим ROW-ы из тега
+        <COMBINED_HISTORY_GET_SERVICES_PACKS> и возвращаем список словарей.
+
+        start_date / end_date — формат "DD.MM.YYYY HH:MM:SS".
+        """
+        resp = self._get("/PSIX/combhist/COMBINED_HISTORY_GET_SERVICES_PACKS", {
+            "SESSION_ID": self.token,
+            "customerId": customer_id,
+            "subscriberId": subscriber_id,
+            "startDateFilter": start_date,
+            "endDateFilter": end_date,
+            "limit": limit,
+            "offset": offset,
+        })
+        if resp.status_code != 200 or not resp.text:
+            return None
+        try:
+            root = ET.fromstring(resp.text)
+        except ET.ParseError:
+            return None
+        block = root.find("COMBINED_HISTORY_GET_SERVICES_PACKS")
+        if block is None:
+            block = root.find(".//COMBINED_HISTORY_GET_SERVICES_PACKS")
+        if block is None:
+            return {"items": []}
+        rows = []
+        for row in block.findall("ROW"):
+            item = {}
+            for f in row:
+                item[f.tag] = (f.text or "").strip() if f.text else None
+            rows.append(item)
+        return {"items": rows, "count": len(rows)}
+
+    def get_lifecycle_history(self, subscriber_id):
+        """История смен жизненного цикла (блокировки/активации/закрытия)."""
+        resp = self._post(
+            "/PSAPI/internal/v1/licy-base-private/subslcstates/history/search",
+            params={"languageId": 1, "authToken": self.token},
+            json_body={"subs": subscriber_id},
+        )
+        return self._safe_json(resp)
+
+    def get_balance_events_days(self, customer_id, date_from, date_to=None,
+                                timeout_override=120):
+        """Дневная разбивка движений по балансу: пополнения, списания АП,
+        разовые начисления, корректировки. Группировка по eventType.
+
+        date_from / date_to — формат "YYYY-MM-DDThh:mm:ss".
+        Endpoint тяжёлый — даёт ~5-7 КБ на день, для длинных периодов нужен
+        увеличенный таймаут.
+        """
+        params = {
+            "languageId": 1,
+            "authToken": self.token,
+            "dateFrom": date_from,
+        }
+        if date_to:
+            params["dateTo"] = date_to
+        url = f"{self.base_url}/OAPI/v1/sbms/customers/{customer_id}/balances/events/days"
+        resp = requests.get(url, params=params,
+                            timeout=timeout_override or self.timeout,
+                            verify=False)
+        return self._safe_json(resp)
+
+    def get_payments(self, customer_id, date_from=None, date_to=None,
+                     limit=100, offset=0):
+        """История платежей абонента, сортировка по дате DESC."""
+        params = {
+            "languageId": 1,
+            "limit": limit,
+            "offset": offset,
+            "sort": "-paymentDate",
+            "authToken": self.token,
+        }
+        if date_from:
+            params["paymentDate.dateFrom"] = date_from
+        if date_to:
+            params["paymentDate.dateTo"] = date_to
+        resp = self._get(f"/PSAPI/v1/fim/customers/{customer_id}/payments", params)
+        return self._safe_json(resp)
+
+    def search_rateplan_orders(self, subscriber_id, limit=100, offset=0,
+                               status_ids=None):
+        """Расширенный список заказов на смену тарифа (включая историю)."""
+        params = {
+            "languageId": 1,
+            "authToken": self.token,
+            "limit": limit,
+            "offset": offset,
+            "isFullHistoryAndStorno": "true",
+        }
+        if status_ids:
+            params["ratePlanOrderStatusIds"] = status_ids
+        resp = self._get(
+            f"/OAPI/v1/subscribers/{subscriber_id}/ratePlans/orders",
+            params,
+        )
+        return self._safe_json(resp)
+
     # ======================== PSIX ========================
 
     def get_psix_next_fee(self, subscriber_id):

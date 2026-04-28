@@ -6,29 +6,218 @@
     <title>UCELL SBMS - Тест смены тарифа</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .top-bar { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
-        .top-bar h1 { font-size: 20px; color: #f59e0b; }
-        .top-bar .nav { display: flex; gap: 12px; align-items: center; }
-        .nav-link { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 6px 14px; border-radius: 6px; transition: all 0.2s; }
-        .nav-link:hover { background: #334155; color: #e2e8f0; }
-        .nav-link.active { background: #f59e0b; color: #0f172a; font-weight: 600; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        :root {
+            /* density tokens — управляются через [data-density] на <body> */
+            --pad-panel: 14px;
+            --pad-panel-y: 14px;
+            --gap-panel: 10px;
+            --gap-grid: 10px;
+            --radius-panel: 8px;
+            --font-h2: 12px;
+            --font-body: 12px;
+            --row-h: 28px;
+            --topbar-h: 52px;
+            --left-w: 300px;
+            --right-w: 340px;
+            /* === Ucell brand palette ===
+               Главный фиолетовый — глубокий пурпур из логотипа.
+               Используется для acceleratorов: заголовок, активная навигация,
+               primary-кнопки. Тематические бейджи (тариф/пакет/услуга)
+               специально НЕ перекрашиваем — они должны оставаться
+               различимыми. */
+            --brand:        #6B1F8A;
+            --brand-hover:  #581873;
+            --brand-soft:   #6B1F8A1F;
+            --brand-text:   #ffffff;
+            --brand-glow:   #6B1F8A55;
+        }
+        body[data-density="cozy"] {
+            --pad-panel: 18px; --pad-panel-y: 18px; --gap-panel: 14px; --gap-grid: 14px;
+            --radius-panel: 10px; --font-h2: 13px; --font-body: 13px; --row-h: 32px;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+               background: #0f172a; color: #e2e8f0; min-height: 100vh; font-size: var(--font-body); }
 
-        .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-        .panel h2 { font-size: 16px; color: #94a3b8; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        /* === TOPBAR (sticky, slim, neat) ===
+           Структура: [brand] | [nav] | [auth-group] | [load-group] | <spacer> | [tools]
+           Все интерактивные элементы — единая высота 28px, общие радиусы, единый стиль фокуса. */
+        .top-bar {
+            background: #1e293b; border-bottom: 1px solid #334155;
+            padding: 0 14px; display: flex; align-items: center; gap: 12px;
+            height: var(--topbar-h); position: sticky; top: 0; z-index: 50;
+        }
+        .top-bar .tb-divider { width: 1px; height: 22px; background: #334155; flex-shrink: 0; }
+        [data-theme="light"] .top-bar .tb-divider { background: #e2e6ec; }
+        .top-bar .tb-spacer { flex: 1 1 auto; min-width: 8px; }
+
+        /* Brand */
+        .top-bar .brand { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .top-bar .brand img {
+            height: 22px; width: auto; display: block;
+            background: #fff; padding: 2px 6px; border-radius: 5px;
+        }
+        [data-theme="light"] .top-bar .brand img { background: transparent; padding: 0; }
+        .top-bar h1 { font-size: 17px; color: var(--brand); white-space: nowrap; font-weight: 800; letter-spacing: .5px; line-height: 1; margin: 0; }
+
+        /* Nav */
+        .top-bar .nav { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
+        .nav-link {
+            color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 500;
+            height: 28px; padding: 0 10px; border-radius: 6px;
+            display: inline-flex; align-items: center; transition: all .15s;
+        }
+        .nav-link:hover { background: #334155; color: #e2e8f0; }
+        .nav-link.active { background: var(--brand); color: var(--brand-text); font-weight: 600; }
+
+        /* Auth + Load groups (общие правила) */
+        .top-bar .tb-group { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .top-bar .tb-form {
+            display: contents; /* "форма" — лишь wrapper для submit; визуально элементы лежат прямо в topbar */
+        }
+        .top-bar input {
+            height: 28px; box-sizing: border-box;
+            padding: 0 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+            color: #e2e8f0; font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
+            min-width: 0;
+        }
+        .top-bar input::placeholder { color: #475569; }
+        .top-bar input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-glow); }
+        .top-bar input.tb-login    { width: 160px; }
+        .top-bar input.tb-pass     { width: 130px; }
+        .top-bar input.tb-msisdn   { width: 160px; }
+
+        .top-bar .tb-btn {
+            height: 28px; box-sizing: border-box;
+            padding: 0 12px; font-size: 12px; font-weight: 600;
+            border-radius: 6px; border: 1px solid transparent; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 4px; line-height: 1;
+            transition: all .15s;
+        }
+        .top-bar .tb-btn.primary { background: var(--brand); color: var(--brand-text); }
+        .top-bar .tb-btn.primary:hover { background: var(--brand-hover); }
+        .top-bar .tb-btn.run     { background: var(--brand); color: var(--brand-text); }
+        .top-bar .tb-btn.run:hover { background: var(--brand-hover); }
+        .top-bar .tb-btn.ghost   { background: transparent; color: #94a3b8; border-color: #334155; }
+        .top-bar .tb-btn.ghost:hover { background: #334155; color: #e2e8f0; }
+
+        /* Tools — компактные иконочные кнопки справа */
+        .top-bar .tool-btn {
+            height: 28px; width: 32px; box-sizing: border-box;
+            background: #0f172a; border: 1px solid #334155; color: #94a3b8;
+            border-radius: 6px; padding: 0; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all .15s;
+        }
+        .top-bar .tool-btn:hover { border-color: #475569; color: #e2e8f0; background: #1e293b; }
+        .top-bar .tool-btn[aria-pressed="true"] { color: var(--brand); border-color: var(--brand); }
+        .top-bar .tool-btn svg { width: 14px; height: 14px; display: block; }
+
+        .top-bar #authStatus, .top-bar #loadRow { display: none; }
+
+        /* === MAIN GRID — full-screen 3-zone with resizable splitters + results row === */
+        .container {
+            max-width: none; margin: 0; padding: var(--gap-grid);
+            display: grid; gap: 0;
+            grid-template-columns: var(--left-w) 6px minmax(0, 1fr) 6px var(--right-w);
+            grid-template-areas:
+                "left split-l center split-r right"
+                "results results results results results";
+            min-height: calc(100vh - var(--topbar-h));
+            align-items: start;
+        }
+        .container > #zone-left    { grid-area: left;    display: flex; flex-direction: column; gap: var(--gap-panel); min-width: 0; padding-right: var(--gap-grid); }
+        .container > #zone-center  { grid-area: center;  display: flex; flex-direction: column; gap: var(--gap-panel); min-width: 0; padding: 0 var(--gap-grid); }
+        .container > #zone-right   { grid-area: right;   display: flex; flex-direction: column; gap: var(--gap-panel); min-width: 0; padding-left: var(--gap-grid); }
+        .container > #zone-results { grid-area: results; display: flex; flex-direction: column; gap: var(--gap-panel); min-width: 0; padding-top: var(--gap-grid); margin-top: var(--gap-grid); border-top: 1px dashed #1e293b; }
+        .container > #zone-results:empty,
+        .container > #zone-results.is-empty { display: none; }
+
+        /* Splitters — вертикальные ползунки между зонами */
+        .col-resizer {
+            cursor: col-resize; background: transparent; position: relative;
+            transition: background .15s; user-select: none; touch-action: none;
+        }
+        .col-resizer::before {
+            content: ''; position: absolute; left: 50%; top: 50%;
+            width: 2px; height: 36px; transform: translate(-50%, -50%);
+            background: #334155; border-radius: 2px; transition: background .15s, height .15s;
+        }
+        .col-resizer:hover::before, .col-resizer.dragging::before {
+            background: var(--brand); height: 60px;
+        }
+        .col-resizer.dragging { background: var(--brand-soft); }
+        [data-theme="light"] .col-resizer::before { background: #cbd5e1; }
+        #col-resizer-left  { grid-area: split-l; }
+        #col-resizer-right { grid-area: split-r; }
+
+        /* Sticky зоны слева/справа — прокручивается только центр */
+        @media (min-width: 1441px) {
+            .container > #zone-left, .container > #zone-right {
+                position: sticky; top: calc(var(--topbar-h) + var(--gap-grid));
+                max-height: calc(100vh - var(--topbar-h) - var(--gap-grid) * 2);
+                overflow-y: auto;
+            }
+        }
+        /* На ≤1440 — правый sidebar уезжает под центральный, зоны 320 + 1fr */
+        @media (max-width: 1440px) {
+            .container {
+                grid-template-columns: var(--left-w) 6px minmax(0, 1fr);
+                grid-template-areas:
+                    "left split-l center"
+                    "right right right"
+                    "results results results";
+            }
+            #col-resizer-right { display: none; }
+            .container > #zone-right { padding-left: 0; }
+        }
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas: "left" "center" "right" "results";
+            }
+            #col-resizer-left, #col-resizer-right { display: none; }
+            .container > #zone-left, .container > #zone-center, .container > #zone-right, .container > #zone-results { padding: 0; }
+        }
+        body.right-collapsed .container > #zone-right,
+        body.right-collapsed .container > #col-resizer-right { display: none; }
+        body.right-collapsed .container {
+            grid-template-columns: var(--left-w) 6px minmax(0,1fr);
+            grid-template-areas:
+                "left split-l center"
+                "results results results";
+        }
+
+        .panel {
+            background: #1e293b; border: 1px solid #334155; border-radius: var(--radius-panel);
+            padding: var(--pad-panel) var(--pad-panel); margin-bottom: 0;
+            position: relative; max-width: 100%;
+        }
+        /* Resize — opt-in: добавь класс `resizable` к панели, и она получит угол для drag.
+           Делать каждую панель resize'абельной — мешает: появляется лишний скролл,
+           таблицы упираются в overflow:auto. Поэтому по умолчанию отключено. */
+        .panel.resizable {
+            resize: both; overflow: auto;
+            min-width: 240px; min-height: 80px;
+        }
+        .panel.resizable::after {
+            content: ''; position: absolute; right: 2px; bottom: 2px;
+            width: 14px; height: 14px; pointer-events: none; opacity: .55;
+            background: linear-gradient(135deg, transparent 0 6px, #64748b 6px 7px, transparent 7px 9px, #64748b 9px 10px, transparent 10px);
+        }
+        .panel.resizable:hover::after { opacity: 1; }
+        .panel h2 { font-size: var(--font-h2); color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .form-row.two { grid-template-columns: 1fr 1fr; }
-        .form-group label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 14px; font-family: 'SF Mono', 'Fira Code', monospace; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #f59e0b; }
+        .form-group label { display: block; font-size: 11px; color: #64748b; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select { width: 100%; padding: 7px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--brand); }
         .form-group .hint { font-size: 11px; color: #475569; margin-top: 3px; }
 
-        .btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: #3b82f6; color: white; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-run { background: #f59e0b; color: #0f172a; }
-        .btn-run:hover { background: #d97706; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--brand); color: var(--brand-text); }
+        .btn-primary:hover { background: var(--brand-hover); }
+        .btn-run { background: var(--brand); color: var(--brand-text); }
+        .btn-run:hover { background: var(--brand-hover); }
         .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
         .btn-secondary { background: #334155; color: #e2e8f0; padding: 10px 20px; font-size: 13px; }
@@ -40,22 +229,22 @@
         .section-title { font-size: 13px; color: #64748b; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #1e293b; text-transform: uppercase; letter-spacing: 1px; }
 
         /* Customer info */
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
-        .info-item { background: #0f172a; border-radius: 6px; padding: 10px 14px; }
-        .info-item .il { font-size: 11px; color: #64748b; text-transform: uppercase; }
-        .info-item .iv { font-size: 14px; color: #e2e8f0; margin-top: 2px; font-family: 'SF Mono', 'Fira Code', monospace; }
+        .info-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+        .info-item { background: #0f172a; border-radius: 6px; padding: 6px 10px; display: flex; align-items: baseline; gap: 8px; }
+        .info-item .il { font-size: 10px; color: #64748b; text-transform: uppercase; min-width: 88px; flex-shrink: 0; }
+        .info-item .iv { font-size: 12px; color: #e2e8f0; font-family: 'SF Mono', 'Fira Code', monospace; flex: 1; min-width: 0; word-break: break-word; }
 
         /* Tariff table */
-        .tariff-table-wrap { max-height: 400px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; }
+        .tariff-table-wrap { max-height: 380px; overflow-y: auto; border: 1px solid #334155; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 10px 16px; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; background: #0f172a; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 1; }
-        td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #1e293b44; }
+        th { text-align: left; padding: 7px 10px; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; background: #0f172a; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 1; }
+        td { padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #1e293b44; }
         tr:hover { background: #0f172a44; }
-        tr.selected { background: #f59e0b11; border-left: 3px solid #f59e0b; }
+        tr.selected { background: var(--brand-soft); border-left: 3px solid var(--brand); }
 
         /* Selected tariff display */
-        .selected-tariff { background: #f59e0b11; border: 1px solid #f59e0b44; border-radius: 10px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .selected-tariff .st-name { font-size: 16px; font-weight: 600; color: #f59e0b; }
+        .selected-tariff { background: var(--brand-soft); border: 1px solid var(--brand-glow); border-radius: 10px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .selected-tariff .st-name { font-size: 16px; font-weight: 600; color: var(--brand); }
         .selected-tariff .st-id { font-size: 13px; color: #94a3b8; font-family: monospace; }
 
         /* Utility */
@@ -74,14 +263,52 @@
         .progress-panel { display: none; }
         .progress-panel.visible { display: block; }
         .progress-bar-wrap { background: #0f172a; border-radius: 8px; height: 28px; overflow: hidden; margin: 10px 0; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #f59e0b, #22c55e); border-radius: 8px; transition: width 0.4s; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #0f172a; min-width: 40px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--brand), #22c55e); border-radius: 8px; transition: width 0.4s; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; min-width: 40px; }
         .progress-step { font-size: 13px; color: #94a3b8; margin-top: 6px; }
 
-        /* Summary */
-        .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
-        .sc { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; text-align: center; }
-        .sc .n { font-size: 32px; font-weight: 700; }
-        .sc .l { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        /* Summary — общие KPI-карточки результатов теста */
+        .summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 0; }
+        .sc {
+            background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+            padding: 14px 16px; text-align: left; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .sc::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: currentColor; opacity: .85;
+        }
+        .sc .n { font-size: 22px; font-weight: 700; line-height: 1; }
+        .sc .l { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+
+        /* Results section (zone-results) — общая ширина под результаты теста */
+        .zone-results-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; padding: 0 2px; margin-bottom: 4px;
+        }
+        .zone-results-header h2 { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; margin: 0; }
+        .zone-results-header .zr-actions { display: flex; gap: 8px; }
+
+        /* Скролл-обёртка для таблицы результатов: горизонтальный + вертикальный
+           ограниченные, заголовок sticky, убирает второй скролл с панели. */
+        .results-table-wrap {
+            max-height: min(60vh, 560px); overflow: auto;
+            border: 1px solid #334155; border-radius: 8px; background: #0f172a;
+        }
+        .results-table-wrap table { min-width: 720px; }
+        .results-table-wrap th { background: #0b1220; }
+        .results-table-wrap td { vertical-align: top; }
+        .results-table-wrap .col-step { width: 44px; color: #475569; font-family: monospace; }
+        .results-table-wrap .col-status { width: 84px; }
+        .results-table-wrap .col-cat { width: 100px; }
+        .results-table-wrap .col-name { font-weight: 600; color: #e2e8f0; }
+        .results-table-wrap .col-exp,
+        .results-table-wrap .col-act { font-family: 'SF Mono', monospace; color: #cbd5e1; word-break: break-word; }
+        .results-table-wrap .col-comment { color: #94a3b8; font-size: 11.5px; line-height: 1.4; }
+        [data-theme="light"] .results-table-wrap { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .results-table-wrap th { background: #f3f4f8; }
+
+        /* Customer-after — горизонтальная сетка вместо одной колонки */
+        .info-grid-after { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 
         /* Status badges */
         .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
@@ -106,11 +333,12 @@
         .avail-inner-table td:nth-child(3) { font-family: monospace; color: #475569; }
 
         /* Raw responses */
-        .raw-toggle { padding: 14px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
-        .raw-toggle h3 { font-size: 14px; color: #94a3b8; }
-        .raw-toggle .arrow { color: #64748b; font-size: 18px; transition: transform 0.2s; }
+        .raw-toggle { padding: 12px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius-panel); transition: background .15s; }
+        .raw-toggle:hover { background: #0f172a44; }
+        .raw-toggle h3 { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin: 0; }
+        .raw-toggle .arrow { color: #64748b; font-size: 14px; transition: transform 0.2s; }
         .raw-toggle .arrow.open { transform: rotate(180deg); }
-        .raw-content { display: none; padding: 16px 20px; }
+        .raw-content { display: none; padding: 4px 16px 16px; border-top: 1px solid #1e293b; }
         .raw-content.open { display: block; }
         .raw-item { margin-bottom: 12px; }
         .raw-item-header { font-size: 12px; color: #38bdf8; cursor: pointer; padding: 6px 10px; background: #0f172a; border-radius: 6px 6px 0 0; border: 1px solid #334155; }
@@ -260,7 +488,7 @@
         /* Read-only ribbon */
         .va-readonly {
             position: absolute; top: 12px; right: 12px;
-            background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b44;
+            background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand-glow);
             border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 700;
             text-transform: uppercase; letter-spacing: .5px;
         }
@@ -278,6 +506,174 @@
         [data-theme="light"] .va-row .va-name { color: #1a2332; }
         [data-theme="light"] .va-tabs { background: #f0f2f5; border-color: #e2e6ec; }
         [data-theme="light"] .va-tab.active { background: #dbeafe; color: #1e40af; }
+
+        /* ===== HISTORY (timeline) BUTTON & MODAL ===== */
+        .top-bar .tb-btn.history {
+            background: #1e3a5f22; color: #60a5fa; border: 1px solid #3b82f644;
+        }
+        .top-bar .tb-btn.history:hover { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
+        [data-theme="light"] .top-bar .tb-btn.history { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        [data-theme="light"] .top-bar .tb-btn.history:hover { background: #dbeafe; border-color: #2563eb; }
+
+        /* History modal (использует ту же темнотень что и va-modal) */
+        .hist-modal-bd {
+            position: fixed; inset: 0; background: rgba(2,6,23,.78);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9100; padding: 24px;
+        }
+        .hist-modal-bd.show { display: flex; }
+        .hist-modal {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            width: 100%; max-width: 880px; max-height: 92vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+        }
+        .hist-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-bottom: 1px solid #1e293b; flex-shrink: 0; gap: 12px;
+        }
+        .hist-head h3 { margin: 0; font-size: 15px; color: #e2e8f0; }
+        .hist-head .hist-sub { font-size: 11px; color: #64748b; margin-top: 3px; }
+        .hist-close {
+            background: transparent; border: 1px solid #334155; color: #94a3b8;
+            border-radius: 6px; width: 28px; height: 28px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px; line-height: 1;
+        }
+        .hist-close:hover { border-color: #ef4444; color: #ef4444; }
+
+        .hist-toolbar {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            padding: 10px 20px; background: #0b1220; border-bottom: 1px solid #1e293b;
+            font-size: 12px; flex-shrink: 0;
+        }
+        .hist-toolbar label { color: #64748b; font-weight: 600; text-transform: uppercase;
+            font-size: 10px; letter-spacing: .4px; margin-right: 4px; }
+        .hist-toolbar select, .hist-toolbar input[type=text] {
+            background: #0f172a; border: 1px solid #1e293b; color: #e2e8f0;
+            border-radius: 6px; padding: 5px 9px; font-size: 12px;
+        }
+        .hist-toolbar input[type=text] { min-width: 140px; }
+        .hist-toolbar select:focus, .hist-toolbar input:focus { outline: none; border-color: #3b82f6; }
+        .hist-toolbar .hist-reload {
+            margin-left: auto; padding: 5px 12px; background: #3b82f6; border: 1px solid #3b82f6;
+            color: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;
+        }
+        .hist-toolbar .hist-reload:hover { background: #2563eb; }
+        .hist-toolbar .hist-summary { color: #475569; font-size: 11px; }
+        .hist-toolbar .hist-summary b { color: #94a3b8; }
+
+        .hist-body {
+            padding: 18px 20px; overflow-y: auto; min-height: 200px; flex: 1;
+            background: #0a1120;
+        }
+
+        /* Timeline */
+        .hist-timeline { position: relative; padding-left: 28px; }
+        .hist-timeline::before {
+            content: ''; position: absolute; left: 10px; top: 4px; bottom: 4px;
+            width: 2px; background: linear-gradient(to bottom, #1e293b 0%, #1e293b 95%, transparent);
+        }
+        .hist-day {
+            font-size: 10px; font-weight: 700; color: #64748b;
+            text-transform: uppercase; letter-spacing: .5px;
+            margin: 14px 0 8px; padding-left: 4px;
+        }
+        .hist-day:first-child { margin-top: 0; }
+
+        .hist-item {
+            position: relative; background: #0f172a; border: 1px solid #1e293b;
+            border-radius: 10px; padding: 10px 14px 10px 14px; margin-bottom: 8px;
+            transition: all .15s; cursor: pointer;
+        }
+        .hist-item:hover { border-color: #3b82f6; background: #11203a; }
+        .hist-item::before {
+            content: ''; position: absolute; left: -22px; top: 14px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #475569; border: 2px solid #0a1120; box-shadow: 0 0 0 2px #475569;
+        }
+        .hist-item.t-tariff_change::before        { background: #f59e0b; box-shadow: 0 0 0 2px #f59e0b40; }
+        .hist-item.t-pack_activate::before        { background: #22c55e; box-shadow: 0 0 0 2px #22c55e40; }
+        .hist-item.t-pack_deactivate::before      { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b840; }
+        .hist-item.t-service_activate::before     { background: #3b82f6; box-shadow: 0 0 0 2px #3b82f640; }
+        .hist-item.t-service_deactivate::before   { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b840; }
+        .hist-item.t-payment::before              { background: #10b981; box-shadow: 0 0 0 2px #10b98140; }
+        .hist-item.t-promised_payment::before     { background: #14b8a6; box-shadow: 0 0 0 2px #14b8a640; }
+        .hist-item.t-charge_recurring::before     { background: #ef4444; box-shadow: 0 0 0 2px #ef444440; }
+        .hist-item.t-charge_one_time::before      { background: #f97316; box-shadow: 0 0 0 2px #f9731640; }
+        .hist-item.t-adjustment::before           { background: #06b6d4; box-shadow: 0 0 0 2px #06b6d440; }
+        .hist-item.t-lifecycle::before            { background: #a78bfa; box-shadow: 0 0 0 2px #a78bfa40; }
+        .hist-item.t-subscription_activate::before   { background: #22c55e; box-shadow: 0 0 0 2px #22c55e40; }
+        .hist-item.t-subscription_deactivate::before { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b840; }
+
+        .hist-item-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .hist-item-icon {
+            width: 22px; height: 22px; border-radius: 6px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0;
+        }
+        .hist-item-icon.t-tariff_change      { background: #f59e0b22; color: #f59e0b; }
+        .hist-item-icon.t-pack_activate      { background: #22c55e22; color: #22c55e; }
+        .hist-item-icon.t-pack_deactivate    { background: #64748b22; color: #94a3b8; }
+        .hist-item-icon.t-service_activate   { background: #3b82f622; color: #3b82f6; }
+        .hist-item-icon.t-service_deactivate { background: #64748b22; color: #94a3b8; }
+        .hist-item-icon.t-payment            { background: #10b98122; color: #10b981; }
+        .hist-item-icon.t-promised_payment   { background: #14b8a622; color: #14b8a6; }
+        .hist-item-icon.t-charge_recurring   { background: #ef444422; color: #ef4444; }
+        .hist-item-icon.t-charge_one_time    { background: #f9731622; color: #f97316; }
+        .hist-item-icon.t-adjustment         { background: #06b6d422; color: #06b6d4; }
+        .hist-item-icon.t-lifecycle          { background: #a78bfa22; color: #a78bfa; }
+        .hist-item-icon.t-subscription_activate   { background: #22c55e22; color: #22c55e; }
+        .hist-item-icon.t-subscription_deactivate { background: #64748b22; color: #94a3b8; }
+
+        .hist-item-title { font-size: 13px; font-weight: 600; color: #e2e8f0; flex-shrink: 0; }
+        .hist-item-subtitle { font-size: 12px; color: #94a3b8; flex: 1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hist-item-time { font-size: 11px; color: #64748b; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+        .hist-item-row2 {
+            display: flex; align-items: center; gap: 10px; padding-left: 30px;
+            font-size: 11px; color: #64748b;
+        }
+        .hist-item-row2 .h-status {
+            padding: 2px 8px; border-radius: 4px; background: #1e293b; color: #94a3b8;
+            font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .3px;
+        }
+        .hist-item-row2 .h-status.ok { background: #22c55e22; color: #22c55e; }
+        .hist-item-row2 .h-status.fail { background: #ef444422; color: #ef4444; }
+        .hist-item-row2 .h-status.pending { background: #f59e0b22; color: #f59e0b; }
+
+        .hist-empty {
+            text-align: center; padding: 48px 24px; color: #475569; font-size: 13px;
+        }
+        .hist-empty .h-emp-icon { font-size: 32px; opacity: .35; margin-bottom: 12px; }
+        .hist-loading {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 60px 24px; color: #60a5fa; font-size: 13px;
+        }
+        .hist-error {
+            background: #7f1d1d22; border: 1px solid #ef444444; color: #fca5a5;
+            padding: 12px 16px; border-radius: 8px; font-size: 12px;
+        }
+        .hist-warnings {
+            background: #f59e0b18; border: 1px solid #f59e0b40; color: #fbbf24;
+            padding: 8px 12px; border-radius: 6px; font-size: 11px; margin-bottom: 12px;
+        }
+
+        /* Light theme overrides */
+        [data-theme="light"] .hist-modal-bd { background: rgba(15,23,42,.55); }
+        [data-theme="light"] .hist-modal { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .hist-head { border-bottom-color: #e2e6ec; }
+        [data-theme="light"] .hist-head h3 { color: #1a2332; }
+        [data-theme="light"] .hist-toolbar { background: #f7f8fa; border-bottom-color: #e2e6ec; }
+        [data-theme="light"] .hist-toolbar select,
+        [data-theme="light"] .hist-toolbar input[type=text] { background: #fff; border-color: #e2e6ec; color: #1a2332; }
+        [data-theme="light"] .hist-body { background: #fafbfc; }
+        [data-theme="light"] .hist-item { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .hist-item:hover { background: #eff6ff; border-color: #3b82f6; }
+        [data-theme="light"] .hist-item-title { color: #1a2332; }
+        [data-theme="light"] .hist-item::before { border-color: #fafbfc; }
+        [data-theme="light"] .hist-timeline::before { background: #e2e6ec; }
 
         /* Individual section reload button (inside toggle headers / panel headers) */
         .section-reload { background: transparent; border: 1px solid #334155; color: #475569; border-radius: 5px;
@@ -358,14 +754,14 @@
         .icon-btn svg { width: 14px; height: 14px; display: block; }
         .icon-btn:hover { transform: translateY(-1px); }
         .icon-btn.doc-btn:hover   { background: #1e3a5f; border-color: #3b82f6; color: #bfdbfe; }
-        .icon-btn.order-btn:hover { background: #78350f; border-color: #f59e0b; color: #fde68a; }
+        .icon-btn.order-btn:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
         .icon-btn.doc-btn   { color: #60a5fa; border-color: #3b82f622; background: #1e3a5f15; }
-        .icon-btn.order-btn { color: #fbbf24; border-color: #f59e0b22; background: #78350f15; }
+        .icon-btn.order-btn { color: #c084fc; border-color: var(--brand-glow); background: var(--brand-soft); }
         [data-theme="light"] .icon-btn         { color: #64748b; }
         [data-theme="light"] .icon-btn.doc-btn         { color: #2563eb; background: #eff6ff; border-color: #bfdbfe; }
         [data-theme="light"] .icon-btn.doc-btn:hover   { background: #dbeafe; border-color: #2563eb; color: #1e40af; }
-        [data-theme="light"] .icon-btn.order-btn       { color: #b45309; background: #fffbeb; border-color: #fde68a; }
-        [data-theme="light"] .icon-btn.order-btn:hover { background: #fef3c7; border-color: #d97706; color: #92400e; }
+        [data-theme="light"] .icon-btn.order-btn       { color: var(--brand); background: #f5edfa; border-color: #d8c2e6; }
+        [data-theme="light"] .icon-btn.order-btn:hover { background: #ead7f3; border-color: var(--brand); color: var(--brand-hover); }
         /* Prevent ellipsis on status and action cells */
         .list-body td.col-status,
         .list-body td.col-action { overflow: visible; text-overflow: clip; white-space: nowrap; }
@@ -512,13 +908,18 @@
         .test-section-hdr.open .ts-arrow { transform:rotate(180deg); }
         .test-section-body { display:none; }
         .test-section-body.open { display:block; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #334155; border-top-color: #f59e0b; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #334155; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
         .spinner-sm { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        @media (max-width: 1100px) {
+            .summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
         @media (max-width: 900px) {
             .form-row { grid-template-columns: 1fr; }
-            .summary { grid-template-columns: repeat(2, 1fr); }
         }
 
         /* ========== THEME TOGGLE ========== */
@@ -534,10 +935,10 @@
         /* ========== LIGHT THEME ========== */
         [data-theme="light"] body { background: #f5f7fa; color: #1a2332; }
         [data-theme="light"] .top-bar { background: #fff; border-bottom-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-        [data-theme="light"] .top-bar h1 { color: #d97706; }
+        [data-theme="light"] .top-bar h1 { color: var(--brand); }
         [data-theme="light"] .nav-link { color: #5a6577; }
         [data-theme="light"] .nav-link:hover { background: #f0f2f5; color: #1a2332; }
-        [data-theme="light"] .nav-link.active { background: #f59e0b; color: #fff; }
+        [data-theme="light"] .nav-link.active { background: var(--brand); color: #fff; }
         [data-theme="light"] .theme-toggle { background: #f0f2f5; border-color: #e2e6ec; color: #5a6577; }
         [data-theme="light"] .theme-toggle:hover { background: #e2e6ec; border-color: #c8cdd6; }
 
@@ -547,7 +948,7 @@
         [data-theme="light"] .form-group input,
         [data-theme="light"] .form-group select { background: #f8f9fb; border-color: #e2e6ec; color: #1a2332; }
         [data-theme="light"] .form-group input:focus,
-        [data-theme="light"] .form-group select:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.12); }
+        [data-theme="light"] .form-group select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(107,31,138,.18); }
         [data-theme="light"] .form-group .hint { color: #9ca5b4; }
         [data-theme="light"] .section-title { color: #8893a4; border-color: #e2e6ec; }
 
@@ -564,10 +965,10 @@
         [data-theme="light"] th { background: #f8f9fb; color: #8893a4; border-bottom-color: #e2e6ec; }
         [data-theme="light"] td { border-bottom-color: #f0f2f5; color: #1a2332; }
         [data-theme="light"] tr:hover { background: #f8f9fb; }
-        [data-theme="light"] tr.selected { background: #fff7ed; border-left-color: #f59e0b; }
+        [data-theme="light"] tr.selected { background: #f5edfa; border-left-color: var(--brand); }
 
         [data-theme="light"] .selected-tariff { background: #fff7ed; border-color: #fed7aa; }
-        [data-theme="light"] .selected-tariff .st-name { color: #d97706; }
+        [data-theme="light"] .selected-tariff .st-name { color: var(--brand); }
         [data-theme="light"] .selected-tariff .st-id { color: #8893a4; }
 
         [data-theme="light"] .sc { background: #fff; border-color: #e2e6ec; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
@@ -578,7 +979,7 @@
 
         [data-theme="light"] .progress-bar-wrap { background: #e2e6ec; }
         [data-theme="light"] .progress-step { color: #8893a4; }
-        [data-theme="light"] .spinner { border-color: #e2e6ec; border-top-color: #f59e0b; }
+        [data-theme="light"] .spinner { border-color: #e2e6ec; border-top-color: var(--brand); }
 
         [data-theme="light"] .raw-toggle { border-bottom-color: #e2e6ec; }
         [data-theme="light"] .raw-toggle h3 { color: #8893a4; }
@@ -657,50 +1058,83 @@
 </head>
 <body>
     <div class="top-bar">
-        <h1>UCELL SBMS - Тест смены тарифа</h1>
-        <div class="nav">
+        <div class="brand">
+            <img src="/static/logoUcell.png" alt="Ucell" />
+            <h1>SBMS</h1>
+        </div>
+
+        <span class="tb-divider"></span>
+
+        <nav class="nav">
             <a href="/" class="nav-link">Dashboard</a>
-            <a href="/tester" class="nav-link">QA Tester</a>
+            <a href="/tester" class="nav-link">QA</a>
             <a href="/tariff-test" class="nav-link active">Тест тарифа</a>
             <a href="/tme" class="nav-link">TME</a>
-            <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
-                <span class="icon" id="themeIcon">&#9790;</span>
-                <span id="themeLabel">Тёмная</span>
+        </nav>
+
+        <span class="tb-divider"></span>
+
+        <form class="tb-form" autocomplete="off" onsubmit="event.preventDefault();return false;">
+            <div class="tb-group" role="group" aria-label="Авторизация">
+                <input type="text"     id="fLogin"    class="tb-login"   placeholder="Логин"    autocomplete="username">
+                <input type="password" id="fPassword" class="tb-pass"    placeholder="Пароль"   autocomplete="current-password">
+                <button class="tb-btn primary" id="btnAuth"   type="button" onclick="doAuth()">Войти</button>
+                <button class="tb-btn ghost"   id="btnLogout" type="button" onclick="doLogout()" style="display:none;">Выйти</button>
+                <span id="authBadge" style="display:inline-flex;align-items:center;"></span>
             </div>
+
+            <span class="tb-divider"></span>
+
+            <div class="tb-group" role="group" aria-label="Абонент">
+                <input type="text" id="fMsisdn" class="tb-msisdn" placeholder="998XXXXXXXXX" inputmode="tel">
+                <button class="tb-btn run" id="btnLoad" type="button" onclick="loadCustomer()">Загрузить</button>
+                <button class="tb-btn history" id="btnHistory" type="button" onclick="openHistoryModal()" title="Последние изменения по номеру: смена тарифа, пакеты, услуги, платежи">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;display:inline-block;vertical-align:-2px;margin-right:5px;"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+                    Последние изменения
+                </button>
+            </div>
+        </form>
+
+        <div class="tb-spacer"></div>
+
+        <div class="tb-group" role="group" aria-label="Инструменты">
+            <button class="tool-btn" id="densityToggle" type="button" onclick="toggleDensity()" title="Плотность интерфейса" aria-label="Плотность">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M2 4h12M2 8h12M2 12h12"/>
+                </svg>
+            </button>
+            <button class="tool-btn" id="rightToggleBtn" type="button" onclick="toggleRightZone()" title="Свернуть правую панель" aria-label="Правая панель">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="12" height="10" rx="1.5"/>
+                    <path d="M10 3v10"/>
+                </svg>
+            </button>
+            <button class="tool-btn" id="themeToggle" type="button" onclick="toggleTheme()" title="Переключить тему" aria-label="Тема">
+                <svg id="themeIcon" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/>
+                </svg>
+            </button>
         </div>
+
+        <span id="densityLabel" hidden>compact</span>
+        <span id="rightToggleLabel" hidden></span>
+        <span id="themeLabel" hidden></span>
+        <div id="authStatus"></div>
+        <div id="loadRow"></div>
     </div>
 
     <div class="container">
-        <!-- STEP 1: Load Customer -->
-        <div class="panel">
-            <h2>Авторизация и загрузка клиента</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Login</label>
-                    <input type="text" id="fLogin" value="" placeholder="Введите логин SBMS" autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="fPassword" value="" placeholder="Введите пароль" autocomplete="current-password">
-                </div>
-                <div class="form-group" style="display:flex;align-items:flex-end;gap:6px;">
-                    <button class="btn btn-primary" id="btnAuth" onclick="doAuth()" style="flex:1;">Войти</button>
-                    <button class="btn" id="btnLogout" onclick="doLogout()" style="display:none;background:#ef4444;color:#fff;">Выйти</button>
-                </div>
-                <div class="form-group" style="display:flex;align-items:flex-end;">
-                    <span id="authBadge"></span>
-                </div>
+
+        <!-- ============== ZONE LEFT ============== -->
+        <div id="zone-left">
+
+        <!-- Customer Info -->
+        <div class="panel hidden" id="customerPanel">
+            <div class="panel-header">
+                <h2>Текущая информация</h2>
+                <button class="section-reload" onclick="reloadSection('customer',this)" title="Обновить информацию о клиенте">↻</button>
             </div>
-            <div id="authStatus" style="display:none;margin-bottom:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;"></div>
-            <div class="form-row two" id="loadRow" style="display:none;">
-                <div class="form-group">
-                    <label>MSISDN</label>
-                    <input type="text" id="fMsisdn" value="" placeholder="998XXXXXXXXX">
-                </div>
-                <div class="form-group" style="display:flex;align-items:flex-end;">
-                    <button class="btn btn-run" id="btnLoad" onclick="loadCustomer()" style="width:100%;">Загрузить клиента</button>
-                </div>
-            </div>
+            <div class="info-grid" id="infoGrid"></div>
         </div>
 
         <!-- Customer Info -->
@@ -712,68 +1146,68 @@
             <div class="info-grid" id="infoGrid"></div>
         </div>
 
-        <!-- Tariff Limits Detail -->
-        <div class="panel hidden" id="tariffLimitsPanel">
+        </div><!-- /#zone-left -->
+
+        <!-- Splitter: left | center -->
+        <div class="col-resizer" id="col-resizer-left" role="separator" aria-orientation="vertical" tabindex="0" title="Перетащите, чтобы изменить ширину левой панели"></div>
+
+        <!-- ============== ZONE CENTER ============== -->
+        <div id="zone-center">
+
+        <!-- Общие лимиты (тариф + пакеты + услуги) с фильтрами -->
+        <div class="panel hidden" id="limitsOverviewPanel">
             <div class="panel-header">
-                <h2>Лимиты текущего тарифа</h2>
-                <button class="section-reload" onclick="reloadSection('limits',this)" title="Обновить лимиты тарифа">↻</button>
+                <h2>Общие лимиты</h2>
+                <button class="section-reload" onclick="loadLimitsOverview(this)" title="Обновить лимиты">↻</button>
+                <span style="font-size:11px;color:#475569;margin-left:6px;">Скидки по источникам: тариф, пакеты, услуги</span>
             </div>
 
             <div class="tl-filters">
                 <div class="tlf-group">
+                    <label>Источник</label>
+                    <select id="lovfSource" onchange="applyLovFilters()">
+                        <option value="all">Все</option>
+                        <option value="tariff">Тариф</option>
+                        <option value="pack">Пакеты</option>
+                        <option value="service">Услуги</option>
+                    </select>
+                </div>
+                <div class="tlf-group">
                     <label>Статус</label>
-                    <select id="tlfStatus" onchange="applyTariffLimitsFilters()">
+                    <select id="lovfStatus" onchange="applyLovFilters()">
                         <option value="all">Все</option>
                         <option value="active">Только действующие</option>
                         <option value="expired">Только истёкшие</option>
                     </select>
                 </div>
                 <div class="tlf-group">
+                    <label>Тип</label>
+                    <select id="lovfUnit" onchange="applyLovFilters()">
+                        <option value="all">Все</option>
+                        <option value="1">Минуты</option>
+                        <option value="7">SMS</option>
+                        <option value="14">Интернет</option>
+                        <option value="0">Деньги</option>
+                    </select>
+                </div>
+                <div class="tlf-group">
                     <label>Действует с</label>
-                    <input type="date" id="tlfDateFrom" onchange="applyTariffLimitsFilters()">
+                    <input type="date" id="lovfDateFrom" onchange="applyLovFilters()">
                 </div>
                 <div class="tlf-group">
                     <label>Действует по</label>
-                    <input type="date" id="tlfDateTo" onchange="applyTariffLimitsFilters()">
+                    <input type="date" id="lovfDateTo" onchange="applyLovFilters()">
                 </div>
                 <div class="tlf-group">
                     <label>Поиск</label>
-                    <input type="text" id="tlfSearch" placeholder="название / ID" oninput="applyTariffLimitsFilters()">
+                    <input type="text" id="lovfSearch" placeholder="название / ID / источник" oninput="applyLovFilters()">
                 </div>
-                <button type="button" class="tlf-reset" onclick="resetTariffLimitsFilters()">Сбросить</button>
-                <span class="tl-summary" id="tlfSummary">—</span>
+                <button type="button" class="tlf-reset" onclick="resetLovFilters()">Сбросить</button>
+                <span class="tl-summary" id="lovfSummary">—</span>
             </div>
 
-            <div class="tariff-limits-table">
-                <div class="tl-scroll">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Тип</th>
-                                <th>Название скидки</th>
-                                <th style="text-align:right;">Выдано</th>
-                                <th style="text-align:right;">Использовано</th>
-                                <th style="text-align:right;">Остаток</th>
-                                <th>Действует с</th>
-                                <th>Действует до</th>
-                                <th>Статус</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tariffLimitsBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Общие лимиты -->
-        <div class="panel hidden" id="limitsOverviewPanel">
-            <div class="panel-header">
-                <h2>Общие лимиты</h2>
-                <button class="section-reload" onclick="loadLimitsOverview(this)" title="Обновить лимиты">↻</button>
-                <span style="font-size:12px;color:#475569;margin-left:4px;">Скидки по источникам: тариф, пакеты, услуги</span>
-            </div>
             <div id="limitsOverviewContent">
-                <div class="lov-loading">Нажмите «Обновить» для загрузки</div>
+                <div class="lov-loading">Нажмите ↻ для загрузки</div>
             </div>
         </div>
 
@@ -892,6 +1326,14 @@
             </div>
         </div>
 
+        </div><!-- /#zone-center -->
+
+        <!-- Splitter: center | right -->
+        <div class="col-resizer" id="col-resizer-right" role="separator" aria-orientation="vertical" tabindex="0" title="Перетащите, чтобы изменить ширину правой панели"></div>
+
+        <!-- ============== ZONE RIGHT ============== -->
+        <div id="zone-right">
+
         <!-- TARIFF TEST SECTION (collapsible) -->
         <div class="panel hidden" id="tariffsPanel">
             <div class="test-section-hdr" id="tariffSectionHdr" onclick="toggleTestSection('tariff')">
@@ -950,7 +1392,7 @@
 
         <!-- STEP 3: Expected Values (Tariff) -->
         <div class="panel hidden" id="expectedPanel">
-            <h2>Шаг 3. Ожидаемые значения — <span style="color:#f59e0b;">Тариф</span></h2>
+            <h2>Шаг 3. Ожидаемые значения — <span style="color:var(--brand);">Тариф</span></h2>
 
             <div class="selected-tariff" id="selectedDisplay">
                 <div>
@@ -1096,11 +1538,16 @@
             </div>
         </div>
 
+        </div><!-- /#zone-right -->
+
+        <!-- ============== ZONE RESULTS — полная ширина под результаты теста ============== -->
+        <div id="zone-results">
+
         <!-- Progress -->
         <div class="panel progress-panel" id="progressPanel">
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span id="progressLabel" style="font-size:14px;color:#e2e8f0;">Выполняется...</span>
-                <span id="progressPercent" style="font-size:14px;color:#f59e0b;font-weight:700;">0%</span>
+                <span id="progressPercent" style="font-size:14px;color:var(--brand);font-weight:700;">0%</span>
             </div>
             <div class="progress-bar-wrap">
                 <div class="progress-bar" id="progressBar" style="width:0%">0%</div>
@@ -1110,64 +1557,119 @@
 
         <!-- Summary -->
         <div class="summary hidden" id="summaryPanel">
-            <div class="sc"><div class="n" style="color:#38bdf8;" id="sTotal">0</div><div class="l">Всего</div></div>
-            <div class="sc"><div class="n" style="color:#22c55e;" id="sPass">0</div><div class="l">Пройдено</div></div>
-            <div class="sc"><div class="n" style="color:#ef4444;" id="sFail">0</div><div class="l">Не пройдено</div></div>
-            <div class="sc"><div class="n" style="color:#eab308;" id="sWarn">0</div><div class="l">Пропущено</div></div>
-            <div class="sc"><div class="n" style="color:#a78bfa;" id="sTime">0s</div><div class="l">Время</div></div>
+            <div class="sc" style="color:#38bdf8;"><div class="n" id="sTotal">0</div><div class="l">Всего</div></div>
+            <div class="sc" style="color:#22c55e;"><div class="n" id="sPass">0</div><div class="l">Пройдено</div></div>
+            <div class="sc" style="color:#ef4444;"><div class="n" id="sFail">0</div><div class="l">Не пройдено</div></div>
+            <div class="sc" style="color:#eab308;"><div class="n" id="sWarn">0</div><div class="l">Пропущено</div></div>
+            <div class="sc" style="color:#a78bfa;"><div class="n" id="sTime">0s</div><div class="l">Время</div></div>
         </div>
 
         <!-- Customer Info After -->
         <div class="panel hidden" id="customerAfterPanel">
             <h2>Информация после смены</h2>
-            <div class="info-grid" id="infoGridAfter"></div>
+            <div class="info-grid info-grid-after" id="infoGridAfter"></div>
         </div>
 
         <!-- Results Table -->
         <div class="panel hidden" id="resultsPanel">
-            <h2 style="display:flex;justify-content:space-between;align-items:center;">
-                <span>Результаты проверок</span>
-                <div style="display:flex;gap:8px;">
+            <div class="zone-results-header">
+                <h2>Результаты проверок</h2>
+                <div class="zr-actions">
                     <button class="btn btn-secondary btn-sm" onclick="downloadJSON()">JSON</button>
                     <button class="btn btn-secondary btn-sm" onclick="downloadHTML()">HTML-отчёт</button>
                 </div>
-            </h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:50px;">#</th>
-                        <th style="width:80px;">Статус</th>
-                        <th>Проверка</th>
-                        <th style="width:90px;">Категория</th>
-                        <th>Ожидаемое</th>
-                        <th>Фактическое</th>
-                        <th>Комментарий</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody"></tbody>
-            </table>
+            </div>
+            <div class="results-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-step">#</th>
+                            <th class="col-status">Статус</th>
+                            <th>Проверка</th>
+                            <th class="col-cat">Категория</th>
+                            <th>Ожидаемое</th>
+                            <th>Фактическое</th>
+                            <th>Комментарий</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Raw Responses -->
-        <div class="panel hidden" id="rawPanel">
+        <div class="panel hidden" id="rawPanel" style="padding:0;">
             <div class="raw-toggle" onclick="toggleRaw()">
                 <h3>Сырые ответы API</h3>
                 <span class="arrow" id="rawArrow">&#9660;</span>
             </div>
             <div class="raw-content" id="rawContent"></div>
         </div>
+
+        </div><!-- /#zone-results -->
     </div>
 
     <script src="/static/sbms-auth.js"></script>
     <script>
+        // @ts-check
+        // -----------------------------------------------------------------
+        // JSDoc-типы — VS Code/tsc проверяют их без build-step.
+        // Стратегия: строгая типизация публичной поверхности (данные API,
+        // состояние, основные функции). DOM-объекты приводятся через
+        // /** @type {...} */(document.getElementById(...)) точечно.
+        // -----------------------------------------------------------------
+        /** @typedef {Object} RatePlan
+         *  @property {number|string} ratePlanId
+         *  @property {string} name
+         *  @property {boolean=} isArchived
+         *  @property {boolean=} recurringFlag
+         */
+        /** @typedef {Object} PackItem
+         *  @property {number|string=} packId
+         *  @property {number|string=} packInstanceId
+         *  @property {number|string=} subscriberPackId
+         *  @property {string=} name
+         *  @property {string=} status
+         *  @property {number=} fee
+         */
+        /** @typedef {Object} ServiceItem
+         *  @property {number|string=} serviceId
+         *  @property {number|string=} serviceInstanceId
+         *  @property {string=} name
+         *  @property {string=} status
+         *  @property {number=} fee
+         */
+        /** @typedef {Object} CustomerInfo
+         *  @property {string=} name
+         *  @property {string|number=} customerId
+         *  @property {string|number=} subscriberId
+         *  @property {string=} ratePlanName
+         *  @property {string|number=} ratePlanId
+         *  @property {number=} balance
+         *  @property {string=} status
+         *  @property {string=} lifecycleState
+         *  @property {Object=} lifecycleDetails
+         */
+        /** @typedef {Object} CustomerData
+         *  @property {CustomerInfo} customer
+         *  @property {RatePlan[]=} availableRatePlans
+         *  @property {PackItem[]=} activePacks
+         *  @property {PackItem[]=} availablePacks
+         *  @property {ServiceItem[]=} activeServices
+         *  @property {ServiceItem[]=} availableServices
+         */
+        /** @typedef {{id:string,label:string,login:string,password:string,preset:boolean}} ViewAsRole */
+
         // ==================== THEME ====================
+        const THEME_ICON_MOON = '<path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/>';
+        const THEME_ICON_SUN  = '<circle cx="8" cy="8" r="3"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none" d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4"/>';
         function getTheme() { return localStorage.getItem('sbms-theme') || 'dark'; }
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             const icon = document.getElementById('themeIcon');
-            const label = document.getElementById('themeLabel');
-            if (theme === 'dark') { icon.innerHTML = '&#9790;'; label.textContent = 'Тёмная'; }
-            else { icon.innerHTML = '&#9788;'; label.textContent = 'Светлая'; }
+            const btn  = document.getElementById('themeToggle');
+            if (icon) icon.innerHTML = (theme === 'dark') ? THEME_ICON_MOON : THEME_ICON_SUN;
+            if (btn)  btn.title = (theme === 'dark') ? 'Тёмная тема — переключить на светлую' : 'Светлая тема — переключить на тёмную';
         }
         function toggleTheme() {
             const next = getTheme() === 'dark' ? 'light' : 'dark';
@@ -1176,11 +1678,129 @@
         }
         applyTheme(getTheme());
 
-        let customerData = null;
-        let selectedTariff = null;
-        let selectedPack = null;
-        let lastReport = null;
-        let currentSubscriberId = null;
+        // ==================== DENSITY ====================
+        /** @returns {'compact'|'cozy'} */
+        function getDensity() {
+            const v = localStorage.getItem('sbms-density');
+            return v === 'cozy' ? 'cozy' : 'compact';
+        }
+        /** @param {'compact'|'cozy'} d */
+        function applyDensity(d) {
+            document.body.setAttribute('data-density', d);
+            const btn = document.getElementById('densityToggle');
+            if (btn) {
+                btn.setAttribute('aria-pressed', d === 'compact' ? 'true' : 'false');
+                btn.title = d === 'compact' ? 'Плотность: compact (клик — cozy)' : 'Плотность: cozy (клик — compact)';
+            }
+        }
+        function toggleDensity() {
+            const next = getDensity() === 'compact' ? 'cozy' : 'compact';
+            localStorage.setItem('sbms-density', next);
+            applyDensity(next);
+        }
+        applyDensity(getDensity());
+
+        // ==================== RIGHT ZONE COLLAPSE ====================
+        /** @returns {boolean} */
+        function isRightCollapsed() { return localStorage.getItem('sbms-right-collapsed') === '1'; }
+        /** @param {boolean} v */
+        function applyRightCollapsed(v) {
+            document.body.classList.toggle('right-collapsed', v);
+            const btn = document.getElementById('rightToggleBtn');
+            if (btn) {
+                btn.setAttribute('aria-pressed', v ? 'true' : 'false');
+                btn.title = v ? 'Правая панель скрыта (клик — показать)' : 'Скрыть правую панель';
+            }
+        }
+        function toggleRightZone() {
+            const next = !isRightCollapsed();
+            localStorage.setItem('sbms-right-collapsed', next ? '1' : '0');
+            applyRightCollapsed(next);
+        }
+        applyRightCollapsed(isRightCollapsed());
+
+        // ==================== COLUMN RESIZERS ====================
+        // Перетаскивание ползунков между зонами меняет --left-w / --right-w
+        // и сохраняет результат в localStorage. Поддерживает мышь и тач.
+        (function initColResizers() {
+            const root = document.documentElement;
+            const LS_LEFT = 'sbms-left-w', LS_RIGHT = 'sbms-right-w';
+            const MIN_LEFT = 200, MAX_LEFT = 600;
+            const MIN_RIGHT = 240, MAX_RIGHT = 700;
+            const MIN_CENTER = 360;
+            // Восстановление сохранённых ширин
+            const savedL = parseInt(localStorage.getItem(LS_LEFT), 10);
+            const savedR = parseInt(localStorage.getItem(LS_RIGHT), 10);
+            if (Number.isFinite(savedL)) root.style.setProperty('--left-w', clamp(savedL, MIN_LEFT, MAX_LEFT) + 'px');
+            if (Number.isFinite(savedR)) root.style.setProperty('--right-w', clamp(savedR, MIN_RIGHT, MAX_RIGHT) + 'px');
+
+            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+            function bind(elId, side) {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                let dragging = false;
+                const onDown = (e) => {
+                    dragging = true;
+                    el.classList.add('dragging');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                };
+                const onMove = (e) => {
+                    if (!dragging) return;
+                    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+                    const container = document.querySelector('.container');
+                    const rect = container.getBoundingClientRect();
+                    if (side === 'left') {
+                        const w = clamp(x - rect.left, MIN_LEFT, Math.min(MAX_LEFT, rect.width - MIN_CENTER - getRightPx()));
+                        root.style.setProperty('--left-w', w + 'px');
+                        localStorage.setItem(LS_LEFT, String(Math.round(w)));
+                    } else {
+                        const w = clamp(rect.right - x, MIN_RIGHT, Math.min(MAX_RIGHT, rect.width - MIN_CENTER - getLeftPx()));
+                        root.style.setProperty('--right-w', w + 'px');
+                        localStorage.setItem(LS_RIGHT, String(Math.round(w)));
+                    }
+                };
+                const onUp = () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    el.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                };
+                el.addEventListener('mousedown', onDown);
+                el.addEventListener('touchstart', onDown, { passive: false });
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('touchmove', onMove, { passive: false });
+                window.addEventListener('mouseup', onUp);
+                window.addEventListener('touchend', onUp);
+                // Двойной клик — сброс к дефолту
+                el.addEventListener('dblclick', () => {
+                    if (side === 'left') {
+                        root.style.removeProperty('--left-w');
+                        localStorage.removeItem(LS_LEFT);
+                    } else {
+                        root.style.removeProperty('--right-w');
+                        localStorage.removeItem(LS_RIGHT);
+                    }
+                });
+            }
+            function getLeftPx() {
+                return parseInt(getComputedStyle(root).getPropertyValue('--left-w'), 10) || 300;
+            }
+            function getRightPx() {
+                return parseInt(getComputedStyle(root).getPropertyValue('--right-w'), 10) || 340;
+            }
+            bind('col-resizer-left', 'left');
+            bind('col-resizer-right', 'right');
+        })();
+
+        /** @type {CustomerData|null} */ let customerData = null;
+        /** @type {{ratePlanId:number|string,name:string}|null} */ let selectedTariff = null;
+        /** @type {{packId:number|string,name:string}|null} */ let selectedPack = null;
+        /** @type {Object|null} */ let lastReport = null;
+        /** @type {string|number|null} */ let currentSubscriberId = null;
 
         // ==================== AUTH (SbmsAuth) ====================
         SbmsAuth.mountBadge('#authBadge');
@@ -1188,21 +1808,14 @@
         Object.defineProperty(window, 'authToken', { get: () => SbmsAuth.token });
 
         function _applyAuthUI(on) {
-            const authRow = document.getElementById('fLogin').closest('.form-row');
-            const status = document.getElementById('authStatus');
+            // В новом топ-баре поля и кнопки всегда видны; меняем только видимость кнопок
+            // и блокируем msisdn/btnLoad до момента логина.
             document.getElementById('btnLogout').style.display = on ? '' : 'none';
             document.getElementById('btnAuth').style.display = on ? 'none' : '';
-            if (on) {
-                document.getElementById('loadRow').style.display = '';
-                status.style.display = '';
-                status.style.background = '#22c55e18';
-                status.style.color = '#22c55e';
-                status.style.border = '1px solid #22c55e44';
-                status.textContent = 'Авторизован как ' + (SbmsAuth.login || '—');
-            } else {
-                document.getElementById('loadRow').style.display = 'none';
-                status.style.display = 'none';
-            }
+            const msisdnEl = /** @type {HTMLInputElement} */(document.getElementById('fMsisdn'));
+            const loadBtn  = /** @type {HTMLButtonElement} */(document.getElementById('btnLoad'));
+            if (msisdnEl) msisdnEl.disabled = !on;
+            if (loadBtn)  loadBtn.disabled  = !on;
         }
         SbmsAuth.on((ev) => {
             if (ev === 'login') _applyAuthUI(true);
@@ -1291,13 +1904,11 @@
                 window._lastCustomerData = customerData;
 
                 renderCustomerInfo(customerData.customer);
-                renderTariffLimits(customerData.customer);
                 renderTariffTable(customerData.availableRatePlans || []);
                 renderPackTestTable(customerData.availablePacks || []);
                 renderLists(customerData);
 
                 document.getElementById('customerPanel').classList.remove('hidden');
-                document.getElementById('tariffLimitsPanel').classList.remove('hidden');
                 document.getElementById('limitsOverviewPanel').classList.remove('hidden');
                 document.getElementById('listsPanel').classList.remove('hidden');
                 document.getElementById('tariffsPanel').classList.remove('hidden');
@@ -1427,27 +2038,19 @@
                 </div>`;
         }
 
-        // ==================== TARIFF LIMITS DETAIL ====================
+        // ==================== TARIFF LIMITS DETAIL (legacy — заменён на «Общие лимиты») ====================
+        // Блок «Лимиты текущего тарифа» удалён из UI; данные теперь показывает
+        // limitsOverviewPanel со своими фильтрами (lovf*). Функции ниже превращены
+        // в no-op, чтобы существующие вызовы (если ещё остались) не падали.
         let _tariffLimitsCache = [];
 
-        function renderTariffLimits(c) {
-            const details = c.tariffDetails || [];
-            const panel = document.getElementById('tariffLimitsPanel');
-            if (!details.length) { panel.classList.add('hidden'); _tariffLimitsCache = []; return; }
-            _tariffLimitsCache = details;
-            panel.classList.remove('hidden');
-            applyTariffLimitsFilters();
-        }
-
-        function resetTariffLimitsFilters() {
-            document.getElementById('tlfStatus').value = 'all';
-            document.getElementById('tlfDateFrom').value = '';
-            document.getElementById('tlfDateTo').value = '';
-            document.getElementById('tlfSearch').value = '';
-            applyTariffLimitsFilters();
-        }
+        function renderTariffLimits(_c) { /* moved to renderLimitsOverview */ }
+        function resetTariffLimitsFilters() { /* moved to resetLovFilters */ }
 
         function applyTariffLimitsFilters() {
+            const _legacy = document.getElementById('tariffLimitsBody');
+            if (!_legacy) return;
+            // legacy-путь сохранён только если кто-то вернёт старую панель в DOM
             const unitInfo = {
                 1:  { label: 'Минуты', cls: 'unit-min', fmt: v => v },
                 7:  { label: 'SMS', cls: 'unit-sms', fmt: v => v },
@@ -1709,35 +2312,84 @@
             hdr.nextElementSibling.classList.toggle('open');
         }
 
+        // ==================== Кеш строк для фильтрации ====================
+        /** @type {Array<{g:any,sm:any,d:any,ui:any,_search:string,_endTs:number|null,_startTs:number|null}>} */
+        let _lovRows = [];
+
+        const _LOV_SRC_META = {
+            tariff:  { label: 'Тариф',  cls: 'lov-badge-tariff' },
+            pack:    { label: 'Пакет',  cls: 'lov-badge-pack' },
+            service: { label: 'Услуга', cls: 'lov-badge-service' },
+            unknown: { label: 'Прочее', cls: 'lov-badge-unknown' },
+        };
+        const _LOV_UNITS = {
+            1:  { label: 'Минуты',   cls: 'unit-min',   fmt: /** @param {number} v */ v => Math.round(v).toLocaleString('ru-RU') },
+            7:  { label: 'SMS',      cls: 'unit-sms',   fmt: /** @param {number} v */ v => Math.round(v).toLocaleString('ru-RU') },
+            14: { label: 'Интернет', cls: 'unit-mb',    fmt: /** @param {number} v */ v => fmtMb(v) },
+            0:  { label: 'Деньги',   cls: 'unit-money', fmt: /** @param {number} v */ v => Math.round(v).toLocaleString('ru-RU') + ' сум' },
+        };
+
         function renderLimitsOverview(groups) {
             const container = document.getElementById('limitsOverviewContent');
+            _lovRows = [];
             if (!groups || !groups.length) {
                 container.innerHTML = '<div class="lov-empty">Нет данных о скидках</div>';
+                _updateLovSummary(0, 0, 0);
                 return;
             }
-
-            const SRC_META = {
-                tariff:  { label: 'Тариф',  cls: 'lov-badge-tariff' },
-                pack:    { label: 'Пакет',  cls: 'lov-badge-pack' },
-                service: { label: 'Услуга', cls: 'lov-badge-service' },
-                unknown: { label: 'Прочее', cls: 'lov-badge-unknown' },
-            };
-
-            const unitInfo = {
-                1:  { label: 'Минуты',   cls: 'unit-min',   fmt: v => Math.round(v).toLocaleString('ru-RU') },
-                7:  { label: 'SMS',      cls: 'unit-sms',   fmt: v => Math.round(v).toLocaleString('ru-RU') },
-                14: { label: 'Интернет', cls: 'unit-mb',    fmt: v => fmtMb(v) },
-                0:  { label: 'Деньги',   cls: 'unit-money', fmt: v => Math.round(v).toLocaleString('ru-RU') + ' сум' },
-            };
-
-            // Плоский список всех скидок
-            const rows = [];
             groups.forEach(g => {
-                const sm = SRC_META[g.sourceType] || SRC_META.unknown;
-                (g.discounts || []).forEach(d => rows.push({ g, sm, d }));
+                const sm = _LOV_SRC_META[g.sourceType] || _LOV_SRC_META.unknown;
+                (g.discounts || []).forEach(d => {
+                    const ui = _LOV_UNITS[d.measureUnitId] || { label: 'unit_' + d.measureUnitId, cls: '', fmt: v => v };
+                    const name = d.discountName || (d.discountPlanId ? 'Plan ' + d.discountPlanId : '—');
+                    _lovRows.push({
+                        g, sm, d, ui,
+                        _search: ((name||'') + ' ' + (d.discountPlanId||'') + ' ' + (g.sourceName||'') + ' ' + (sm.label||'')).toLowerCase(),
+                        _endTs:   d.endDate   ? new Date(d.endDate).getTime()   : null,
+                        _startTs: d.startDate ? new Date(d.startDate).getTime() : null,
+                    });
+                });
+            });
+            applyLovFilters();
+        }
+
+        function applyLovFilters() {
+            const container = document.getElementById('limitsOverviewContent');
+            if (!_lovRows.length) {
+                container.innerHTML = '<div class="lov-empty">Нет данных о скидках</div>';
+                _updateLovSummary(0, 0, 0);
+                return;
+            }
+            const fSrcEl    = /** @type {HTMLSelectElement|null} */(document.getElementById('lovfSource'));
+            const fStatusEl = /** @type {HTMLSelectElement|null} */(document.getElementById('lovfStatus'));
+            const fUnitEl   = /** @type {HTMLSelectElement|null} */(document.getElementById('lovfUnit'));
+            const fFromEl   = /** @type {HTMLInputElement|null}  */(document.getElementById('lovfDateFrom'));
+            const fToEl     = /** @type {HTMLInputElement|null}  */(document.getElementById('lovfDateTo'));
+            const fSrchEl   = /** @type {HTMLInputElement|null}  */(document.getElementById('lovfSearch'));
+            const fSrc    = fSrcEl    ? fSrcEl.value    : 'all';
+            const fStatus = fStatusEl ? fStatusEl.value : 'all';
+            const fUnit   = fUnitEl   ? fUnitEl.value   : 'all';
+            const fFrom   = fFromEl   ? fFromEl.value   : '';
+            const fTo     = fToEl     ? fToEl.value     : '';
+            const fSrch   = fSrchEl   ? fSrchEl.value.trim().toLowerCase() : '';
+
+            const fromTs = fFrom ? new Date(fFrom + 'T00:00:00').getTime() : null;
+            const toTs   = fTo   ? new Date(fTo   + 'T23:59:59').getTime() : null;
+            const now    = Date.now();
+
+            const visible = _lovRows.filter(r => {
+                if (fSrc !== 'all' && r.g.sourceType !== fSrc) return false;
+                if (fUnit !== 'all' && String(r.d.measureUnitId) !== fUnit) return false;
+                const isActive = (r._endTs == null) || (r._endTs >= now);
+                if (fStatus === 'active' && !isActive) return false;
+                if (fStatus === 'expired' && isActive) return false;
+                if (fromTs != null && r._endTs   != null && r._endTs   < fromTs) return false;
+                if (toTs   != null && r._startTs != null && r._startTs > toTs)   return false;
+                if (fSrch && r._search.indexOf(fSrch) === -1) return false;
+                return true;
             });
 
-            let html = '<div class="tariff-limits-table"><table>'
+            let html = '<div class="tariff-limits-table"><div class="tl-scroll"><table>'
                 + '<thead><tr>'
                 + '<th>Тип</th>'
                 + '<th>Источник</th>'
@@ -1745,32 +2397,60 @@
                 + '<th style="text-align:right;">Выдано</th>'
                 + '<th style="text-align:right;">Использовано</th>'
                 + '<th style="text-align:right;">Остаток</th>'
+                + '<th>Действует с</th>'
                 + '<th>Действует до</th>'
+                + '<th>Статус</th>'
                 + '</tr></thead><tbody>';
 
-            rows.forEach(({ g, sm, d }) => {
-                const uid  = d.measureUnitId;
-                const ui   = unitInfo[uid] || { label: 'unit_' + uid, cls: '', fmt: v => v };
-                const name = d.discountName || (d.discountPlanId ? 'Plan\u00a0' + d.discountPlanId : '—');
-                const idLbl = d.discountPlanId
-                    ? ' <span style="color:#64748b;font-size:11px;">(ID:\u00a0' + d.discountPlanId + ')</span>'
-                    : '';
-                const endDate = d.endDate
-                    ? new Date(d.endDate).toLocaleDateString('ru-RU')
-                    : '—';
-                html += '<tr>'
-                    + '<td><span class="unit-badge ' + ui.cls + '">' + ui.label + '</span></td>'
-                    + '<td><span class="lov-src-badge ' + sm.cls + '">' + esc(g.sourceName) + '</span></td>'
-                    + '<td style="color:#94a3b8;">' + esc(name) + idLbl + '</td>'
-                    + '<td style="text-align:right;font-family:monospace;">' + ui.fmt(d.maxVolume || 0) + '</td>'
-                    + '<td style="text-align:right;font-family:monospace;color:#f97316;">' + ui.fmt(d.spentVolume || 0) + '</td>'
-                    + '<td style="text-align:right;font-family:monospace;color:#22c55e;font-weight:600;">' + ui.fmt(d.remaining || 0) + '</td>'
-                    + '<td style="color:#64748b;font-size:12px;">' + endDate + '</td>'
-                    + '</tr>';
-            });
-
-            html += '</tbody></table></div>';
+            if (!visible.length) {
+                html += '<tr><td colspan="9" style="text-align:center;color:#475569;padding:24px;">Под фильтр ничего не подходит</td></tr>';
+            } else {
+                visible.forEach(({ g, sm, d, ui, _endTs }) => {
+                    const name = d.discountName || (d.discountPlanId ? 'Plan ' + d.discountPlanId : '—');
+                    const idLbl = d.discountPlanId
+                        ? ' <span style="color:#64748b;font-size:11px;">(ID: ' + d.discountPlanId + ')</span>'
+                        : '';
+                    const startDate = d.startDate ? new Date(d.startDate).toLocaleDateString('ru-RU') : '—';
+                    const endDate   = d.endDate   ? new Date(d.endDate).toLocaleDateString('ru-RU')   : '—';
+                    const isActive = (_endTs == null) || (_endTs >= now);
+                    const statusBadge = isActive
+                        ? '<span class="tl-status-badge tl-active">Действует</span>'
+                        : '<span class="tl-status-badge tl-expired">Истёк</span>';
+                    html += '<tr>'
+                        + '<td><span class="unit-badge ' + ui.cls + '">' + esc(ui.label) + '</span></td>'
+                        + '<td><span class="lov-src-badge ' + sm.cls + '">' + esc(g.sourceName) + '</span></td>'
+                        + '<td style="color:#94a3b8;">' + esc(name) + idLbl + '</td>'
+                        + '<td style="text-align:right;font-family:monospace;">' + ui.fmt(d.maxVolume || 0) + '</td>'
+                        + '<td style="text-align:right;font-family:monospace;color:#f97316;">' + ui.fmt(d.spentVolume || 0) + '</td>'
+                        + '<td style="text-align:right;font-family:monospace;color:#22c55e;font-weight:600;">' + ui.fmt(d.remaining || 0) + '</td>'
+                        + '<td style="color:#64748b;font-size:12px;">' + startDate + '</td>'
+                        + '<td style="color:#64748b;font-size:12px;">' + endDate + '</td>'
+                        + '<td>' + statusBadge + '</td>'
+                        + '</tr>';
+                });
+            }
+            html += '</tbody></table></div></div>';
             container.innerHTML = html;
+            const activeCount = visible.filter(r => (r._endTs == null) || (r._endTs >= now)).length;
+            _updateLovSummary(visible.length, _lovRows.length, activeCount);
+        }
+
+        /** @param {number} shown @param {number} total @param {number} active */
+        function _updateLovSummary(shown, total, active) {
+            const s = document.getElementById('lovfSummary');
+            if (s) s.textContent = `${shown} из ${total} · действует: ${active}`;
+        }
+
+        function resetLovFilters() {
+            ['lovfSource','lovfStatus','lovfUnit'].forEach(id => {
+                const el = /** @type {HTMLSelectElement|null} */(document.getElementById(id));
+                if (el) el.value = 'all';
+            });
+            ['lovfDateFrom','lovfDateTo','lovfSearch'].forEach(id => {
+                const el = /** @type {HTMLInputElement|null} */(document.getElementById(id));
+                if (el) el.value = '';
+            });
+            applyLovFilters();
         }
         async function loadLimitsOverview(btnEl) {
             const msisdn = document.getElementById('fMsisdn').value.trim();
@@ -1819,7 +2499,7 @@
                 if (section === 'packs')    renderPacksList(data);
                 if (section === 'services') renderServicesList(data);
                 if (section === 'avail')    renderAvailTariffsList(data);
-                if (section === 'limits')   renderTariffLimits(data.customer);
+                if (section === 'limits')   loadLimitsOverview(null);
                 if (section === 'customer') renderCustomerInfo(data.customer);
                 showToast('Раздел обновлён', 'success');
             } catch(e) {
@@ -2685,9 +3365,272 @@
             }
         });
 
+        // ==================== HISTORY (последние изменения) ====================
+        const _histState = { events: [], counts: {}, loaded: false, msisdn: '' };
+
+        function openHistoryModal() {
+            const msisdn = (document.getElementById('fMsisdn').value || '').trim();
+            if (!msisdn) {
+                alert('Введите номер абонента в поле сверху');
+                document.getElementById('fMsisdn').focus();
+                return;
+            }
+            if (!window.SbmsAuth || !SbmsAuth.isValid()) {
+                alert('Сначала войдите в SBMS (кнопка «Войти» сверху)');
+                return;
+            }
+            document.getElementById('histTitle').textContent = `Последние изменения · ${msisdn}`;
+            document.getElementById('histSubtitle').textContent = 'Все операции за выбранный период, сверху самые свежие';
+            document.getElementById('histModalBd').classList.add('show');
+            // Если номер сменился или ещё ничего не загружали — грузим
+            if (_histState.msisdn !== msisdn || !_histState.loaded) {
+                _histState.msisdn = msisdn;
+                loadHistory();
+            } else {
+                renderHistory();
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('histModalBd').classList.remove('show');
+        }
+
+        async function loadHistory() {
+            const msisdn = (document.getElementById('fMsisdn').value || '').trim();
+            if (!msisdn) return;
+            const days = parseInt(document.getElementById('histDays').value || '90', 10);
+            const body = document.getElementById('histBody');
+            body.innerHTML = '<div class="hist-loading"><div class="va-spinner"></div> Загружаем историю изменений…</div>';
+            try {
+                const resp = await SbmsAuth.apiPost('/api/history', { msisdn, days, limit: 300 });
+                const text = await resp.text();
+                let data;
+                try { data = JSON.parse(text); }
+                catch (_) {
+                    body.innerHTML = `<div class="hist-error">Сервер вернул не-JSON (HTTP ${resp.status}). ` +
+                        `Возможно, запущена старая версия server.py — перезапустите. ` +
+                        `Первые 200 символов: <code>${esc(text.slice(0, 200))}</code></div>`;
+                    return;
+                }
+                if (!resp.ok || data.error) {
+                    body.innerHTML = `<div class="hist-error">Ошибка: ${esc(data.error || ('HTTP ' + resp.status))}</div>`;
+                    return;
+                }
+                _histState.events = data.events || [];
+                _histState.counts = data.counts || {};
+                _histState.loaded = true;
+                _histState.msisdn = msisdn;
+                document.getElementById('histSubtitle').textContent =
+                    `Период: последние ${data.rangeDays} дн · cid ${data.customerId} · sid ${data.subscriberId}`;
+                renderHistory(data.warnings);
+            } catch (e) {
+                body.innerHTML = `<div class="hist-error">Ошибка загрузки: ${esc(e.message || e)}</div>`;
+            }
+        }
+
+        function renderHistory(warnings) {
+            const body = document.getElementById('histBody');
+            const typeFilter = document.getElementById('histType').value;
+            const search = (document.getElementById('histSearch').value || '').toLowerCase().trim();
+
+            let items = _histState.events.slice();
+
+            if (typeFilter !== 'all') {
+                items = items.filter(ev => {
+                    const t = ev.type || '';
+                    if (typeFilter === 'pack')    return t.startsWith('pack_');
+                    if (typeFilter === 'service') return t.startsWith('service_');
+                    if (typeFilter === 'money')   return ['payment','promised_payment','charge_recurring','charge_one_time','adjustment'].includes(t);
+                    return t === typeFilter;
+                });
+            }
+            if (search) {
+                items = items.filter(ev => {
+                    const hay = [ev.title, ev.subtitle, ev.description, ev.status,
+                                 String(ev.amount || ''), JSON.stringify(ev.raw || {})].join(' ').toLowerCase();
+                    return hay.includes(search);
+                });
+            }
+
+            const total = _histState.events.length;
+            document.getElementById('histSummary').innerHTML =
+                `<b>${items.length}</b> из ${total} событий`;
+
+            if (!items.length) {
+                let html = '';
+                if (warnings && warnings.length) {
+                    html += `<div class="hist-warnings">⚠ ${warnings.map(esc).join(' · ')}</div>`;
+                }
+                html += `<div class="hist-empty"><div class="h-emp-icon">📭</div>За выбранный период событий не найдено</div>`;
+                body.innerHTML = html;
+                return;
+            }
+
+            // Группировка по дате (день)
+            const byDay = new Map();
+            for (const ev of items) {
+                const day = ev.date ? ev.date.slice(0, 10) : 'без даты';
+                if (!byDay.has(day)) byDay.set(day, []);
+                byDay.get(day).push(ev);
+            }
+
+            const dayKeys = Array.from(byDay.keys()).sort((a, b) => {
+                if (a === 'без даты') return 1;
+                if (b === 'без даты') return -1;
+                return b.localeCompare(a);
+            });
+
+            const ICONS = {
+                tariff_change:        '⇄',
+                pack_activate:        '+',
+                pack_deactivate:      '−',
+                service_activate:     '+',
+                service_deactivate:   '−',
+                payment:              '₸',
+                promised_payment:     '⏳',
+                charge_recurring:     '↓',
+                charge_one_time:      '↓',
+                adjustment:           '~',
+                lifecycle:            '◐',
+                subscription_activate:   '+',
+                subscription_deactivate: '−',
+            };
+
+            const TITLES_RU = {
+                tariff_change:        'Смена тарифа',
+                pack_activate:        'Подключение пакета',
+                pack_deactivate:      'Отключение пакета',
+                service_activate:     'Подключение услуги',
+                service_deactivate:   'Отключение услуги',
+                payment:              'Пополнение баланса',
+                promised_payment:     'Обещанный платёж',
+                charge_recurring:     'Списание абонплаты',
+                charge_one_time:      'Разовое списание',
+                adjustment:           'Корректировка',
+                lifecycle:            'Жизненный цикл',
+                subscription_activate:   'Подключение подписки',
+                subscription_deactivate: 'Отключение подписки',
+            };
+
+            const fmtDay = (d) => {
+                if (d === 'без даты') return 'Без даты';
+                const dt = new Date(d + 'T00:00:00');
+                if (isNaN(dt)) return d;
+                const today = new Date(); today.setHours(0,0,0,0);
+                const yest = new Date(today); yest.setDate(today.getDate() - 1);
+                const same = (a, b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+                if (same(dt, today)) return 'Сегодня · ' + dt.toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+                if (same(dt, yest))  return 'Вчера · '   + dt.toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+                return dt.toLocaleDateString('ru-RU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+            };
+
+            const fmtTime = (iso) => {
+                if (!iso) return '';
+                const dt = new Date(iso);
+                if (isNaN(dt)) return iso.slice(11, 16) || '';
+                return dt.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+            };
+
+            const statusClass = (st) => {
+                const s = (st || '').toLowerCase();
+                if (!s) return '';
+                if (s.includes('заверш') || s.includes('complete') || s.includes('success') || s.includes('успеш') || s.includes('ok') || s.includes('done')) return 'ok';
+                if (s.includes('ошиб') || s.includes('fail') || s.includes('error') || s.includes('reject') || s.includes('отказ')) return 'fail';
+                if (s.includes('ожид') || s.includes('pending') || s.includes('progress') || s.includes('queued') || s.includes('в обра')) return 'pending';
+                return '';
+            };
+
+            let html = '';
+            if (warnings && warnings.length) {
+                html += `<div class="hist-warnings">⚠ Часть источников недоступна: ${warnings.map(esc).join(' · ')}</div>`;
+            }
+            html += '<div class="hist-timeline">';
+            for (const day of dayKeys) {
+                html += `<div class="hist-day">${esc(fmtDay(day))}</div>`;
+                for (const ev of byDay.get(day)) {
+                    const t = ev.type || '';
+                    const icon = ICONS[t] || '•';
+                    const ttl = TITLES_RU[t] || ev.title || 'Событие';
+                    const sub = ev.subtitle || ev.title || '';
+                    const time = fmtTime(ev.date);
+                    const sc = statusClass(ev.status);
+                    const stHtml = ev.status ? `<span class="h-status ${sc}">${esc(ev.status)}</span>` : '';
+                    const descHtml = ev.description ? `<span>${esc(ev.description)}</span>` : '';
+                    html += `
+                        <div class="hist-item t-${esc(t)}" onclick="histToggleRaw(this)">
+                            <div class="hist-item-row1">
+                                <span class="hist-item-icon t-${esc(t)}">${icon}</span>
+                                <span class="hist-item-title">${esc(ttl)}</span>
+                                <span class="hist-item-subtitle">${esc(sub)}</span>
+                                <span class="hist-item-time">${esc(time)}</span>
+                            </div>
+                            <div class="hist-item-row2">${stHtml}${descHtml}</div>
+                            <pre class="hist-raw" style="display:none;margin:8px 0 0;padding:10px;background:#0a1120;border:1px solid #1e293b;border-radius:6px;font-size:10px;color:#94a3b8;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all;">${esc(JSON.stringify(ev.raw, null, 2))}</pre>
+                        </div>`;
+                }
+            }
+            html += '</div>';
+            body.innerHTML = html;
+        }
+
+        function histToggleRaw(el) {
+            const pre = el.querySelector('.hist-raw');
+            if (pre) pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Esc — закрыть модалку истории
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('histModalBd').classList.contains('show')) {
+                closeHistoryModal();
+            }
+        });
+
         // ==================== INIT ====================
         loadConfig();
     </script>
+
+    <!-- History modal — последние изменения по номеру -->
+    <div class="hist-modal-bd" id="histModalBd" onclick="if(event.target===this)closeHistoryModal()">
+        <div class="hist-modal" role="dialog" aria-modal="true" aria-labelledby="histTitle">
+            <div class="hist-head">
+                <div>
+                    <h3 id="histTitle">Последние изменения</h3>
+                    <div class="hist-sub" id="histSubtitle">—</div>
+                </div>
+                <button class="hist-close" onclick="closeHistoryModal()" title="Закрыть (Esc)" aria-label="Закрыть">×</button>
+            </div>
+            <div class="hist-toolbar">
+                <label>Период</label>
+                <select id="histDays" onchange="loadHistory()">
+                    <option value="7">7 дней</option>
+                    <option value="30">30 дней</option>
+                    <option value="90" selected>90 дней</option>
+                    <option value="180">180 дней</option>
+                    <option value="365">1 год</option>
+                </select>
+                <label>Тип</label>
+                <select id="histType" onchange="renderHistory()">
+                    <option value="all">Все</option>
+                    <option value="tariff_change">Смена тарифа</option>
+                    <option value="pack">Пакеты</option>
+                    <option value="service">Услуги</option>
+                    <option value="money">Деньги (всё)</option>
+                    <option value="payment">Пополнения</option>
+                    <option value="charge_recurring">Списание АП</option>
+                    <option value="charge_one_time">Разовые списания</option>
+                    <option value="adjustment">Корректировки</option>
+                    <option value="lifecycle">Жизненный цикл</option>
+                </select>
+                <label>Поиск</label>
+                <input type="text" id="histSearch" placeholder="название / ID / описание" oninput="renderHistory()">
+                <span class="hist-summary" id="histSummary"></span>
+                <button class="hist-reload" type="button" onclick="loadHistory()">↻ Обновить</button>
+            </div>
+            <div class="hist-body" id="histBody">
+                <div class="hist-empty"><div class="h-emp-icon">⏱</div>Нажмите «Обновить» или выберите период</div>
+            </div>
+        </div>
+    </div>
 
     <!-- View-as modal -->
     <div class="va-modal-bd" id="vaModalBd" onclick="if(event.target===this)closeViewAsModal()">
