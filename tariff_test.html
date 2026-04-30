@@ -850,6 +850,106 @@
         [data-theme="light"] .lc-meta b { color: #1a2332; }
         [data-theme="light"] .lc-row .lcs { color: #1a2332; }
 
+        /* Бейдж текущего ЖЦ + кнопка истории */
+        .lc-state-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+            background: #1e293b; color: #cbd5e1; letter-spacing: .2px;
+        }
+        .lc-state-badge.active   { background: #22c55e22; color: #22c55e; }
+        .lc-state-badge.suspend  { background: #f59e0b22; color: #f59e0b; }
+        .lc-state-badge.closed   { background: #ef444422; color: #ef4444; }
+        .lc-state-badge.unknown  { background: #1e293b; color: #94a3b8; }
+        .lc-state-badge::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+            background: currentColor; opacity: .85;
+        }
+        .lc-history-btn {
+            margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; font-size: 12px; font-weight: 600;
+            background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
+            border-radius: 6px; cursor: pointer; transition: all .15s;
+        }
+        .lc-history-btn:hover:not(:disabled) { background: #243549; border-color: #475569; color: #e2e8f0; }
+        .lc-history-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .lc-history-btn .lc-arrow { font-size: 10px; opacity: .6; }
+        [data-theme="light"] .lc-history-btn { background: #fff; border-color: #d6dae2; color: #475569; }
+        [data-theme="light"] .lc-history-btn:hover:not(:disabled) { background: #f3f6fa; border-color: #94a3b8; color: #1a2332; }
+
+        /* Модалка истории ЖЦ */
+        .lch-modal-bd {
+            position: fixed; inset: 0; background: rgba(2,6,23,.78);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9200; padding: 24px;
+        }
+        .lch-modal-bd.show { display: flex; }
+        .lch-modal {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            width: 100%; max-width: 720px; max-height: 88vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+        }
+        .lch-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-bottom: 1px solid #1e293b; flex-shrink: 0; gap: 12px;
+        }
+        .lch-head h3 { margin: 0; font-size: 15px; color: #e2e8f0; font-weight: 600; }
+        .lch-head .lch-sub { font-size: 11px; color: #64748b; margin-top: 3px; }
+        .lch-close {
+            background: transparent; border: 1px solid #334155; color: #94a3b8;
+            border-radius: 6px; width: 28px; height: 28px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px; line-height: 1;
+        }
+        .lch-close:hover { border-color: #ef4444; color: #ef4444; }
+        .lch-body { padding: 14px 20px 18px; overflow-y: auto; flex: 1; min-height: 120px; }
+        .lch-empty { text-align: center; color: #64748b; padding: 40px 20px; font-size: 13px; }
+        .lch-loading { text-align: center; color: #94a3b8; padding: 40px 20px; font-size: 13px; }
+        .lch-loading::after { content: '…'; animation: lchDots 1.2s steps(4, end) infinite; }
+        @keyframes lchDots { to { content: '   '; } }
+
+        .lch-list { display: flex; flex-direction: column; gap: 0; }
+        .lch-item {
+            position: relative; display: grid;
+            grid-template-columns: 14px 1fr; gap: 10px;
+            padding: 10px 0 10px 4px;
+        }
+        .lch-item + .lch-item { border-top: 1px dashed #1e293b; }
+        .lch-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #475569; margin-top: 6px;
+            box-shadow: 0 0 0 3px #0f172a, 0 0 0 4px #1e293b;
+        }
+        .lch-item.is-current .lch-dot { background: #22c55e; box-shadow: 0 0 0 3px #0f172a, 0 0 0 4px #22c55e80; }
+        .lch-item.t-suspend .lch-dot { background: #f59e0b; }
+        .lch-item.t-closed  .lch-dot { background: #ef4444; }
+        .lch-row1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .lch-state {
+            font-size: 13px; font-weight: 600; color: #e2e8f0;
+        }
+        .lch-item.is-current .lch-state { color: #22c55e; }
+        .lch-current-tag {
+            font-size: 10px; padding: 1px 7px; border-radius: 999px;
+            background: #22c55e22; color: #22c55e; font-weight: 700; letter-spacing: .3px;
+            text-transform: uppercase;
+        }
+        .lch-when { font-size: 11px; color: #64748b; font-family: 'SF Mono', monospace;
+            margin-left: auto; }
+        .lch-row2 { display: flex; flex-wrap: wrap; gap: 4px 14px;
+            font-size: 11px; color: #94a3b8; margin-top: 4px; }
+        .lch-row2 b { color: #cbd5e1; font-weight: 600; }
+        .lch-row2 .sep { color: #334155; }
+
+        [data-theme="light"] .lch-modal-bd { background: rgba(15,23,42,.55); }
+        [data-theme="light"] .lch-modal { background: #fff; border-color: #e2e6ec; }
+        [data-theme="light"] .lch-head { border-bottom-color: #eef0f4; }
+        [data-theme="light"] .lch-head h3 { color: #1a2332; }
+        [data-theme="light"] .lch-close { border-color: #d6dae2; color: #64748b; }
+        [data-theme="light"] .lch-state { color: #1a2332; }
+        [data-theme="light"] .lch-row2 b { color: #1a2332; }
+        [data-theme="light"] .lch-item + .lch-item { border-top-color: #eef0f4; }
+        [data-theme="light"] .lch-dot { box-shadow: 0 0 0 3px #fff, 0 0 0 4px #e2e6ec; }
+
         /* ===== ОБЩИЕ ЛИМИТЫ ===== */
         .lov-groups { display: flex; flex-direction: column; gap: 10px; }
         .lov-group { border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
@@ -1951,13 +2051,15 @@
                 console.log('[DEBUG] Сырые ответы API (причина N/A):', c._debug);
             }
             const v = c.volumes || {};
+            const lcBadge = renderLcBadge(c.lifecycleState);
             const items = [
                 { l: 'ФИО', v: c.name },
                 { l: 'Текущий тариф', v: `${c.ratePlanName} (ID: ${c.ratePlanId})` },
                 { l: 'Статус', v: c.status },
-                { l: 'Жизненный цикл', v: c.lifecycleState || 'N/A' },
+                { l: 'Жизненный цикл', v: lcBadge, raw: true },
                 { l: 'Баланс', v: c.balance != null ? c.balance + ' сум' : 'N/A' },
                 { l: 'Текущая АП', v: c.currentFee != null ? c.currentFee + ' сум' : 'N/A' },
+                { l: 'След. списание', v: fmtNextCharge(c.nextChargeDate) },
                 { l: 'Минуты (всего)', v: v.minutes || 0, hl: true },
                 { l: 'SMS (всего)', v: v.sms || 0, hl: true },
                 { l: 'Интернет (всего)', v: fmtMb(v.mb), hl: true },
@@ -1968,11 +2070,45 @@
 
             let html = items.map(i => {
                 const cls = i.hl ? ' style="color:#38bdf8;"' : '';
-                return `<div class="info-item"><div class="il">${i.l}</div><div class="iv"${cls}>${esc(String(i.v != null ? i.v : 'N/A'))}</div></div>`;
+                const val = i.raw ? String(i.v) : esc(String(i.v != null ? i.v : 'N/A'));
+                return `<div class="info-item"><div class="il">${i.l}</div><div class="iv"${cls}>${val}</div></div>`;
             }).join('');
 
             html += renderLifecycleBlock(c);
             document.getElementById('infoGrid').innerHTML = html;
+        }
+
+        function fmtNextCharge(s) {
+            if (!s) return 'N/A';
+            // Формат от SBMS: "29.05.2026 00:00:00" (DD.MM.YYYY HH:MM:SS)
+            const m = String(s).match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+            let d;
+            if (m) {
+                d = new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || '00'}:${m[5] || '00'}:00`);
+            } else {
+                d = new Date(s);
+            }
+            if (!d || isNaN(d.getTime())) return String(s);
+            const dateStr = d.toLocaleDateString('ru-RU');
+            const today = new Date(); today.setHours(0,0,0,0);
+            const tgt = new Date(d); tgt.setHours(0,0,0,0);
+            const diffDays = Math.round((tgt - today) / 86400000);
+            let suffix = '';
+            if (diffDays === 0) suffix = ' · сегодня';
+            else if (diffDays === 1) suffix = ' · завтра';
+            else if (diffDays > 1) suffix = ` · через ${diffDays} дн`;
+            else if (diffDays < 0) suffix = ` · ${Math.abs(diffDays)} дн назад`;
+            return dateStr + suffix;
+        }
+
+        function renderLcBadge(state) {
+            if (!state) return '<span class="lc-state-badge unknown">N/A</span>';
+            const s = String(state).toLowerCase();
+            let cls = 'unknown';
+            if (s.includes('active')) cls = 'active';
+            else if (s.includes('suspend') || s.includes('block') || s.includes('s1')) cls = 'suspend';
+            else if (s.includes('closed') || s.includes('terminat') || s.includes('deactiv')) cls = 'closed';
+            return `<span class="lc-state-badge ${cls}">${esc(state)}</span>`;
         }
 
         // ==================== LIFECYCLE ====================
@@ -1990,53 +2126,135 @@
         }
 
         function renderLifecycleBlock(c) {
-            const state = c.lifecycleState;
-            const det = c.lifecycleDetails || {};
-            const history = det.history || [];
-            if (!state && !Object.keys(det).length) return '';
-
-            const metaPairs = [];
-            const dateLabels = {
-                activationDate: 'Активация',
-                activatedDate: 'Активация',
-                beginDate: 'Начало',
-                startDate: 'Начало',
-                stateBeginDate: 'Начало текущего состояния',
-                stateStartDate: 'Начало текущего состояния',
-                lastChangeDate: 'Последняя смена',
-                changedAt: 'Последняя смена',
-                endDate: 'Окончание',
-                stateEndDate: 'Окончание состояния',
-                blockDate: 'Блокировка',
-            };
-            // Без истории — сам объект содержит даты
-            for (const [k, label] of Object.entries(dateLabels)) {
-                if (det[k]) metaPairs.push(`<span><b>${label}:</b> ${esc(fmtDate(det[k]))}</span>`);
-            }
-
-            let historyHtml = '';
-            if (history.length) {
-                const rows = history.slice().reverse().map(h => {
-                    const isCurrent = !h.endDate;
-                    const dates = [
-                        h.startDate ? `с ${fmtDateShort(h.startDate)}` : null,
-                        h.endDate ? `до ${fmtDateShort(h.endDate)}` : (isCurrent ? 'сейчас' : null),
-                    ].filter(Boolean).join(' · ');
-                    return `<div class="lc-row">
-                        <span class="lcs ${isCurrent ? 'lc-current' : ''}">${esc(h.state || '—')}</span>
-                        <span class="lcd">${esc(dates)}</span>
-                    </div>`;
-                }).join('');
-                historyHtml = `<div class="lc-history">${rows}</div>`;
-            }
-
+            // Кнопка показывается только если у нас есть subscriberId.
+            if (!c || !c.subscriberId) return '';
+            const hist = Array.isArray(c.lifecycleHistory) ? c.lifecycleHistory : [];
+            const count = hist.length;
+            const label = count ? `История ЖЦ (${count})` : 'История ЖЦ';
             return `
-                <div class="lc-block" style="grid-column:1/-1;">
-                    <div class="lc-block-title">Жизненный цикл абонента · текущее: <b style="color:#22c55e;">${esc(state || '—')}</b></div>
-                    ${metaPairs.length ? `<div class="lc-meta">${metaPairs.join('')}</div>` : ''}
-                    ${historyHtml || (metaPairs.length ? '' : '<div style="font-size:12px;color:#64748b;">История состояний недоступна.</div>')}
+                <div style="grid-column:1/-1; display:flex; justify-content:flex-end;">
+                    <button type="button" class="lc-history-btn" id="lcHistoryBtn"
+                            onclick="openLifecycleHistoryModal()"
+                            title="Открыть историю смен жизненного цикла">
+                        <span>${esc(label)}</span><span class="lc-arrow">▸</span>
+                    </button>
                 </div>`;
         }
+
+        // ==================== LIFECYCLE HISTORY MODAL ====================
+        function lcStateClass(state) {
+            const s = String(state || '').toLowerCase();
+            if (s.includes('active')) return 'active';
+            if (s.includes('suspend') || s.includes('block') || s.includes('s1')) return 'suspend';
+            if (s.includes('closed') || s.includes('terminat') || s.includes('deactiv')) return 'closed';
+            return 'unknown';
+        }
+
+        function isOpenEnd(endDate) {
+            return !endDate || String(endDate).startsWith('2999');
+        }
+
+        function renderLcHistoryItems(items) {
+            if (!items || !items.length) {
+                return '<div class="lch-empty">История смен жизненного цикла отсутствует.</div>';
+            }
+            // Сортируем по stateDate desc — свежие сверху.
+            const sorted = items.slice().sort((a, b) =>
+                String(b.stateDate || '').localeCompare(String(a.stateDate || '')));
+            const rows = sorted.map(it => {
+                const isCurrent = isOpenEnd(it.endDate);
+                const cls = lcStateClass(it.state);
+                const meta = [];
+                if (it.stateDate)  meta.push(`<span><b>Начало:</b> ${esc(fmtDate(it.stateDate))}</span>`);
+                if (!isCurrent && it.endDate) meta.push(`<span><b>Конец:</b> ${esc(fmtDate(it.endDate))}</span>`);
+                if (it.conversion) meta.push(`<span><b>Тип:</b> ${esc(it.conversion)}</span>`);
+                if (it.naviUser)   meta.push(`<span><b>Кем:</b> ${esc(it.naviUser)}</span>`);
+                return `
+                    <div class="lch-item t-${cls} ${isCurrent ? 'is-current' : ''}">
+                        <div class="lch-dot"></div>
+                        <div>
+                            <div class="lch-row1">
+                                <span class="lch-state">${esc(it.state || '—')}</span>
+                                ${isCurrent ? '<span class="lch-current-tag">текущее</span>' : ''}
+                                <span class="lch-when">${esc(fmtDate(it.stateDate))}</span>
+                            </div>
+                            ${meta.length ? `<div class="lch-row2">${meta.join('<span class="sep">·</span>')}</div>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+            return `<div class="lch-list">${rows}</div>`;
+        }
+
+        function setLcHistoryBody(html) {
+            const el = document.getElementById('lcHistoryBody');
+            if (el) el.innerHTML = html;
+        }
+
+        async function openLifecycleHistoryModal() {
+            const c = customerData || {};
+            const sid = c.subscriberId || currentSubscriberId;
+            if (!sid) {
+                alert('Сначала загрузите абонента.');
+                return;
+            }
+            const bd = document.getElementById('lcHistoryModalBd');
+            const subEl = document.getElementById('lcHistorySub');
+            if (subEl) {
+                subEl.textContent = `Абонент: ${c.name || '—'} · SID ${sid}`;
+            }
+            bd.classList.add('show');
+
+            // Если уже есть закешированный список — показываем сразу.
+            const cached = Array.isArray(c.lifecycleHistory) ? c.lifecycleHistory : null;
+            if (cached && cached.length) {
+                setLcHistoryBody(renderLcHistoryItems(cached));
+                return;
+            }
+            setLcHistoryBody('<div class="lch-loading">Загружаю историю</div>');
+            try {
+                const resp = await fetch('/api/lifecycle/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscriberId: sid,
+                        authToken: SbmsAuth.token,
+                    }),
+                });
+                if (resp.status === 401) {
+                    SbmsAuth.clearSession && SbmsAuth.clearSession('expired');
+                    setLcHistoryBody('<div class="lch-empty">Нужна повторная авторизация.</div>');
+                    return;
+                }
+                const data = await resp.json();
+                if (!resp.ok) {
+                    setLcHistoryBody(`<div class="lch-empty">Ошибка: ${esc(data.error || resp.status)}</div>`);
+                    return;
+                }
+                const items = data.items || [];
+                if (customerData) customerData.lifecycleHistory = items;
+                setLcHistoryBody(renderLcHistoryItems(items));
+                // Обновим счётчик на кнопке.
+                const btn = document.getElementById('lcHistoryBtn');
+                if (btn && items.length) {
+                    btn.querySelector('span').textContent = `История ЖЦ (${items.length})`;
+                }
+            } catch (e) {
+                setLcHistoryBody(`<div class="lch-empty">Ошибка сети: ${esc(e.message || e)}</div>`);
+            }
+        }
+
+        function closeLifecycleHistoryModal() {
+            const bd = document.getElementById('lcHistoryModalBd');
+            if (bd) bd.classList.remove('show');
+        }
+
+        // Закрытие по Escape.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const bd = document.getElementById('lcHistoryModalBd');
+                if (bd && bd.classList.contains('show')) closeLifecycleHistoryModal();
+            }
+        });
 
         // ==================== TARIFF LIMITS DETAIL (legacy — заменён на «Общие лимиты») ====================
         // Блок «Лимиты текущего тарифа» удалён из UI; данные теперь показывает
@@ -3628,6 +3846,22 @@
             </div>
             <div class="hist-body" id="histBody">
                 <div class="hist-empty"><div class="h-emp-icon">⏱</div>Нажмите «Обновить» или выберите период</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lifecycle history modal -->
+    <div class="lch-modal-bd" id="lcHistoryModalBd" onclick="if(event.target===this)closeLifecycleHistoryModal()">
+        <div class="lch-modal" role="dialog" aria-modal="true" aria-labelledby="lcHistoryTitle">
+            <div class="lch-head">
+                <div>
+                    <h3 id="lcHistoryTitle">История жизненного цикла</h3>
+                    <div class="lch-sub" id="lcHistorySub">—</div>
+                </div>
+                <button class="lch-close" onclick="closeLifecycleHistoryModal()" title="Закрыть (Esc)" aria-label="Закрыть">×</button>
+            </div>
+            <div class="lch-body" id="lcHistoryBody">
+                <div class="lch-empty">Нет данных.</div>
             </div>
         </div>
     </div>

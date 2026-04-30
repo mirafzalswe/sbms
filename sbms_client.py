@@ -124,6 +124,22 @@ class SBMSClient:
         )
         return self._safe_json(resp)
 
+    def get_available_rateplans_with_fees(self, subscriber_id):
+        """GET /availableForChange (без /search) — этот endpoint отдаёт ratePlanCost
+        с activationCost и subscriptionFeeDetail.amount. POST /search их НЕ возвращает.
+        """
+        resp = self._get(
+            f"/OAPI/v1/cbss/subscribers/{subscriber_id}/ratePlans/availableForChange",
+            {
+                "languageId": 1, "limit": 500, "offset": 0,
+                "otherServiceTypeRatePlansVisibility": "NOT_VISIBLE",
+                "returnCount": "true", "showArchiveRatePlans": "false",
+                "showFees": "true", "showFutureRatePlans": "true",
+                "authToken": self.token,
+            }
+        )
+        return self._safe_json(resp)
+
     def get_rateplan_next_charges(self, subscriber_id, rateplan_id):
         resp = self._get(
             f"/OAPI/v1/subscribers/{subscriber_id}/subscriptions/nextCharges/ratePlans/{rateplan_id}",
@@ -339,14 +355,80 @@ class SBMSClient:
             rows.append(item)
         return {"items": rows, "count": len(rows)}
 
+    def get_subscriber_objects(self, subscriber_id):
+        """Список объектов абонента (тариф/пакеты/услуги) с датами зарядов.
+
+        Возвращает items вида:
+          { objectId, name, objectType:{objectTypeId,name},
+            startDate, endDate, lastPayDate, chargeStartDate, chargeEndDate }
+        chargeEndDate — дата следующего списания.
+        """
+        params = {
+            "languageId": 1,
+            "limit": 10000,
+            "offset": 0,
+            "returnCount": 1,
+            "authToken": self.token,
+        }
+        body_variants = [
+            {"subs": subscriber_id},
+            {"subsId": subscriber_id},
+            {"subscriberId": subscriber_id},
+        ]
+        last_resp = None
+        for body in body_variants:
+            resp = self._post(
+                "/PSAPI/internal/v1/esm-private/objects/search",
+                params=params,
+                json_body=body,
+            )
+            last_resp = resp
+            if resp.status_code == 200:
+                data = self._safe_json(resp)
+                if isinstance(data, dict) and (data.get("items") or data.get("listInfo")):
+                    return data
+                if isinstance(data, dict):
+                    return data
+        if last_resp is not None and last_resp.status_code != 200:
+            print(f"[WARN] subscriber_objects HTTP {last_resp.status_code}: "
+                  f"{last_resp.text[:200] if last_resp.text else ''}")
+        return self._safe_json(last_resp) if last_resp is not None else None
+
     def get_lifecycle_history(self, subscriber_id):
-        """История смен жизненного цикла (блокировки/активации/закрытия)."""
-        resp = self._post(
-            "/PSAPI/internal/v1/licy-base-private/subslcstates/history/search",
-            params={"languageId": 1, "authToken": self.token},
-            json_body={"subs": subscriber_id},
-        )
-        return self._safe_json(resp)
+        """История смен жизненного цикла (блокировки/активации/закрытия).
+
+        Возвращает items со структурой { lcState:{def}, lcStateDate, endDate, ... }.
+        Текущее состояние — запись с открытым endDate (~2999).
+        """
+        params = {
+            "languageId": 1,
+            "limit": 10000,
+            "offset": 0,
+            "returnCount": 1,
+            "authToken": self.token,
+        }
+        # Пробуем основной body. Если 4xx — повторяем с альтернативным именем поля.
+        body_variants = [{"subs": subscriber_id}, {"subsId": subscriber_id},
+                         {"subscriberId": subscriber_id}]
+        last_resp = None
+        for body in body_variants:
+            resp = self._post(
+                "/PSAPI/internal/v1/licy-base-private/subslcstates/history/search",
+                params=params,
+                json_body=body,
+            )
+            last_resp = resp
+            if resp.status_code == 200:
+                data = self._safe_json(resp)
+                if isinstance(data, dict) and (data.get("items") or data.get("listInfo")):
+                    return data
+                if isinstance(data, dict):
+                    return data
+            # 4xx — пробуем следующий вариант
+        if last_resp is not None and last_resp.status_code != 200:
+            print(f"[WARN] lifecycle_history HTTP {last_resp.status_code}: "
+                  f"{last_resp.text[:200] if last_resp.text else ''}")
+        return self._safe_json(last_resp) if last_resp is not None else None
 
     def get_balance_events_days(self, customer_id, date_from, date_to=None,
                                 timeout_override=120):

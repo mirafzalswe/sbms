@@ -102,6 +102,50 @@ def _auth_required(e):
     return jsonify({"error": str(e), "code": "AUTH_REQUIRED"}), 401
 
 
+def _normalize_lc_history(data):
+    """Привести ответ /subslcstates/history/search к плоскому списку для UI."""
+    if not isinstance(data, dict):
+        return []
+    raw_items = data.get("items") or []
+    norm = []
+    for it in raw_items:
+        if not isinstance(it, dict):
+            continue
+        st = it.get("lcState") if isinstance(it.get("lcState"), dict) else {}
+        ct = it.get("conversionType") if isinstance(it.get("conversionType"), dict) else {}
+        audit = it.get("audit") if isinstance(it.get("audit"), dict) else {}
+        norm.append({
+            "id": it.get("id"),
+            "state": st.get("def") or st.get("name"),
+            "stateId": st.get("id"),
+            "conversion": ct.get("def") if isinstance(ct, dict) else None,
+            "stateDate": it.get("lcStateDate") or it.get("startDate"),
+            "startDate": it.get("startDate"),
+            "endDate": it.get("endDate"),
+            "balanceEndDate": it.get("balanceEndDate"),
+            "naviUser": audit.get("naviUser") if isinstance(audit, dict) else None,
+            "naviDate": audit.get("naviDate") if isinstance(audit, dict) else None,
+        })
+    return norm
+
+
+def _is_open_lc_endpoint(end_date):
+    """endDate ~ '2999-...' = открытый интервал, текущее состояние."""
+    if not end_date:
+        return True
+    return str(end_date).startswith("2999")
+
+
+def _pick_current_lc(norm_history):
+    """Найти текущее состояние: открытый endDate или самое позднее по stateDate."""
+    if not norm_history:
+        return None
+    for h in norm_history:
+        if _is_open_lc_endpoint(h.get("endDate")):
+            return h
+    return max(norm_history, key=lambda x: x.get("stateDate") or "")
+
+
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -663,6 +707,54 @@ def tariff_load_customer():
         except Exception as e:
             print(f"[WARN] lifecycle error: {e}")
 
+        # Дата следующего списания АП (chargeEndDate объекта Rate plan)
+        next_charge_date = None
+        try:
+            obj_data = client.get_subscriber_objects(sid)
+            if isinstance(obj_data, dict):
+                items = obj_data.get("items") or []
+                rp_obj = None
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    ot = it.get("objectType") or {}
+                    type_name = (ot.get("name") or "").lower() if isinstance(ot, dict) else ""
+                    type_id = ot.get("objectTypeId") if isinstance(ot, dict) else None
+                    if type_id == 1 or "rate plan" in type_name or "тариф" in type_name:
+                        rp_obj = it
+                        break
+                if rp_obj is None and items and isinstance(items[0], dict):
+                    rp_obj = items[0]
+                if isinstance(rp_obj, dict):
+                    next_charge_date = (rp_obj.get("chargeEndDate")
+                                        or rp_obj.get("nextChargeDate"))
+            print(f"[DEBUG] subscriber_objects sid={sid}: "
+                  f"chargeEndDate={next_charge_date}")
+        except Exception as e:
+            print(f"[WARN] subscriber_objects error: {e}")
+
+        # Самый надёжный источник — /subslcstates/history/search.
+        # Используем для текущего состояния (если предыдущие методы вернули пусто)
+        # и сохраняем полный нормализованный список для модалки «История ЖЦ».
+        lc_history_list = []
+        lc_history_raw_keys = None
+        try:
+            lc_hist_raw = client.get_lifecycle_history(sid)
+            if isinstance(lc_hist_raw, dict):
+                lc_history_raw_keys = list(lc_hist_raw.keys())
+            lc_history_list = _normalize_lc_history(lc_hist_raw)
+            print(f"[DEBUG] lifecycle_history sid={sid}: "
+                  f"raw_keys={lc_history_raw_keys}, "
+                  f"items={len(lc_history_list)}")
+            current = _pick_current_lc(lc_history_list)
+            if current:
+                if not lifecycle_state and current.get("state"):
+                    lifecycle_state = current["state"]
+                if current.get("stateDate") and not lifecycle_details.get("stateBeginDate"):
+                    lifecycle_details["stateBeginDate"] = current["stateDate"]
+        except Exception as e:
+            print(f"[WARN] lifecycle_history error: {e}")
+
         return jsonify({
             "customer": {
                 "customerId": cid,
@@ -673,6 +765,8 @@ def tariff_load_customer():
                 "status": ((sr.get("firstSubscriber") or {}).get("status") or {}).get("name", "N/A"),
                 "lifecycleState": lifecycle_state,
                 "lifecycleDetails": lifecycle_details or None,
+                "lifecycleHistory": lc_history_list or None,
+                "nextChargeDate": next_charge_date,
                 "balance": balance,
                 "currentFee": current_fee,
                 "currentProductId": current_product_id,
@@ -708,6 +802,40 @@ def tariff_load_customer():
                 "fee": s.get("fee"),
                 "status": (s.get("status") or {}).get("name", "")
             } for s in avail_services if s]
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/lifecycle/history', methods=['POST'])
+def api_lifecycle_history():
+    """История смен жизненного цикла абонента (для модалки в UI).
+
+    Body: { "subscriberId": <int>, "msisdn": <optional>, авторизация ... }
+    Response: { "items": [<нормализованные записи>], "current": <текущее состояние или null> }
+    """
+    try:
+        data = request.get_json() or {}
+        sid = data.get("subscriberId")
+        # Поддержка fallback по MSISDN — если фронт не сохранил sid
+        if not sid and data.get("msisdn"):
+            tmp_client = _get_client(data)
+            sr = tmp_client.search_customer(data["msisdn"])
+            if sr and (sr.get("listInfo") or {}).get("count"):
+                sid = sr["searchResults"][0].get("subscriberId")
+        if not sid:
+            return jsonify({"error": "subscriberId обязателен"}), 400
+
+        client = _get_client(data)
+        raw = client.get_lifecycle_history(sid)
+        items = _normalize_lc_history(raw)
+        current = _pick_current_lc(items)
+        return jsonify({
+            "subscriberId": sid,
+            "current": current,
+            "items": items,
+            "count": len(items),
         })
     except Exception as e:
         traceback.print_exc()

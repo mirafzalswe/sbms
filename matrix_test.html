@@ -8,6 +8,7 @@
     :root {
         --bg: #0f172a;
         --bg-2: #1e293b;
+        
         --bg-3: #0b1220;
         --border: #334155;
         --border-soft: #1e293b;
@@ -214,8 +215,24 @@
 
     /* Клетки результата */
     .cell {
-        font-weight: 700; font-size: 13px; line-height: 1; min-width: 38px;
-        display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+        font-weight: 700; font-size: 13px; line-height: 1; min-width: 50px;
+        display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 2px; padding: 2px 4px; border-radius: 4px;
+    }
+    .cell .cell-sym { font-size: 13px; line-height: 1; }
+    .cell .cell-cost {
+        font-size: 9.5px; font-weight: 700; line-height: 1; opacity: .9;
+        display: inline-flex; gap: 4px; white-space: nowrap;
+    }
+    .cell .cell-cost .cell-cost-paid {
+        color: var(--warn); background: rgba(234, 179, 8, .12);
+        padding: 1px 4px; border-radius: 3px;
+    }
+    .cell .cell-cost .cell-cost-free {
+        color: var(--text-3); opacity: .7;
+    }
+    .cell .cell-cost .cell-fee {
+        color: var(--text-3); font-weight: 600; font-size: 9px;
     }
     .cell-pass { background: var(--pass-soft); color: var(--pass); }
     .cell-fail { background: var(--fail-soft); color: var(--fail); }
@@ -764,6 +781,9 @@
             <span class="lg"><span class="sw info"></span>Только информация (нет ожидания)</span>
             <span class="lg"><span class="sw blocked"></span>Заблокировано (admin не смог перевести)</span>
             <span class="lg"><span class="sw pending"></span>Ожидает</span>
+            <span class="lg" style="margin-left:auto; color: var(--text-3);">
+                В ячейке: <strong style="color:var(--text);">+/−</strong> доступность · <strong style="color:var(--warn);">+10к</strong> разовое (activationCost) · <span style="color:var(--text-3);">АП 90к</span> абонплата
+            </span>
         </div>
 
         <div class="matrix-wrap" id="matrixWrap">
@@ -1459,6 +1479,18 @@ function renderEmptyMatrix(spec) {
     });
 }
 
+function _fmtCost(v) {
+    // Короткое представление стоимости: 10000 → "10к", 90000 → "90к", 1500 → "1.5к"
+    if (v == null || v === '' || isNaN(Number(v))) return '';
+    const n = Number(v);
+    if (n === 0) return '0';
+    if (n >= 1000) {
+        const k = n / 1000;
+        return (k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)) + 'к';
+    }
+    return String(n);
+}
+
 function renderCell(cell) {
     const exp = cell.expected || '';
     const act = cell.actual || '';
@@ -1472,8 +1504,33 @@ function renderCell(cell) {
                 status === 'blocked' ? '⏸' :
                 act || '·';
 
-    let title = `Ожидание: ${exp || '—'}\nФакт: ${act || '—'}\nСтатус: ${status}`;
-    return `<span class="cell ${cls} cell-tooltip" title="${escapeHtml(title)}">${escapeHtml(sym)}</span>`;
+    // Стоимость перехода — показываем только когда тариф реально доступен (actual = +)
+    const ac = cell.activation_cost;
+    const fee = cell.fee_amount;
+    let costLine = '';
+    if (act === '+' && (ac != null || fee != null)) {
+        const acTxt  = ac != null ? `+${_fmtCost(ac)}` : '';
+        const feeTxt = fee != null ? `АП ${_fmtCost(fee)}` : '';
+        const acClass = (ac != null && Number(ac) > 0) ? 'cell-cost-paid' : 'cell-cost-free';
+        // Сначала разовая (выделенно), потом АП помельче
+        const parts = [];
+        if (acTxt)  parts.push(`<span class="${acClass}">${acTxt}</span>`);
+        if (feeTxt) parts.push(`<span class="cell-fee">${feeTxt}</span>`);
+        costLine = `<span class="cell-cost">${parts.join(' · ')}</span>`;
+    }
+
+    const titleParts = [
+        `Ожидание: ${exp || '—'}`,
+        `Факт: ${act || '—'}`,
+        `Статус: ${status}`,
+    ];
+    if (ac != null)  titleParts.push(`Стоимость перехода (activationCost): ${ac}`);
+    if (fee != null) titleParts.push(`Абонплата (АП): ${fee}${cell.fee_period ? ' / ' + cell.fee_period : ''}`);
+    const title = titleParts.join('\n');
+
+    return `<span class="cell ${cls} cell-tooltip" title="${escapeHtml(title)}">
+        <span class="cell-sym">${escapeHtml(sym)}</span>${costLine}
+    </span>`;
 }
 
 // ============================================================
@@ -1721,7 +1778,8 @@ function handleEvent(evt) {
             const info = cells.filter(x => x.status === 'info').length;
             const lvl = fail > 0 ? 'fail' : 'pass';
             const sym = fail > 0 ? '✗' : '✓';
-            addLog(lvl, `${sym} «${r.row_name}» (ID ${r.row_id}): pass=${pass} fail=${fail} info=${info} · order=${r.order_id || '—'} (${r.order_status || '—'}) · доступно=${r.available_count || 0} тарифов · ${r.duration}s`);
+            const feesNote = (r.cells_with_fees != null) ? ` · с ценой=${r.cells_with_fees}` : '';
+            addLog(lvl, `${sym} «${r.row_name}» (ID ${r.row_id}): pass=${pass} fail=${fail} info=${info} · order=${r.order_id || '—'} (${r.order_status || '—'}) · доступно=${r.available_count || 0} тарифов${feesNote} · ${r.duration}s`);
             if (fail > 0) {
                 cells.filter(x => x.status === 'fail').slice(0, 5).forEach(cell => {
                     const ex = cell.expected || '—';
@@ -1729,6 +1787,14 @@ function handleEvent(evt) {
                     addLog('fail', `  └ ${r.row_name} → ${cell.to_name} (ID ${cell.to_id}): ожидали «${ex}», факт «${ac}»`);
                 });
                 if (fail > 5) addLog('fail', `  └ … и ещё ${fail - 5} расхождений (см. матрицу)`);
+            }
+            // Платные переходы (activationCost > 0) — отдельным info-блоком
+            const paid = cells.filter(x => x.actual === '+' && Number(x.activation_cost) > 0);
+            if (paid.length) {
+                const txt = paid.slice(0, 8).map(c =>
+                    `${c.to_name} (ID ${c.to_id}) — ${c.activation_cost}${c.fee_amount != null ? ' / АП ' + c.fee_amount : ''}`
+                ).join('; ');
+                addLog('info', `  💰 Платные переходы (${paid.length}): ${txt}${paid.length > 8 ? ' …' : ''}`);
             }
             if (r.viewer_error) addLog('warn', `  └ viewer error: ${r.viewer_error}`);
         }

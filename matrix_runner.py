@@ -25,26 +25,47 @@ os.makedirs(HISTORY_DIR, exist_ok=True)
 
 
 def _extract_available_ids(api_resp) -> dict[int, dict]:
-    """Из ответа availableForChange/search вытащить {ratePlanId: {name, archived}}."""
+    """Из ответа availableForChange/search вытащить {ratePlanId: {name, archived,
+    activation_cost, fee_amount, fee_period}}.
+
+    activation_cost — разовое начисление за переход (0, если бесплатно).
+    fee_amount      — абонентская плата нового тарифа (subscriptionFeeDetail.amount).
+    fee_period      — единица периода АП (например MONTH).
+    """
     if not isinstance(api_resp, dict):
         return {}
     items = api_resp.get("items") or api_resp.get("data") or []
     out: dict[int, dict] = {}
     for item in items:
-        rp = item.get("ratePlan") if isinstance(item, dict) else None
+        if not isinstance(item, dict):
+            continue
+        rp = item.get("ratePlan")
         if not rp:
-            # некоторые версии возвращают ID плоско
-            rp_id = (item or {}).get("ratePlanId")
-            name = (item or {}).get("name", "")
-            archived = (item or {}).get("isArchived", False)
+            rp_id = item.get("ratePlanId")
+            name = item.get("name", "")
+            archived = item.get("isArchived", False)
         else:
             rp_id = rp.get("ratePlanId")
             name = rp.get("name", "")
             archived = item.get("isArchived", False) or rp.get("isArchived", False)
         if rp_id is None:
             continue
+
+        # ratePlanCost: { activationCost, subscriptionFeeDetail: { amount, periodMeasureUnit, ... } }
+        cost = item.get("ratePlanCost") or {}
+        activation_cost = cost.get("activationCost")
+        fee_detail = cost.get("subscriptionFeeDetail") or {}
+        fee_amount = fee_detail.get("amount")
+        fee_period = fee_detail.get("periodMeasureUnit")
+
         try:
-            out[int(rp_id)] = {"name": name or "", "archived": bool(archived)}
+            out[int(rp_id)] = {
+                "name": name or "",
+                "archived": bool(archived),
+                "activation_cost": activation_cost,
+                "fee_amount": fee_amount,
+                "fee_period": fee_period,
+            }
         except (TypeError, ValueError):
             continue
     return out
@@ -302,13 +323,21 @@ def run_matrix(
         if wait_after_change > 0:
             time.sleep(wait_after_change)
 
-        # 3) Запросить доступные тарифы под viewer'ом
+        # 3) Запросить доступные тарифы под viewer'ом.
+        # GET /availableForChange — отдаёт activationCost + subscriptionFeeDetail (fees).
+        # POST /availableForChange/search — fees НЕ возвращает, поэтому используем GET.
         viewer_resp = None
         viewer_err = None
         try:
-            viewer_resp = viewer_client.get_available_rateplans(subscriber_id)
+            viewer_resp = viewer_client.get_available_rateplans_with_fees(subscriber_id)
         except Exception as e:
-            viewer_err = str(e)
+            viewer_err = f"with_fees: {e}"
+        # Если GET-вариант не сработал — fallback на старый POST/search (без fees)
+        if not viewer_resp:
+            try:
+                viewer_resp = viewer_client.get_available_rateplans(subscriber_id)
+            except Exception as e:
+                viewer_err = (viewer_err or "") + f" | search: {e}"
         available = _extract_available_ids(viewer_resp or {})
 
         # 4) Сравнить с ожиданием матрицы
@@ -331,12 +360,17 @@ def run_matrix(
             else:
                 status = "fail"
 
+            avail_info = available.get(to_id, {}) or {}
             cell = {
                 "to_id": to_id, "to_name": to_name,
                 "expected": expected,
                 "actual": "+" if in_list else "-",
                 "status": status,
-                "archived": bool(available.get(to_id, {}).get("archived")),
+                "archived": bool(avail_info.get("archived")),
+                # Стоимость перехода — есть только если тариф реально доступен
+                "activation_cost": avail_info.get("activation_cost") if in_list else None,
+                "fee_amount":      avail_info.get("fee_amount")      if in_list else None,
+                "fee_period":      avail_info.get("fee_period")      if in_list else None,
             }
             if status == "pass":
                 counters["pass"] += 1
@@ -346,6 +380,8 @@ def run_matrix(
                 counters["skip"] += 1
             cells.append(cell)
 
+        # Диагностика: сколько ячеек реально получили fee/cost от SBMS
+        cells_with_fees = sum(1 for c in cells if c.get("activation_cost") is not None or c.get("fee_amount") is not None)
         row_result = {
             "row_id": from_id, "row_name": from_name,
             "blocked": False,
@@ -354,6 +390,7 @@ def run_matrix(
             "wait_order_sec": round(wait_elapsed, 2),
             "available_ids": sorted(available.keys()),
             "available_count": len(available),
+            "cells_with_fees": cells_with_fees,
             "viewer_error": viewer_err,
             "cells": cells,
             "duration": round(time.time() - row_started, 2),
