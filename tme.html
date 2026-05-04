@@ -176,12 +176,38 @@
             text-align: center;
             padding: 20px;
         }
+
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        select:focus { outline: none; border-color: #f472b6; }
+
+        .badge-host { display:inline-flex; align-items:center; gap:8px; }
+        .scn-badge {
+            display:inline-block;
+            padding:3px 8px;
+            border-radius:6px;
+            font-size:11px;
+            font-weight:600;
+            background:#0ea5e922;
+            color:#38bdf8;
+            border:1px solid #0ea5e944;
+            font-family:'SF Mono','Fira Code',monospace;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar">
         <h1>TME - Авторизация</h1>
         <div class="nav-links">
+            <span id="sbmsBadge" class="badge-host"></span>
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/tester" class="nav-link">QA Tester</a>
             <a href="/tariff-test" class="nav-link">Тест тарифа</a>
@@ -200,6 +226,14 @@
             <div class="info-row">
                 <span class="info-label">API Authenticate:</span>
                 <span class="info-value">POST https://tme.billing.domain/api/v1/authenticate</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Сценарий-кейс:</span>
+                <span class="info-value">https://tme.ucell/case/CHANGE_LC_STATE</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Run сценария:</span>
+                <span class="info-value">POST https://tme.billing.domain/api/v1/scenarios/&lt;SCENARIO&gt;/run?page=1&amp;page_size=50</span>
             </div>
             <div class="hint">
                 Введите логин и пароль — запрос будет отправлен через Flask-прокси,
@@ -257,8 +291,68 @@
                 </div>
             </div>
         </div>
+
+        <!-- Смена тарифа через TME: CHANGE_RTPL -->
+        <div class="card">
+            <h2>Смена тарифного плана
+                <span class="scn-badge" style="margin-left:8px;">CHANGE_RTPL</span>
+            </h2>
+            <div class="hint" style="margin-bottom:16px;">
+                Войдите в TME выше — токен нужен и для загрузки списка тарифов, и для запуска сценария.
+                Тарифы грузятся через <code>POST /api/v1/scenarios/get_rtpl_for_change/run</code>.
+                Смена — через <code>POST /api/v1/scenarios/CHANGE_RTPL/run</code> с телом <code>{"MSISDN":"…","RTPL":"&lt;ID&gt;"}</code>.
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label>MSISDN</label>
+                    <input type="text" id="tmeMsisdn" placeholder="998500173054"
+                        onkeydown="if(event.key==='Enter') loadTmeTariffs()">
+                </div>
+            </div>
+
+            <div class="actions" style="margin-top:14px;">
+                <button class="btn btn-secondary" id="loadTariffsBtn" onclick="loadTmeTariffs()">Загрузить тарифы TME</button>
+                <span id="loadStatus" style="align-self:center;"></span>
+            </div>
+
+            <div style="margin-top:14px;">
+                <div class="field">
+                    <label>Тарифный план (RTPL)</label>
+                    <select id="tariffSelect" disabled>
+                        <option value="">— сначала загрузите тарифы —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="actions" style="margin-top:18px;">
+                <button class="btn btn-primary" id="runTmeBtn" onclick="runTmeChange()" disabled>Сменить тариф</button>
+                <button class="btn btn-secondary" onclick="clearTmeResult()">Очистить</button>
+                <span id="tmeRunStatus" style="align-self:center;"></span>
+            </div>
+
+            <div style="margin-top:18px;" id="tmeResultBlock" hidden>
+                <div class="info-row">
+                    <span class="info-label">HTTP Status:</span>
+                    <span class="info-value" id="tmeRespStatus">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Request URL:</span>
+                    <span class="info-value" id="tmeRespUrl">—</span>
+                </div>
+                <div style="margin-top:14px;">
+                    <div style="font-size:12px;color:#64748b;margin-bottom:6px;">REQUEST BODY</div>
+                    <pre class="json" id="tmeReqBody">—</pre>
+                </div>
+                <div style="margin-top:14px;">
+                    <div style="font-size:12px;color:#64748b;margin-bottom:6px;">RESPONSE BODY</div>
+                    <pre class="json" id="tmeRespBody">—</pre>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="/static/sbms-auth.js"></script>
     <script>
         let currentToken = null;
 
@@ -352,6 +446,131 @@
         document.getElementById('password').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') doLogin();
         });
+
+        // Восстановить TME-токен из localStorage (сохранён при логине)
+        try {
+            const cached = localStorage.getItem('tme_token');
+            if (cached) currentToken = cached;
+        } catch (_) {}
+
+        // SBMS Auth badge (нужен только если хотим показать сессию SBMS)
+        if (window.SbmsAuth) SbmsAuth.mountBadge('#sbmsBadge');
+
+        // ====== Хелперы статусов ======
+        function setLoadStatus(text, type) {
+            const el = document.getElementById('loadStatus');
+            el.className = 'status-pill ' + (type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-wait');
+            el.textContent = text;
+        }
+        function setRunStatus(text, type) {
+            const el = document.getElementById('tmeRunStatus');
+            el.className = 'status-pill ' + (type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-wait');
+            el.textContent = text;
+        }
+
+        // ====== Загрузка тарифов TME через get_rtpl_for_change ======
+        async function loadTmeTariffs() {
+            if (!currentToken) { setLoadStatus('Сначала войдите в TME', 'err'); return; }
+
+            const btn = document.getElementById('loadTariffsBtn');
+            btn.disabled = true;
+            setLoadStatus('Загрузка...', 'wait');
+
+            const sel = document.getElementById('tariffSelect');
+            sel.disabled = true;
+            sel.innerHTML = '<option value="">— загрузка... —</option>';
+            document.getElementById('runTmeBtn').disabled = true;
+
+            try {
+                const resp = await fetch('/api/tme/tariffs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tmeToken: currentToken }),
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+                const items = (data.items || []).filter(x => x && x.ID);
+                if (!items.length) {
+                    sel.innerHTML = '<option value="">(список тарифов пуст)</option>';
+                    setLoadStatus('Тарифов нет', 'err');
+                    return;
+                }
+                sel.innerHTML = '<option value="">— выберите тариф —</option>' +
+                    items.map(it =>
+                        `<option value="${it.ID}">${it.NAME || it.ID}</option>`
+                    ).join('');
+                sel.disabled = false;
+                setLoadStatus(`Загружено: ${items.length}`, 'ok');
+            } catch (e) {
+                sel.innerHTML = '<option value="">(ошибка загрузки)</option>';
+                setLoadStatus('Ошибка: ' + e.message, 'err');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Разблокировать кнопку «Сменить» когда выбран тариф
+        document.getElementById('tariffSelect').addEventListener('change', () => {
+            document.getElementById('runTmeBtn').disabled = !document.getElementById('tariffSelect').value;
+        });
+
+        // ====== Запуск CHANGE_RTPL ======
+        async function runTmeChange() {
+            const msisdn = document.getElementById('tmeMsisdn').value.trim();
+            const sel = document.getElementById('tariffSelect');
+            const rtplId = sel.value;
+            const rtplName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+
+            if (!msisdn) { setRunStatus('Введите MSISDN', 'err'); return; }
+            if (!rtplId)  { setRunStatus('Выберите тариф', 'err'); return; }
+            if (!currentToken) { setRunStatus('Сначала войдите в TME', 'err'); return; }
+
+            const body = { MSISDN: msisdn, RTPL: rtplId };
+
+            const btn = document.getElementById('runTmeBtn');
+            btn.disabled = true;
+            setRunStatus('Запуск CHANGE_RTPL...', 'wait');
+            document.getElementById('tmeResultBlock').hidden = false;
+            document.getElementById('tmeRespStatus').textContent = '...';
+            document.getElementById('tmeRespUrl').textContent = '...';
+            document.getElementById('tmeReqBody').textContent = JSON.stringify(body, null, 2);
+            document.getElementById('tmeRespBody').textContent = '...';
+
+            try {
+                const resp = await fetch('/api/tme/scenario/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scenario: 'CHANGE_RTPL',
+                        tmeToken: currentToken,
+                        body,
+                        query: { page: 1, page_size: 50 },
+                    }),
+                });
+                const data = await resp.json();
+                document.getElementById('tmeRespStatus').textContent = data.status || resp.status;
+                document.getElementById('tmeRespUrl').textContent = data.url || '—';
+                document.getElementById('tmeRespBody').textContent = JSON.stringify(data.body ?? data, null, 2);
+
+                if (resp.ok && (!data.status || data.status < 400)) {
+                    setRunStatus(`Тариф изменён → ${rtplName}`, 'ok');
+                } else {
+                    setRunStatus('Ошибка ' + (data.status || resp.status), 'err');
+                }
+            } catch (e) {
+                document.getElementById('tmeRespBody').textContent = String(e);
+                setRunStatus('Ошибка сети: ' + e.message, 'err');
+            } finally {
+                btn.disabled = !document.getElementById('tariffSelect').value;
+            }
+        }
+
+        function clearTmeResult() {
+            document.getElementById('tmeResultBlock').hidden = true;
+            document.getElementById('tmeRunStatus').className = '';
+            document.getElementById('tmeRunStatus').textContent = '';
+        }
     </script>
 </body>
 </html>

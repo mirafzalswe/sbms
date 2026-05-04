@@ -28,6 +28,10 @@ def _extract_available_ids(api_resp) -> dict[int, dict]:
     """Из ответа availableForChange/search вытащить {ratePlanId: {name, archived,
     activation_cost, fee_amount, fee_period}}.
 
+    Архивные тарифы (isArchived=true) ПРОПУСКАЮТСЯ — они не доступны для перехода,
+    хоть API иногда и возвращает их в общем списке. Иначе матрица переходов
+    помечала их как «+» («доступно»), хотя по бизнес-логике должно быть «-».
+
     activation_cost — разовое начисление за переход (0, если бесплатно).
     fee_amount      — абонентская плата нового тарифа (subscriptionFeeDetail.amount).
     fee_period      — единица периода АП (например MONTH).
@@ -51,6 +55,10 @@ def _extract_available_ids(api_resp) -> dict[int, dict]:
         if rp_id is None:
             continue
 
+        # Пропускаем архивные — для матрицы переходов они «недоступны» (-)
+        if bool(archived):
+            continue
+
         # ratePlanCost: { activationCost, subscriptionFeeDetail: { amount, periodMeasureUnit, ... } }
         cost = item.get("ratePlanCost") or {}
         activation_cost = cost.get("activationCost")
@@ -61,7 +69,7 @@ def _extract_available_ids(api_resp) -> dict[int, dict]:
         try:
             out[int(rp_id)] = {
                 "name": name or "",
-                "archived": bool(archived),
+                "archived": False,
                 "activation_cost": activation_cost,
                 "fee_amount": fee_amount,
                 "fee_period": fee_period,
@@ -213,6 +221,37 @@ def _emit(cb: Callable | None, **payload):
             pass
 
 
+def _report_path(report_id: str) -> str:
+    return os.path.join(HISTORY_DIR, f"matrix_{report_id}.json")
+
+
+def _save_report_atomic(report: dict) -> str | None:
+    """Атомарная запись отчёта (через временный файл + rename), чтобы не остаться
+    с обрезанным JSON, если процесс убьют ровно во время записи."""
+    rid = report.get("id")
+    if not rid:
+        return None
+    path = _report_path(rid)
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+        return path
+    except Exception:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+        return None
+
+
+class AbortRun(Exception):
+    """Сигнал «корректно завершить прогон сейчас»; вызывает прерывание ДО следующей строки.
+    Уже отработанные строки сохранены и доступны для resume."""
+
+
 def run_matrix(
     *,
     msisdn: str,
@@ -223,6 +262,8 @@ def run_matrix(
     wait_after_change: float = 5.0,
     order_timeout: int = 60,
     progress_cb: Callable | None = None,
+    resume_from: str | None = None,
+    abort_event=None,
 ) -> dict:
     """Полный прогон. Возвращает report dict.
 
@@ -233,9 +274,42 @@ def run_matrix(
     - only_rows — список row.id, которые надо прогнать (None = все).
     - wait_after_change — пауза после COMPLETED перед запросом availableForChange.
     - progress_cb — callback({event, row, ...}) для UI-стрима.
+    - resume_from — id отчёта для продолжения. Тогда: переиспользуем тот же отчёт,
+      пропускаем уже сделанные строки (по row_id), приклеиваем новые результаты к
+      старым. Спецификация (msisdn, columns) должна совпадать — иначе RuntimeError.
+    - abort_event — threading.Event(); если set() — прогон корректно
+      завершится между строками, частичный отчёт уже сохранён на диск.
     """
-    report_id = uuid.uuid4().hex[:12]
-    started_at = datetime.utcnow().isoformat() + "Z"
+    # ---- Resume vs new report ---------------------------------------------
+    prior_results: list[dict] = []
+    prior_counters = {"pass": 0, "fail": 0, "skip": 0, "blocked": 0}
+    done_row_ids: set[int] = set()
+
+    if resume_from:
+        prior = get_matrix_report(resume_from)
+        if not prior:
+            raise RuntimeError(f"Отчёт {resume_from} не найден — невозможно продолжить")
+        if (prior.get("msisdn") or "") != msisdn:
+            raise RuntimeError(
+                f"MSISDN отчёта ({prior.get('msisdn')}) не совпадает с текущим ({msisdn}) — "
+                "продолжение возможно только на том же номере"
+            )
+        report_id = prior["id"]
+        started_at = prior.get("started_at") or (datetime.utcnow().isoformat() + "Z")
+        prior_results = list(prior.get("results") or [])
+        # Учитываем только успешно завершённые (включая blocked — admin не смог,
+        # повторять не имеет смысла, пользователь может отдельно перезапустить).
+        for r in prior_results:
+            try:
+                done_row_ids.add(int(r.get("row_id")))
+            except (TypeError, ValueError):
+                pass
+        prior_counters = dict(prior.get("counters") or prior_counters)
+        for k in ("pass", "fail", "skip", "blocked"):
+            prior_counters.setdefault(k, 0)
+    else:
+        report_id = uuid.uuid4().hex[:12]
+        started_at = datetime.utcnow().isoformat() + "Z"
 
     # Резолв абонента
     search = admin_client.search_customer(msisdn) or {}
@@ -256,16 +330,63 @@ def run_matrix(
         only_set = {int(x) for x in only_rows}
         rows = [r for r in rows if int(r.get("id")) in only_set]
 
-    total_cells = len(rows) * len(cols)
-    _emit(progress_cb, event="start", total_rows=len(rows), total_cells=total_cells,
-          subscriber_id=subscriber_id, customer_name=customer_name,
-          initial_rateplan=initial_rateplan)
+    # При resume пропускаем уже сделанные строки
+    skipped_done = 0
+    if done_row_ids:
+        before = len(rows)
+        rows = [r for r in rows if int(r.get("id")) not in done_row_ids]
+        skipped_done = before - len(rows)
 
-    results: list[dict] = []
-    counters = {"pass": 0, "fail": 0, "skip": 0, "blocked": 0}
+    total_cells = len(rows) * len(cols)
+    _emit(progress_cb, event="start",
+          total_rows=len(rows), total_cells=total_cells,
+          subscriber_id=subscriber_id, customer_name=customer_name,
+          initial_rateplan=initial_rateplan,
+          report_id=report_id, resumed=bool(resume_from), skipped_done=skipped_done,
+          done_row_ids=sorted(done_row_ids))
+
+    results: list[dict] = list(prior_results)
+    counters = dict(prior_counters)
     t0 = time.time()
 
+    def _is_aborted() -> bool:
+        try:
+            return bool(abort_event is not None and abort_event.is_set())
+        except Exception:
+            return False
+
+    def _build_partial_report(*, finished: bool) -> dict:
+        return {
+            "id": report_id,
+            "type": "matrix",
+            "msisdn": msisdn,
+            "subscriber_id": subscriber_id,
+            "customer_id": customer_id,
+            "customer_name": customer_name,
+            "initial_rateplan": initial_rateplan,
+            "started_at": started_at,
+            "finished_at": (datetime.utcnow().isoformat() + "Z") if finished else None,
+            "duration": round(time.time() - t0, 2),
+            "spec": {"columns": cols, "rows_total": len(rows) + len(prior_results)},
+            "results": results,
+            "counters": counters,
+            "status": "completed" if finished else "in_progress",
+            "resumable": not finished,
+        }
+
     for row_idx, row in enumerate(rows):
+        # Проверка abort ПЕРЕД началом строки. Никаких прерываний посреди
+        # уже стартовавшей строки — иначе тариф может остаться полу-переключённым.
+        if _is_aborted():
+            partial = _build_partial_report(finished=False)
+            saved = _save_report_atomic(partial)
+            if saved:
+                partial["_saved_path"] = saved
+            _emit(progress_cb, event="aborted", report=partial,
+                  reason="user_stop", processed=len(results) - len(prior_results),
+                  remaining=len(rows) - row_idx)
+            return partial
+
         from_id = int(row["id"])
         from_name = row.get("name") or str(from_id)
         row_started = time.time()
@@ -315,6 +436,9 @@ def run_matrix(
             }
             results.append(row_result)
             counters["blocked"] += len(cols)
+            # Инкрементальный save: даже blocked-строка фиксируется на диске,
+            # чтобы при resume её не повторять зря (admin всё равно не смог).
+            _save_report_atomic(_build_partial_report(finished=False))
             _emit(progress_cb, event="row_done", row_index=row_idx, row=row_result,
                   counters=counters, elapsed=round(time.time()-t0, 1))
             continue
@@ -347,11 +471,15 @@ def run_matrix(
             to_name = col.get("name") or str(to_id)
             expected = (row.get("expected") or {}).get(str(to_id), "")
             in_list = to_id in available
+            is_self = (to_id == from_id)  # диагональ: целевой == текущий
 
             # Статус ячейки:
-            # +/+ → pass; -/- → pass; -/+ → fail (видим лишнее); +/- → fail (нет ожидаемого)
-            # пустое expected → info (ничего не ожидали — просто фиксируем факт)
-            if not expected:
+            # - диагональ (целевой = текущий тариф) → info, API не отдаёт сам себя
+            # - +/+ → pass; -/- → pass; -/+ → fail (видим лишнее); +/- → fail (нет ожидаемого)
+            # - пустое expected → info (ничего не ожидали — просто фиксируем факт)
+            if is_self:
+                status = "info"
+            elif not expected:
                 status = "info"
             elif expected == "+" and in_list:
                 status = "pass"
@@ -364,8 +492,10 @@ def run_matrix(
             cell = {
                 "to_id": to_id, "to_name": to_name,
                 "expected": expected,
-                "actual": "+" if in_list else "-",
+                # На диагонали показываем «=» (текущий тариф) — иначе обычный +/-.
+                "actual": "=" if is_self else ("+" if in_list else "-"),
                 "status": status,
+                "is_self": is_self,
                 "archived": bool(avail_info.get("archived")),
                 # Стоимость перехода — есть только если тариф реально доступен
                 "activation_cost": avail_info.get("activation_cost") if in_list else None,
@@ -396,36 +526,18 @@ def run_matrix(
             "duration": round(time.time() - row_started, 2),
         }
         results.append(row_result)
+        # Инкрементальный save после каждой строки — отчёт всегда на диске.
+        _save_report_atomic(_build_partial_report(finished=False))
         _emit(progress_cb, event="row_done", row_index=row_idx, row=row_result,
               counters=counters, elapsed=round(time.time()-t0, 1))
 
-    finished_at = datetime.utcnow().isoformat() + "Z"
-    duration = round(time.time() - t0, 2)
-
-    report = {
-        "id": report_id,
-        "type": "matrix",
-        "msisdn": msisdn,
-        "subscriber_id": subscriber_id,
-        "customer_id": customer_id,
-        "customer_name": customer_name,
-        "initial_rateplan": initial_rateplan,
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "duration": duration,
-        "spec": {"columns": cols, "rows_total": len(rows)},
-        "results": results,
-        "counters": counters,
-    }
-
-    # Сохраняем отчёт на диск
-    path = os.path.join(HISTORY_DIR, f"matrix_{report_id}.json")
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(report, f, ensure_ascii=False, indent=2)
-        report["_saved_path"] = path
-    except Exception as e:
-        report["_save_error"] = str(e)
+    # Финальный отчёт: status=completed, resumable=false
+    report = _build_partial_report(finished=True)
+    saved = _save_report_atomic(report)
+    if saved:
+        report["_saved_path"] = saved
+    else:
+        report["_save_error"] = "atomic write failed"
 
     _emit(progress_cb, event="done", report=report)
     return report
@@ -447,9 +559,12 @@ def list_matrix_reports() -> list[dict]:
                 "id": d.get("id"),
                 "msisdn": d.get("msisdn"),
                 "started_at": d.get("started_at"),
+                "finished_at": d.get("finished_at"),
                 "duration": d.get("duration"),
                 "counters": d.get("counters"),
                 "rows": d.get("spec", {}).get("rows_total"),
+                "status": d.get("status") or ("completed" if d.get("finished_at") else "in_progress"),
+                "resumable": bool(d.get("resumable")),
             })
         except Exception:
             continue

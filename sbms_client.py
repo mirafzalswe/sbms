@@ -119,7 +119,11 @@ class SBMSClient:
             f"/OAPI/v1/cbss/subscribers/{subscriber_id}/ratePlans/availableForChange/search",
             params={
                 "languageId": 1, "limit": 500, "offset": 0,
-                "returnCount": 1, "showFees": 1, "authToken": self.token
+                "returnCount": 1, "showFees": 1,
+                # Архивные тарифы недоступны для перехода — иначе матрица переходов
+                # подсвечивает их как «+», что не соответствует бизнес-логике.
+                "showArchiveRatePlans": "false",
+                "authToken": self.token,
             }
         )
         return self._safe_json(resp)

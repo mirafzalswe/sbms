@@ -304,6 +304,7 @@ def api_matrix_run():
     only_rows = data.get("only_rows") or None
     wait_after = float(data.get("wait_after_change", 5))
     order_timeout = int(data.get("order_timeout", 60))
+    resume_from = (data.get("resume_from") or "").strip() or None
 
     try:
         report = _matrix_runner.run_matrix(
@@ -314,6 +315,7 @@ def api_matrix_run():
             only_rows=only_rows,
             wait_after_change=wait_after,
             order_timeout=order_timeout,
+            resume_from=resume_from,
         )
     except Exception as e:
         traceback.print_exc()
@@ -340,9 +342,11 @@ def api_matrix_run_stream():
     only_rows = data.get("only_rows") or None
     wait_after = float(data.get("wait_after_change", 5))
     order_timeout = int(data.get("order_timeout", 60))
+    resume_from = (data.get("resume_from") or "").strip() or None
 
     import queue, threading
     q: "queue.Queue[dict]" = queue.Queue()
+    abort_event = threading.Event()
 
     def cb(evt):
         q.put(evt)
@@ -354,8 +358,12 @@ def api_matrix_run_stream():
                 admin_client=admin_client, viewer_client=viewer_client,
                 only_rows=only_rows, wait_after_change=wait_after,
                 order_timeout=order_timeout, progress_cb=cb,
+                resume_from=resume_from, abort_event=abort_event,
             )
-            q.put({"event": "final", "report": report})
+            # Если abort сработал — runner сам уже отправил "aborted" + сохранил
+            # отчёт; финальный "final" не нужен.
+            if not abort_event.is_set():
+                q.put({"event": "final", "report": report})
         except Exception as e:
             q.put({"event": "error", "error": str(e)})
         finally:
@@ -364,11 +372,16 @@ def api_matrix_run_stream():
     threading.Thread(target=worker, daemon=True).start()
 
     def stream():
-        while True:
-            evt = q.get()
-            if evt.get("event") == "_close":
-                break
-            yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
+        try:
+            while True:
+                evt = q.get()
+                if evt.get("event") == "_close":
+                    break
+                yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
+        finally:
+            # Клиент закрыл соединение (Stop, обновил вкладку, упала сеть) —
+            # сигналим воркеру корректно завершиться между строками.
+            abort_event.set()
 
     return Response(stream(), mimetype="text/event-stream", headers={
         "Cache-Control": "no-cache",
@@ -451,6 +464,87 @@ def api_tme_auth():
             "body": body,
             "url": url,
         })
+    except http_client.exceptions.ConnectionError as e:
+        return jsonify({"error": "Cannot connect to TME server", "details": str(e), "url": TME_BASE_URL}), 502
+    except http_client.exceptions.Timeout:
+        return jsonify({"error": "TME request timeout", "url": TME_BASE_URL}), 504
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tme/tariffs', methods=['POST'])
+def api_tme_tariffs():
+    """Список тарифов TME — запускает сценарий get_rtpl_for_change."""
+    try:
+        data = request.get_json() or {}
+        token = data.get("tmeToken")
+        url = f"{TME_BASE_URL}/api/v1/scenarios/get_rtpl_for_change/run"
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        resp = http_client.post(
+            url,
+            params={"page": 1, "page_size": 500},
+            json={},
+            headers=headers,
+            verify=False,
+            timeout=TIMEOUT,
+        )
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {"raw": resp.text}
+        items = body.get("result", []) if isinstance(body, dict) else []
+        return jsonify({"items": items, "status": resp.status_code, "url": resp.url})
+    except http_client.exceptions.ConnectionError as e:
+        return jsonify({"error": "Cannot connect to TME server", "details": str(e)}), 502
+    except http_client.exceptions.Timeout:
+        return jsonify({"error": "TME request timeout"}), 504
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tme/scenario/run', methods=['POST'])
+def api_tme_scenario_run():
+    """Запуск произвольного TME-сценария.
+    POST {TME_BASE_URL}/api/v1/scenarios/{scenario}/run?<query>  с JSON-телом."""
+    try:
+        data = request.get_json() or {}
+        scenario = (data.get("scenario") or "").strip()
+        if not scenario:
+            return jsonify({"error": "scenario is required"}), 400
+
+        token = data.get("tmeToken")
+        body = data.get("body") if isinstance(data.get("body"), (dict, list)) else {}
+        query = data.get("query") if isinstance(data.get("query"), dict) else {"page": 1, "page_size": 50}
+
+        url = f"{TME_BASE_URL}/api/v1/scenarios/{scenario}/run"
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        resp = http_client.post(
+            url,
+            params=query,
+            json=body,
+            headers=headers,
+            verify=False,
+            timeout=TIMEOUT,
+        )
+
+        try:
+            resp_body = resp.json()
+        except ValueError:
+            resp_body = {"raw": resp.text}
+
+        return jsonify({
+            "status": resp.status_code,
+            "url": resp.url,
+            "requestBody": body,
+            "body": resp_body,
+        }), (200 if resp.ok else resp.status_code)
     except http_client.exceptions.ConnectionError as e:
         return jsonify({"error": "Cannot connect to TME server", "details": str(e), "url": TME_BASE_URL}), 502
     except http_client.exceptions.Timeout:
@@ -1622,6 +1716,89 @@ def preview_subscriptions():
         pclient.token = None
 
     return jsonify(result)
+
+
+@app.route("/api/preview/activate", methods=["POST"])
+def preview_activate():
+    """Активация пакета/услуги от имени другой учётки (preview).
+
+    Использует ИЗОЛИРОВАННЫЙ SBMSClient — admin-кеш не трогается.
+    Креды preview-учётки приходят в каждом запросе и нигде не сохраняются.
+
+    Body: {msisdn, login, password, adminToken, kind: 'pack'|'service', itemId, subscriberId?}
+    Returns: {ok, kind, itemId, subscriberId, result, data: {refreshed lists}}
+    """
+    data = request.get_json(silent=True) or {}
+    msisdn = (data.get("msisdn") or "").strip()
+    p_login = (data.get("login") or "").strip()
+    p_password = data.get("password") or ""
+    admin_token = (data.get("adminToken") or "").strip()
+    kind = (data.get("kind") or "").strip()
+    item_id = data.get("itemId")
+    sid = data.get("subscriberId")
+
+    print(f"[PREVIEW-ACT] msisdn={msisdn} login={p_login} kind={kind} item={item_id} "
+          f"sid={sid} admin_token={'set' if admin_token else 'missing'}")
+
+    if not admin_token:
+        return jsonify({"error": "ADMIN_AUTH_REQUIRED",
+                        "message": "Сначала войдите в основную (админ) учётку"}), 401
+    if not p_login or not p_password:
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "Поля login и password обязательны"}), 400
+    if kind not in ("pack", "service"):
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "kind должен быть 'pack' или 'service'"}), 400
+    if not item_id:
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "itemId обязателен"}), 400
+
+    pclient = SBMSClient(BASE_URL, TIMEOUT)
+    try:
+        pclient.authenticate(p_login, p_password)
+    except Exception as e:
+        return jsonify({"error": "AUTH_FAILED",
+                        "message": f"Не удалось войти под {p_login}: {str(e)[:200]}"}), 401
+
+    try:
+        if not sid:
+            if not msisdn:
+                return jsonify({"error": "BAD_REQUEST",
+                                "message": "Нужен subscriberId или msisdn"}), 400
+            sd = pclient.search_customer(msisdn)
+            if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+                return jsonify({"error": "SUBSCRIBER_NOT_FOUND",
+                                "message": f"Номер {msisdn} не найден под учёткой {p_login}"}), 404
+            sid = sd["searchResults"][0].get("subscriberId")
+
+        if kind == "pack":
+            result = pclient.activate_pack(sid, item_id)
+        else:
+            result = pclient.activate_service(sid, item_id)
+
+        def _items(d):
+            return d.get("items", []) if isinstance(d, dict) else []
+
+        refreshed = {
+            "activePacks": _items(pclient.get_active_packs(sid)),
+            "availablePacks": _items(pclient.get_available_packs(sid)),
+            "activeServices": _items(pclient.get_active_services(sid)),
+            "availableServices": _items(pclient.get_available_services(sid)),
+        }
+
+        return jsonify({
+            "ok": True,
+            "kind": kind,
+            "itemId": item_id,
+            "subscriberId": sid,
+            "result": result,
+            "data": refreshed,
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "ACTIVATE_FAILED", "message": str(e)[:300]}), 500
+    finally:
+        pclient.token = None
 
 
 # ============================================================

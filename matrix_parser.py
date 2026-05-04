@@ -16,6 +16,7 @@ from __future__ import annotations
 import io
 import re
 import json
+import unicodedata
 from typing import Any
 
 
@@ -25,12 +26,65 @@ _TAIL_PAREN_NUM_RE = re.compile(r"\(\s*(\d{1,5})\s*\)\s*$")
 _NUMBER_RE = re.compile(r"\b(\d{2,5})\b")
 
 
+# Все варианты «плюсоподобных» символов — что в матрице может встретиться как «доступно».
+_PLUS_CHARS = {
+    "+",        # ASCII PLUS
+    "＋",   # ＋ FULLWIDTH PLUS SIGN
+    "➕",   # ➕ HEAVY PLUS SIGN
+    "✓",   # ✓ CHECK MARK
+    "✔",   # ✔ HEAVY CHECK MARK
+    "✅",   # ✅ WHITE HEAVY CHECK MARK
+    "☑",   # ☑ BALLOT BOX WITH CHECK
+}
+
+# Все варианты «минусоподобных» символов — что может встретиться как «недоступно».
+_MINUS_CHARS = {
+    "-",        # ASCII HYPHEN-MINUS
+    "−",   # − MINUS SIGN
+    "–",   # – EN DASH
+    "—",   # — EM DASH
+    "‐",   # ‐ HYPHEN
+    "‑",   # ‑ NON-BREAKING HYPHEN
+    "‒",   # ‒ FIGURE DASH
+    "﹣",   # ﹣ SMALL HYPHEN-MINUS
+    "－",   # － FULLWIDTH HYPHEN-MINUS
+    "✕",   # ✕ MULTIPLICATION X
+    "✖",   # ✖ HEAVY MULTIPLICATION X
+    "✗",   # ✗ BALLOT X
+    "✘",   # ✘ HEAVY BALLOT X
+    "❌",   # ❌ CROSS MARK
+    "×",   # × MULTIPLICATION SIGN
+}
+
+# Слова целиком (после lower) — однозначное «да/нет».
+_PLUS_WORDS = {
+    "yes", "true", "available", "да", "ha",
+    "доступно", "доступен", "доступна",
+    "разрешено", "включено",
+}
+_MINUS_WORDS = {
+    "no", "false", "blocked", "нет", "yo'q", "yoq", "yoʻq",
+    "недоступно", "недоступен", "недоступна",
+    "запрещено", "отключено", "закрыт",
+}
+
+# Regex для очистки ячеек: символы нулевой ширины и NBSP-варианты пробелов.
+_ZW_RE   = re.compile("[​‌‍⁠﻿­]")
+_NBSP_RE = re.compile("[     　 ᠎ -  ]")
+
+
 def _normalize_cell(c) -> str:
-    """Привести значение ячейки к str с одинарными пробелами."""
+    """Привести значение ячейки к str с одинарными пробелами.
+
+    Сначала вырезаем символы нулевой ширины (ZWSP, BOM, ZWJ, soft hyphen),
+    затем NBSP и его родственников (U+00A0, U+202F, U+2007, U+3000, ...) меняем
+    на обычный пробел. Иначе сравнение и поиск маркеров ID ломаются.
+    """
     if c is None:
         return ""
     s = str(c)
-    s = s.replace(" ", " ")
+    s = _ZW_RE.sub("", s)
+    s = _NBSP_RE.sub(" ", s)
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
@@ -43,18 +97,58 @@ def _has_id_marker(s: str) -> bool:
 
 
 def _norm_value(v: Any) -> str:
-    """Привести значение клетки к '+' / '-' / '' (пусто)."""
+    """Привести значение ячейки к '+' / '-' / '' (пусто).
+
+    Принципы:
+    - «+» ставим только когда уверены: ячейка состоит из плюс-символов
+      (+ ＋ ➕ ✓ ✔ ✅ ☑) или является ключевым словом (yes/да/available/ha/доступно…).
+    - «-» ставим только при однозначном минус-символе (- − – — ‐ ‑ ﹣ － ✕ ✖ ✗ ✘ ❌ ×)
+      или ключевом слове (no/нет/yo'q/blocked/недоступно…).
+    - Excel-флаг «1»/«0» интерпретируем только если ячейка состоит ровно из этой цифры.
+    - «Y»/«N» больше НЕ считаем флагами — случайная буква в ячейке раньше давала сбои.
+    - Всё остальное (нераспознанный текст) → пусто. Никакого фолбэка в «-» (именно это
+      приводило к ошибкам, когда необычный текст тихо превращался в «-»).
+    """
     if v is None:
         return ""
-    s = str(v).strip().lower()
+
+    # NFKC: fullwidth/совместимые символы → канонические формы
+    s = unicodedata.normalize("NFKC", str(v))
+    s = _ZW_RE.sub("", s)
+    s = _NBSP_RE.sub(" ", s)
+    s = s.strip()
     if not s:
         return ""
-    if s in {"+", "yes", "y", "true", "1", "✓", "✅", "да", "available"}:
+
+    # 1) Одиночный символ — самый частый случай
+    if len(s) == 1:
+        if s in _PLUS_CHARS:
+            return "+"
+        if s in _MINUS_CHARS:
+            return "-"
+
+    # 2) Ячейка состоит только из плюс- (или минус-) символов (например "++", "——")
+    no_space = re.sub(r"\s+", "", s)
+    if no_space and all(ch in _PLUS_CHARS for ch in no_space):
         return "+"
-    if s in {"-", "—", "–", "no", "n", "false", "0", "✗", "✘", "❌", "нет", "blocked", "x"}:
+    if no_space and all(ch in _MINUS_CHARS for ch in no_space):
         return "-"
-    # «1» в Excel-логике = available, всё остальное считаем «-»
-    return "-"
+
+    # 3) Целое слово (yes/no/да/нет/доступно…)
+    s_low = s.lower()
+    if s_low in _PLUS_WORDS:
+        return "+"
+    if s_low in _MINUS_WORDS:
+        return "-"
+
+    # 4) Excel-флаг — только ровно "1" или "0"
+    if s_low == "1":
+        return "+"
+    if s_low == "0":
+        return "-"
+
+    # 5) Не распознали — оставляем пусто (в отчёте это станет статусом "info")
+    return ""
 
 
 def _extract_id(text: str) -> int | None:

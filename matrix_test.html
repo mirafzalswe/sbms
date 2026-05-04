@@ -120,6 +120,8 @@
     .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text-3); }
     .btn-danger { background: var(--fail); color: #fff; }
     .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-warn   { background: var(--warn); color: #1a1500; font-weight: 600; }
+    .btn-warn:hover:not(:disabled) { background: #d4a008; }
     .btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
 
     /* ========== UPLOAD ========== */
@@ -704,6 +706,12 @@
                 <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M3 2l11 6-11 6V2z"/></svg>
                 <span id="btnRunLabel">Запустить прогон</span>
             </button>
+            <button class="btn btn-warn hidden" id="btnResume" onclick="resumeRun()" title="Продолжить с того места, где прогон остановился">
+                ▶ Продолжить
+            </button>
+            <button class="btn btn-ghost hidden" id="btnRestart" onclick="restartRun()" title="Сбросить частичный отчёт и начать прогон заново с первой строки">
+                ↻ Начать заново
+            </button>
             <button class="btn btn-ghost btn-sm" type="button" id="btnSelectAll4" onclick="selectAllRows(true)">
                 Тестировать все
             </button>
@@ -782,7 +790,7 @@
             <span class="lg"><span class="sw blocked"></span>Заблокировано (admin не смог перевести)</span>
             <span class="lg"><span class="sw pending"></span>Ожидает</span>
             <span class="lg" style="margin-left:auto; color: var(--text-3);">
-                В ячейке: <strong style="color:var(--text);">+/−</strong> доступность · <strong style="color:var(--warn);">+10к</strong> разовое (activationCost) · <span style="color:var(--text-3);">АП 90к</span> абонплата
+                В ячейке: <strong style="color:var(--text);">+/−</strong> ожидание из матрицы (цвет = совпало/нет) · <strong style="color:var(--warn);">+10к</strong> разовое (activationCost) · <span style="color:var(--text-3);">АП 90к</span> абонплата
             </span>
         </div>
 
@@ -858,7 +866,9 @@
 const state = {
     spec: null,         // {columns, rows, _stats, _filename}
     selectedRows: new Set(),  // row.id выделенные пользователем
-    report: null,       // финальный отчёт
+    report: null,       // последний (возможно частичный) отчёт
+    partialReportId: null,    // id незавершённого прогона — для resume
+    completedRowIds: new Set(), // row_id уже отработанных строк (для resume-фильтра)
     currentRowIdx: 0,
     runStartedAt: 0,
     abortRequested: false,
@@ -1500,15 +1510,24 @@ function renderCell(cell) {
         skip: 'cell-skip', blocked: 'cell-blocked', pending: 'cell-pending',
     }[status] || 'cell-pending';
 
+    // Что показываем в ячейке:
+    //  - pending      → ожидание из матрицы (ещё не прогоняли)
+    //  - blocked      → ⏸ (admin не смог сменить тариф)
+    //  - диагональ    → «=» (сам себя)
+    //  - есть exp     → САМО ожидание (цвет уже показывает совпало/нет)
+    //  - нет exp      → факт (info-ячейка: матрица не задавала ожидание)
     const sym = status === 'pending' ? (exp || '·') :
                 status === 'blocked' ? '⏸' :
-                act || '·';
+                cell.is_self ? '=' :
+                exp ? exp :
+                (act || '·');
 
     // Стоимость перехода — показываем только когда тариф реально доступен (actual = +)
+    // и нет расхождения с матрицей (статус не fail) — иначе цена в красной ячейке путает.
     const ac = cell.activation_cost;
     const fee = cell.fee_amount;
     let costLine = '';
-    if (act === '+' && (ac != null || fee != null)) {
+    if (act === '+' && status !== 'fail' && (ac != null || fee != null)) {
         const acTxt  = ac != null ? `+${_fmtCost(ac)}` : '';
         const feeTxt = fee != null ? `АП ${_fmtCost(fee)}` : '';
         const acClass = (ac != null && Number(ac) > 0) ? 'cell-cost-paid' : 'cell-cost-free';
@@ -1524,6 +1543,8 @@ function renderCell(cell) {
         `Факт: ${act || '—'}`,
         `Статус: ${status}`,
     ];
+    if (cell.is_self)        titleParts.push('Текущий тариф (диагональ): SBMS не возвращает сам себя в availableForChange');
+    if (cell.archived)       titleParts.push('Тариф архивный — не доступен для перехода');
     if (ac != null)  titleParts.push(`Стоимость перехода (activationCost): ${ac}`);
     if (fee != null) titleParts.push(`Абонплата (АП): ${fee}${cell.fee_period ? ' / ' + cell.fee_period : ''}`);
     const title = titleParts.join('\n');
@@ -1607,24 +1628,98 @@ async function startRun() {
         if (!confirm(`Будет проверено ${sel} из ${total} исходных тарифов.\nПродолжить?`)) return;
     }
 
-    // Сбросить визуал
+    // Полный сброс — это новый прогон, не resume
     state.report = null;
+    state.partialReportId = null;
+    state.completedRowIds = new Set();
+    _hideResumeUI();
+    renderEmptyMatrix(state.spec);
+    clearLogs();
+    addLog('step', `🚀 Старт прогона матрицы. Строк: ${sel}/${total}, колонок: ${state.spec.columns.length}`);
+    addLog('info', `MSISDN: ${c.msisdn} · admin=${c.admin.login} · viewer=${c.viewer.login}`);
+    addLog('info', `wait_after_change=${c.wait_after_change}s · order_timeout=${c.order_timeout}s`);
+
+    await _runMatrix({
+        creds: c,
+        only_rows: isPartial ? [...state.selectedRows] : null,
+        resume_from: null,
+    });
+}
+
+async function resumeRun() {
+    const c = gatherCreds();
+    const err = validateRunInputs(c);
+    if (err) { alert(err); return; }
+
+    // Если report_id неизвестен (старый бэкенд / событие start не дошло) —
+    // подтянем самый свежий resumable-отчёт по MSISDN из истории.
+    if (!state.partialReportId) {
+        addLog('debug', 'partialReportId не известен — ищу последний незавершённый отчёт по MSISDN...');
+        try {
+            const r = await fetch('/api/matrix/history');
+            const list = await r.json();
+            const found = (Array.isArray(list) ? list : [])
+                .filter(x => x && x.msisdn === c.msisdn && (x.resumable || x.status === 'in_progress'))
+                .sort((a, b) => String(b.started_at || '').localeCompare(String(a.started_at || '')))[0];
+            if (found && found.id) {
+                state.partialReportId = found.id;
+                // Заодно достанем уже сделанные row_ids
+                const detResp = await fetch(`/api/matrix/history/${found.id}`);
+                const det = await detResp.json();
+                (det.results || []).forEach(rr => {
+                    if (rr && rr.row_id != null) state.completedRowIds.add(Number(rr.row_id));
+                });
+                addLog('info', `Найден отчёт для продолжения: ${found.id} (сделано ${state.completedRowIds.size})`);
+            } else {
+                alert('Не найдено незавершённых прогонов для этого MSISDN. Запустите прогон заново.');
+                return;
+            }
+        } catch (e) {
+            alert('Не удалось получить список отчётов: ' + e.message);
+            return;
+        }
+    }
+
+    const remaining = (state.selectedRows ? [...state.selectedRows] : [])
+        .filter(id => !state.completedRowIds.has(Number(id)));
+
+    if (remaining.length === 0) {
+        alert('Все выбранные строки уже обработаны — продолжать нечего');
+        _hideResumeUI();
+        return;
+    }
+    if (!confirm(`Продолжить прогон отчёта ${state.partialReportId}?\nОсталось обработать строк: ${remaining.length} (уже сделано ${state.completedRowIds.size}).`)) {
+        return;
+    }
+
+    addLog('step', `⏵ Продолжение прогона ${state.partialReportId}: осталось ${remaining.length} строк`);
+    _hideResumeUI();
+
+    await _runMatrix({
+        creds: c,
+        only_rows: remaining,
+        resume_from: state.partialReportId,
+    });
+}
+
+/**
+ * Общее ядро прогона: открывает SSE-канал, обрабатывает события, реагирует на abort.
+ * Используется и стартом нового прогона, и resume.
+ */
+async function _runMatrix({creds, only_rows, resume_from}) {
+    const c = creds;
     state.runStartedAt = Date.now();
     state.abortRequested = false;
     document.getElementById('progressCard').classList.remove('hidden');
     document.getElementById('kpiCard').classList.remove('hidden');
     document.getElementById('btnStop').classList.remove('hidden');
     document.getElementById('btnRun').disabled = true;
-    setProgress(0, 'Авторизация и подготовка...');
-    setKPI({pass:0, fail:0, skip:0, blocked:0, total: 0});
-    renderEmptyMatrix(state.spec);
-
-    // Сброс журнала и активация
-    clearLogs();
+    _hideResumeUI();
+    setProgress(0, resume_from ? 'Продолжение...' : 'Авторизация и подготовка...');
+    if (!resume_from) {
+        setKPI({pass:0, fail:0, skip:0, blocked:0, total: 0});
+    }
     _setLogStatus('running', 'running');
-    addLog('step', `🚀 Старт прогона матрицы. Строк: ${sel}/${total}, колонок: ${state.spec.columns.length}`);
-    addLog('info', `MSISDN: ${c.msisdn} · admin=${c.admin.login} · viewer=${c.viewer.login}`);
-    addLog('info', `wait_after_change=${c.wait_after_change}s · order_timeout=${c.order_timeout}s`);
 
     const body = {
         msisdn: c.msisdn,
@@ -1633,16 +1728,16 @@ async function startRun() {
         viewer: c.viewer,
         wait_after_change: c.wait_after_change,
         order_timeout: c.order_timeout,
-        only_rows: isPartial ? [...state.selectedRows] : null,
+        only_rows: only_rows,
+        resume_from: resume_from || null,
     };
 
-    // SSE через fetch + ReadableStream (POST с body)
     const ac = new AbortController();
     state.activeStream = ac;
-    let totalRows = 0;
+    let sawAborted = false;
 
     try {
-        addLog('debug', 'POST /api/matrix/run-stream — открываем SSE-канал');
+        addLog('debug', `POST /api/matrix/run-stream${resume_from ? ' (resume='+resume_from+')' : ''}`);
         const resp = await fetch('/api/matrix/run-stream', {
             method: 'POST', signal: ac.signal,
             headers: {'Content-Type': 'application/json'},
@@ -1668,7 +1763,19 @@ async function startRun() {
                 if (!chunk.startsWith('data:')) continue;
                 const evt = JSON.parse(chunk.slice(5).trim());
                 handleEvent(evt);
-                if (evt.event === 'start') totalRows = evt.total_rows;
+
+                if (evt.event === 'start' && evt.report_id) {
+                    state.partialReportId = evt.report_id;
+                }
+                if (evt.event === 'row_done' && evt.row && evt.row.row_id != null) {
+                    state.completedRowIds.add(Number(evt.row.row_id));
+                }
+                if (evt.event === 'aborted') {
+                    sawAborted = true;
+                    state.report = evt.report || null;
+                    if (evt.report && evt.report.id) state.partialReportId = evt.report.id;
+                    addLog('warn', `⏸ Прогон остановлен на сервере · обработано ${evt.processed||0}, осталось ${evt.remaining||0}`);
+                }
                 if (evt.event === 'final' || evt.event === 'error') {
                     if (evt.event === 'error') {
                         addLog('fail', `✗ Сервер вернул ошибку: ${evt.error || 'неизвестная ошибка'}`);
@@ -1677,20 +1784,29 @@ async function startRun() {
                 }
             }
         }
-        if (state.abortRequested) {
-            addLog('warn', '⏹ Прогон остановлен пользователем');
+        // Завершение цикла. Если была аборт-команда от пользователя — стрим был оборван
+        // нами; сервер увидит закрытие соединения и сохранит частичный отчёт.
+        if (state.abortRequested || sawAborted) {
             _setLogStatus('остановлен', 'idle');
+            _showResumeUI();
         } else {
             _setLogStatus('завершён', 'idle');
+            // Полный финиш — частичного отчёта больше нет
+            state.partialReportId = null;
+            _hideResumeUI();
         }
     } catch (e) {
         if (e.name !== 'AbortError') {
             addLog('fail', `✗ Ошибка прогона: ${e.message}`);
             _setLogStatus('ошибка', 'error');
             alert('Ошибка прогона: ' + e.message);
+            // При сетевой ошибке отчёт всё равно мог сохраниться на диске —
+            // покажем кнопку resume, если знаем id.
+            if (state.partialReportId) _showResumeUI();
         } else {
             addLog('warn', 'Поток данных прерван (abort)');
             _setLogStatus('прерван', 'idle');
+            _showResumeUI();
         }
     } finally {
         document.getElementById('btnStop').classList.add('hidden');
@@ -1699,11 +1815,59 @@ async function startRun() {
     }
 }
 
+function _showResumeUI() {
+    // Покажем кнопки если был ХОТЬ КАКОЙ-ТО прогон.
+    // Если ещё ни одной строки не завершилось и нет id частичного отчёта — нечего показывать.
+    const hadProgress = state.completedRowIds.size > 0 || !!state.partialReportId;
+    if (!hadProgress) return;
+
+    const total = state.selectedRows ? state.selectedRows.size : 0;
+    const remaining = total - state.completedRowIds.size;
+
+    const btnR  = document.getElementById('btnResume');
+    const btnRe = document.getElementById('btnRestart');
+
+    // «Продолжить» — только если осталось что доделать
+    if (remaining > 0) {
+        btnR.classList.remove('hidden');
+        btnR.textContent = `▶ Продолжить (${remaining} осталось)`;
+    } else {
+        btnR.classList.add('hidden');
+    }
+    // «Начать заново» — после любой остановки
+    btnRe.classList.remove('hidden');
+    btnRe.textContent = `↻ Начать заново`;
+}
+
+function _hideResumeUI() {
+    document.getElementById('btnResume').classList.add('hidden');
+    document.getElementById('btnRestart').classList.add('hidden');
+}
+
+async function restartRun() {
+    if (!state.partialReportId && state.completedRowIds.size === 0) {
+        // Нечего сбрасывать — просто перезапуск
+        return startRun();
+    }
+    if (!confirm(`Начать прогон заново?\nЧастичный отчёт ${state.partialReportId || ''} останется в истории, но новый прогон начнётся с первой строки и создаст отдельный отчёт.`)) {
+        return;
+    }
+    addLog('warn', `↻ Сброс частичного отчёта ${state.partialReportId || ''} — стартуем заново`);
+    // Сброс состояния resume — startRun сам уберёт визуал и обнулит счётчики
+    state.partialReportId = null;
+    state.completedRowIds = new Set();
+    _hideResumeUI();
+    await startRun();
+}
+
 function stopRun() {
     state.abortRequested = true;
     if (state.activeStream) try { state.activeStream.abort(); } catch (e) {}
     document.getElementById('runStatus').textContent = 'Остановлено пользователем';
-    addLog('warn', '⏹ Запрошена остановка прогона');
+    document.getElementById('btnStop').classList.add('hidden');
+    addLog('warn', '⏹ Запрошена остановка прогона (текущая строка дойдёт до конца, дальше — стоп)');
+    // Кнопки «Продолжить» / «Начать заново» появляются СРАЗУ — не ждём сервер.
+    _showResumeUI();
 }
 
 function handleEvent(evt) {
@@ -1712,9 +1876,22 @@ function handleEvent(evt) {
         document.getElementById('runStatus').textContent =
             `Абонент: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · исходный rateplan=${evt.initial_rateplan || '—'}`;
         addLog('info', `👤 Абонент найден: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · текущий rateplan=${evt.initial_rateplan || '—'}`);
-        addLog('info', `🎯 К прогону: ${evt.total_rows} строк, ~${evt.total_cells} ячеек`);
+        if (evt.resumed) {
+            addLog('info', `⏵ Продолжение отчёта ${evt.report_id}: пропущено уже сделанных ${evt.skipped_done||0}, осталось ${evt.total_rows} строк`);
+            // Восстановим completedRowIds из ивента, чтобы кнопка resume считала правильно
+            (evt.done_row_ids || []).forEach(id => state.completedRowIds.add(Number(id)));
+        } else {
+            addLog('info', `🎯 К прогону: ${evt.total_rows} строк, ~${evt.total_cells} ячеек · отчёт id=${evt.report_id || '?'}`);
+        }
         const meta = document.getElementById('ldRowsCount');
         if (meta) meta.textContent = `0/${evt.total_rows}`;
+        return;
+    }
+    if (evt.event === 'aborted') {
+        // Сервер сам сохранил частичный отчёт — отрисовываем то, что прислали
+        if (evt.report) state.report = evt.report;
+        document.getElementById('progressStep').textContent =
+            `⏸ Прогон остановлен. Обработано ${evt.processed||0}, осталось ${evt.remaining||0}`;
         return;
     }
     if (evt.event === 'row_start') {
