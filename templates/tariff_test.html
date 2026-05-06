@@ -239,6 +239,9 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 7px 10px; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; background: #0f172a; border-bottom: 1px solid #334155; position: sticky; top: 0; z-index: 1; }
         td { padding: 6px 10px; font-size: 12px; border-bottom: 1px solid #1e293b44; }
+        /* Лёгкие вертикальные границы между колонками — общие для всех таблиц */
+        th + th, td + td { border-left: 1px solid rgba(148,163,184,0.10); }
+        th + th { border-left-color: rgba(148,163,184,0.18); }
         tr:hover { background: #0f172a44; }
         tr.selected { background: var(--brand-soft); border-left: 3px solid var(--brand); }
 
@@ -768,11 +771,73 @@
         .list-body tr.group-sep:first-child td { border-top: none; }
 
         /* Column widths — ID | Name | Status | Action */
-        .col-id     { width: 46px; font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; color: #475569; }
+        .col-id     { width: 86px; font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; color: #475569;
+                      overflow: visible !important; text-overflow: clip !important; white-space: normal !important;
+                      padding-right: 6px !important; }
         .col-name   { /* fills rest — table-layout:fixed + max-width:0 trick */ max-width: 0; }
-        .col-status { width: 110px; }
+        .col-status { width: 96px; }
         .col-doc    { width: 78px; }
         .col-action { width: 114px; }
+
+        /* Copy-able ID pill (catalog ID) and instance ID under it */
+        .id-pill {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 7px; border-radius: 5px;
+            font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; font-weight: 600;
+            background: var(--brand-soft, #2a1b3d); color: #c084fc;
+            border: 1px solid var(--brand-glow, #a855f733);
+            cursor: pointer; transition: all .15s; user-select: all;
+            letter-spacing: .01em; line-height: 1.1;
+        }
+        .id-pill:hover { background: var(--brand, #a855f7); color: #fff; border-color: var(--brand, #a855f7); }
+        .id-pill.id-pill-instance {
+            background: #22c55e15; color: #22c55e; border-color: #22c55e35;
+            font-size: 10px; padding: 1px 6px; margin-top: 3px;
+        }
+        .id-pill.id-pill-instance:hover { background: #22c55e; color: #052e16; border-color: #22c55e; }
+        .id-pill.id-pill-empty { background: transparent; color: #334155; border-color: transparent; cursor: default; }
+        .id-pill-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; }
+        .id-pill-label {
+            font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            color: #475569; margin-right: 3px;
+        }
+        [data-theme="light"] .id-pill { background: #f5edfa; color: #7c3aed; border-color: #d8c2e6; }
+        [data-theme="light"] .id-pill:hover { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+        [data-theme="light"] .id-pill.id-pill-instance { background: #ecfdf5; color: #15803d; border-color: #86efac; }
+        [data-theme="light"] .id-pill.id-pill-instance:hover { background: #15803d; color: #fff; border-color: #15803d; }
+        [data-theme="light"] .id-pill-label { color: #64748b; }
+
+        /* Fee cells in available-tariffs table */
+        .fee-cell { text-align: right; font-family: 'SF Mono','Fira Code',monospace;
+            font-size: 12px; font-weight: 600; color: #e2e8f0; white-space: nowrap;
+            padding-right: 12px !important; }
+        .fee-cell.fee-zero  { color: #22c55e; }
+        .fee-cell.fee-empty { color: #334155; font-weight: 400; }
+        .fee-cell .fee-unit { font-size: 9px; font-weight: 500; color: #64748b;
+            margin-left: 3px; text-transform: uppercase; letter-spacing: .04em; }
+        [data-theme="light"] .fee-cell { color: #1a2332; }
+        [data-theme="light"] .fee-cell.fee-zero  { color: #15803d; }
+        [data-theme="light"] .fee-cell.fee-empty { color: #94a3b8; }
+
+        /* "Сменить тариф" action button (purple gradient — primary) */
+        .action-btn-change {
+            background: linear-gradient(135deg, var(--brand, #a855f7) 0%, #7c3aed 100%);
+            color: #fff;
+            box-shadow: 0 1px 4px rgba(168, 85, 247, .25);
+        }
+        .action-btn-change:hover {
+            background: linear-gradient(135deg, var(--brand-hover, #9333ea) 0%, #6d28d9 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(168, 85, 247, .45);
+        }
+        .action-btn-change:disabled { opacity: .5; transform: none; box-shadow: none; cursor: progress; }
+        .action-btn-change.is-current {
+            background: #1e293b; color: #64748b;
+            border: 1px solid #334155; box-shadow: none; cursor: default;
+        }
+        [data-theme="light"] .action-btn-change.is-current {
+            background: #f1f5f9; color: #94a3b8; border-color: #e2e6ec;
+        }
 
         /* Compact icon-only buttons: Confluence (docs) + MyCR (orders) */
         .docs-cell {
@@ -1099,6 +1164,8 @@
         [data-theme="light"] .tariff-table-wrap { border-color: #e2e6ec; }
         [data-theme="light"] th { background: #f8f9fb; color: #8893a4; border-bottom-color: #e2e6ec; }
         [data-theme="light"] td { border-bottom-color: #f0f2f5; color: #1a2332; }
+        [data-theme="light"] th + th, [data-theme="light"] td + td { border-left-color: rgba(100,116,139,0.10); }
+        [data-theme="light"] th + th { border-left-color: rgba(100,116,139,0.20); }
         [data-theme="light"] tr:hover { background: #f8f9fb; }
         [data-theme="light"] tr.selected { background: #f5edfa; border-left-color: var(--brand); }
 
@@ -1204,6 +1271,8 @@
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/tester" class="nav-link">QA</a>
             <a href="/tariff-test" class="nav-link active">Тест тарифа</a>
+            <a href="/matrix-test" class="nav-link">Матрица переходов</a>
+            <a href="/product-availability" class="nav-link">Доступность продукта</a>
             <a href="/tme" class="nav-link">TME</a>
         </nav>
 
@@ -1377,15 +1446,15 @@
                         </div>
                         <table>
                             <colgroup>
-                                <col style="width:46px">
+                                <col style="width:86px">
                                 <col>
-                                <col style="width:104px">
+                                <col style="width:96px">
                                 <col style="width:78px">
                                 <col style="width:114px">
                             </colgroup>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th title="ID пакета (каталог) / ID инстанса (продукт)">ID</th>
                                     <th>Название</th>
                                     <th>Статус</th>
                                     <th style="text-align:center" title="Документация и приказы">Док.</th>
@@ -1415,15 +1484,15 @@
                         </div>
                         <table>
                             <colgroup>
-                                <col style="width:46px">
+                                <col style="width:86px">
                                 <col>
-                                <col style="width:104px">
+                                <col style="width:96px">
                                 <col style="width:78px">
                                 <col style="width:114px">
                             </colgroup>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th title="ID услуги (каталог) / ID инстанса (продукт)">ID</th>
                                     <th>Название</th>
                                     <th>Статус</th>
                                     <th style="text-align:center" title="Документация и приказы">Док.</th>
@@ -1453,10 +1522,204 @@
                         <input type="text" class="list-search" placeholder="Поиск по тарифам..." oninput="filterList('availTariffs', this.value)">
                     </div>
                     <table>
-                        <colgroup><col style="width:52px"><col><col style="width:78px"></colgroup>
-                        <thead><tr><th>ID</th><th>Название</th><th style="text-align:center" title="Документация и приказы">Док.</th></tr></thead>
+                        <colgroup>
+                            <col style="width:86px">
+                            <col>
+                            <col style="width:96px">
+                            <col style="width:96px">
+                            <col style="width:78px">
+                            <col style="width:104px">
+                        </colgroup>
+                        <thead><tr>
+                            <th title="ID тарифного плана (ratePlanId)">ID</th>
+                            <th>Название</th>
+                            <th style="text-align:right" title="Абонентская плата (subscriptionFeeDetail.amount)">АП</th>
+                            <th style="text-align:right" title="Стоимость перехода (activationCost)">Разовое</th>
+                            <th style="text-align:center" title="Документация и приказы">Док.</th>
+                            <th style="text-align:center">Действие</th>
+                        </tr></thead>
                         <tbody id="availTariffsList"></tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Calls (события абонента) — collapsible -->
+            <div class="list-section" style="margin-top:20px;">
+                <div class="list-toggle" onclick="toggleCallsSection()" id="callsToggle">
+                    <span class="lt-title">
+                        Вызовы абонента
+                        <span class="lt-count" id="callsCount">—</span>
+                    </span>
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <button class="section-reload" onclick="event.stopPropagation();loadCalls(this)" title="Загрузить / обновить вызовы">↻</button>
+                        <span class="lt-arrow" id="callsArrow">&#9660;</span>
+                    </span>
+                </div>
+                <div class="list-body" id="callsBody">
+                    <div class="list-search-wrap" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" class="list-search" placeholder="Поиск по событиям (услуга / пакет / номер)..." oninput="filterList('calls', this.value)" style="flex:1;min-width:220px;">
+                        <label style="font-size:12px;color:#94a3b8;display:inline-flex;align-items:center;gap:4px;cursor:pointer;" title="Перебрать все варианты вызова PSIX и показать диагностику">
+                            <input type="checkbox" id="callsDebugChk"> debug
+                        </label>
+                        <button class="btn btn-sm" type="button" onclick="openCallsColumnsEditor()" title="Выбрать видимые колонки таблицы">⚙ Колонки</button>
+                        <button class="btn btn-sm" type="button" onclick="exportCallsCSV()" title="Скачать видимые колонки в CSV">⬇ CSV</button>
+                        <button class="btn btn-sm" type="button" onclick="loadCalls(this)" title="Показать вызовы по абоненту">Показать вызовы</button>
+                    </div>
+                    <div id="callsDebugBox" style="display:none;font-size:11px;font-family:monospace;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px;margin:6px 0;color:#cbd5e1;max-height:240px;overflow:auto;"></div>
+                    <div style="overflow-x:auto;">
+                        <table style="font-size:12px;table-layout:fixed;" id="callsTable">
+                            <colgroup id="callsColgroup"></colgroup>
+                            <thead>
+                                <tr id="callsHeadRow"></tr>
+                            </thead>
+                            <tbody id="callsList">
+                                <tr><td style="text-align:center;color:#94a3b8;padding:14px;">Нажмите «Показать вызовы», чтобы загрузить события абонента.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="callsTotals" style="display:none;margin-top:6px;padding:8px 12px;border:1px solid #1e293b;border-radius:6px;background:#0d1626;font-size:12px;color:#cbd5e1;gap:16px;flex-wrap:wrap;align-items:center;"></div>
+                    <style>
+                        /* === Calls table — общий контейнер === */
+                        #callsTable{
+                            width:100%;
+                            border-collapse:separate;
+                            border-spacing:0;
+                            font-size:12px;
+                            table-layout:fixed;
+                            background:#0b1220;
+                            border:1px solid #1e293b;
+                            border-radius:8px;
+                            overflow:hidden;
+                            box-shadow:0 2px 6px rgba(0,0,0,.25) inset;
+                        }
+                        /* Шапка */
+                        #callsTable thead th{
+                            position:sticky; top:0; z-index:3;
+                            background:linear-gradient(180deg,#111c33 0%,#0d1729 100%);
+                            color:#94a3b8;
+                            font-size:10.5px;
+                            font-weight:700;
+                            text-transform:uppercase;
+                            letter-spacing:.05em;
+                            padding:9px 12px;
+                            border-bottom:1px solid #1e3a5f;
+                            user-select:none;
+                            overflow:hidden;
+                            white-space:nowrap;
+                        }
+                        #callsTable thead th .col-label{
+                            display:inline-block; max-width:calc(100% - 22px);
+                            overflow:hidden; text-overflow:ellipsis; vertical-align:middle;
+                            cursor:pointer;
+                        }
+                        #callsTable thead th.sortable .col-label:hover{ color:#e2e8f0; }
+                        #callsTable thead th .sort-arr{
+                            display:inline-block; margin-left:4px; font-size:9px; color:#475569; vertical-align:middle;
+                        }
+                        #callsTable thead th.sort-asc  .sort-arr{ color:#3b82f6; }
+                        #callsTable thead th.sort-desc .sort-arr{ color:#3b82f6; }
+                        [data-theme="light"] #callsTable thead th.sortable .col-label:hover{ color:#0b1220; }
+                        [data-theme="light"] #callsTable thead th .sort-arr{ color:#94a3b8; }
+                        [data-theme="light"] #callsTable thead th.sort-asc  .sort-arr,
+                        [data-theme="light"] #callsTable thead th.sort-desc .sort-arr{ color:#1d4ed8; }
+                        [data-theme="light"] #callsTotals{ background:#f5f7fb !important; border-color:#cbd5e1 !important; color:#0b1220 !important; }
+                        #callsTotals .tot-k{ color:#94a3b8; margin-right:6px; }
+                        #callsTotals .tot-v{ color:#e2e8f0; font-weight:600; font-family:'SF Mono','Fira Code',Menlo,monospace; font-variant-numeric:tabular-nums; }
+                        [data-theme="light"] #callsTotals .tot-k{ color:#475569; }
+                        [data-theme="light"] #callsTotals .tot-v{ color:#0b1220; }
+                        /* Вертикальные разделители — мягкие, видимые */
+                        #callsTable thead th + th{ border-left:1px solid rgba(96,165,250,0.12); }
+                        #callsTable tbody td + td{ border-left:1px solid rgba(148,163,184,0.07); }
+                        /* Тело */
+                        #callsTable tbody td{
+                            padding:8px 12px;
+                            font-size:12px;
+                            color:#e2e8f0;
+                            border-bottom:1px solid #131d2e;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            white-space:nowrap;
+                            vertical-align:middle;
+                        }
+                        /* Зебра */
+                        #callsTable tbody tr.data-row:nth-child(odd) td{ background:#0d1626; }
+                        #callsTable tbody tr.data-row:nth-child(even) td{ background:#0b1220; }
+                        /* Hover-подсветка строки */
+                        #callsTable tbody tr.data-row:hover td{
+                            background:#162641;
+                            color:#f1f5f9;
+                        }
+                        #callsTable tbody tr:last-child td{ border-bottom:none; }
+                        /* Ручка ресайза */
+                        #callsTable th{ position:relative; }
+                        #callsTable th .col-resizer{
+                            position:absolute; top:0; right:0; width:6px; height:100%;
+                            cursor:col-resize; user-select:none; z-index:4;
+                        }
+                        #callsTable th .col-resizer:hover,
+                        #callsTable th .col-resizer.dragging{
+                            background:linear-gradient(to right,transparent 0,#3b82f6 50%,transparent 100%);
+                        }
+                        #callsTable.is-resizing{ cursor:col-resize; }
+                        #callsTable.is-resizing *{ cursor:col-resize !important; user-select:none !important; }
+                        /* DnD-перетаскивание колонок */
+                        #callsTable thead th .col-label[draggable="true"]{ cursor:grab; }
+                        #callsTable thead th .col-label[draggable="true"]:active{ cursor:grabbing; }
+                        #callsTable thead th.col-dragging{ opacity:.45; }
+                        #callsTable thead th.col-drop-target{
+                            box-shadow: inset 3px 0 0 0 #3b82f6;
+                            background:linear-gradient(180deg,#1a2842 0%,#0d1729 100%);
+                        }
+                        [data-theme="light"] #callsTable thead th.col-drop-target{
+                            box-shadow: inset 3px 0 0 0 #1d4ed8;
+                            background:linear-gradient(180deg,#dbeafe 0%,#c7d2fe 100%);
+                        }
+                        /* === Светлая тема: высокий контраст для чтения === */
+                        [data-theme="light"] #callsTable{
+                            background:#ffffff;
+                            border:1px solid #cbd5e1;
+                            box-shadow:0 1px 3px rgba(15,23,42,.06) inset;
+                            color:#0b1220;
+                        }
+                        [data-theme="light"] #callsTable thead th{
+                            background:linear-gradient(180deg,#eef2f7 0%,#dde4ee 100%);
+                            color:#0f172a;
+                            border-bottom:1.5px solid #94a3b8;
+                            font-weight:700;
+                            text-shadow:0 1px 0 rgba(255,255,255,.6);
+                        }
+                        [data-theme="light"] #callsTable thead th + th{ border-left:1px solid #94a3b8; }
+                        [data-theme="light"] #callsTable tbody td{
+                            color:#0b1220;
+                            border-bottom:1px solid #d8dee7;
+                            background:#ffffff !important;
+                        }
+                        [data-theme="light"] #callsTable tbody td + td{ border-left:1px solid #e2e8f0; }
+                        [data-theme="light"] #callsTable tbody tr.data-row:nth-child(odd) td{ background:#f5f7fb !important; }
+                        [data-theme="light"] #callsTable tbody tr.data-row:nth-child(even) td{ background:#ffffff !important; }
+                        [data-theme="light"] #callsTable tbody tr.data-row:hover td{ background:#dbeafe !important; color:#0b1220; }
+                        /* Date column: чёткий тёмный текст вместо приглушённого */
+                        [data-theme="light"] #callsTable tbody td span[style*="color:#e2e8f0"]{ color:#0b1220 !important; font-weight:600; }
+                        [data-theme="light"] #callsTable tbody td span[style*="color:#94a3b8"]{ color:#475569 !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="color:#cbd5e1"]{ color:#1e293b !important; }
+                        /* Mono / right-aligned cells — насыщённый тёмный */
+                        [data-theme="light"] #callsTable tbody td[style*="font-family"]{ color:#0b1220 !important; }
+                        [data-theme="light"] #callsTable tbody td[style*="font-weight:600"]{ color:#0b1220 !important; }
+                        /* Бейджи: на белом — более контрастные фоны и тёмный текст */
+                        [data-theme="light"] #callsTable tbody td span[style*="border-radius:999px"],
+                        [data-theme="light"] #callsTable tbody td span[style*="border-radius:6px"]{
+                            border:1px solid rgba(15,23,42,.10);
+                            font-weight:700 !important;
+                        }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(59,130,246,0.16)"]{ background:#dbeafe !important; color:#1d4ed8 !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(168,85,247,0.16)"]{ background:#f3e8ff !important; color:#7c3aed !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(16,185,129,0.16)"]{ background:#d1fae5 !important; color:#047857 !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(245,158,11,0.16)"]{ background:#fef3c7 !important; color:#b45309 !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(244,63,94,0.16)"]{ background:#ffe4e6 !important; color:#be123c !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(34,197,94,0.16)"]{ background:#d1fae5 !important; color:#047857 !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(239,68,68,0.16)"]{ background:#fee2e2 !important; color:#b91c1c !important; }
+                        [data-theme="light"] #callsTable tbody td span[style*="rgba(148,163,184"]{ background:#e2e8f0 !important; color:#334155 !important; }
+                    </style>
                 </div>
             </div>
         </div>
@@ -1483,11 +1746,13 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:50px;">#</th>
-                            <th style="width:80px;">ID</th>
+                            <th style="width:42px;">#</th>
+                            <th style="width:78px;">ID</th>
                             <th>Название</th>
-                            <th style="width:78px;text-align:center;" title="Документация и приказы">Док.</th>
-                            <th style="width:100px;">Действие</th>
+                            <th style="width:104px;text-align:right;" title="Абонентская плата (subscriptionFeeDetail.amount)">АП</th>
+                            <th style="width:104px;text-align:right;" title="Стоимость перехода (activationCost)">Разовое</th>
+                            <th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th>
+                            <th style="width:170px;text-align:center;">Действие</th>
                         </tr>
                     </thead>
                     <tbody id="tariffTableBody"></tbody>
@@ -2421,6 +2686,33 @@
         }
 
         // ==================== LISTS: PACKS, SERVICES, TARIFFS ====================
+        // Click-to-copy ID pill. Shows toast on success.
+        function copyId(ev, value) {
+            ev && ev.stopPropagation && ev.stopPropagation();
+            if (value == null || value === '') return;
+            const txt = String(value);
+            const done = () => { try { showToast('ID скопирован: ' + txt); } catch(_) {} };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(done).catch(() => {
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = txt; document.body.appendChild(ta);
+                        ta.select(); document.execCommand('copy'); ta.remove(); done();
+                    } catch(_) {}
+                });
+            }
+        }
+        // Build pill HTML. kind: 'catalog' (purple) | 'instance' (green). Empty value → dim placeholder.
+        function idPill(value, kind, labelTitle) {
+            if (value == null || value === '') {
+                return `<span class="id-pill id-pill-empty" title="нет ID">—</span>`;
+            }
+            const cls = kind === 'instance' ? 'id-pill id-pill-instance' : 'id-pill';
+            const safe = String(value).replace(/"/g, '&quot;');
+            const title = labelTitle ? labelTitle.replace(/"/g, '&quot;') : 'Кликните, чтобы скопировать';
+            return `<span class="${cls}" onclick="copyId(event,'${safe}')" title="${title}">${safe}</span>`;
+        }
+
         function renderPacksList(data) {
             const activePacks = data.activePacks || [];
             const availPacks  = data.availablePacks || [];
@@ -2442,8 +2734,14 @@
                         ? `<button class="action-btn action-btn-deactivate"
                                    onclick="deactivatePack(this,'${instId}','${packName.replace(/'/g,"\\'")}')">Отключить</button>`
                         : `<span class="no-btn" title="нет instanceId">—</span>`;
+                    const idCell = `<div class="id-pill-stack">`
+                        + idPill(packId, 'catalog', `packId (каталог) — кликните, чтобы скопировать`)
+                        + (instId && String(instId) !== String(packId)
+                              ? idPill(instId, 'instance', `packInstanceId (продукт) — кликните, чтобы скопировать`)
+                              : '')
+                        + `</div>`;
                     packsHtml += `<tr class="data-row" data-name="${packName.toLowerCase()}">
-                        <td class="col-id">${packId}</td>
+                        <td class="col-id">${idCell}</td>
                         <td class="col-name" title="${esc(packName)}">${esc(packName)}</td>
                         <td class="col-status">${statusTag}</td>
                         <td class="col-doc" style="text-align:center">${docBtn(packName)}</td>
@@ -2463,7 +2761,7 @@
                                    onclick="activatePack(this,${packId},'${packName.replace(/'/g,"\\'")}')">Подключить</button>`
                         : `<span class="no-btn">—</span>`;
                     packsHtml += `<tr class="data-row" data-name="${packName.toLowerCase()}">
-                        <td class="col-id">${packId}</td>
+                        <td class="col-id">${idPill(packId, 'catalog', 'packId (каталог) — кликните, чтобы скопировать')}</td>
                         <td class="col-name" title="${esc(packName)}">${esc(packName)}${fee}</td>
                         <td class="col-status"><span class="tag-avail">Доступен</span></td>
                         <td class="col-doc" style="text-align:center">${docBtn(packName)}</td>
@@ -2497,8 +2795,14 @@
                         ? `<button class="action-btn action-btn-deactivate"
                                    onclick="deactivateService(this,'${instId}','${svcName.replace(/'/g,"\\'")}')">Отключить</button>`
                         : `<span class="no-btn" title="нет instanceId">—</span>`;
+                    const idCell = `<div class="id-pill-stack">`
+                        + idPill(svcId, 'catalog', 'serviceId (каталог) — кликните, чтобы скопировать')
+                        + (instId && String(instId) !== String(svcId)
+                              ? idPill(instId, 'instance', 'serviceInstanceId (продукт) — кликните, чтобы скопировать')
+                              : '')
+                        + `</div>`;
                     srvHtml += `<tr class="data-row" data-name="${svcName.toLowerCase()}">
-                        <td class="col-id">${svcId}</td>
+                        <td class="col-id">${idCell}</td>
                         <td class="col-name" title="${esc(svcName)}">${esc(svcName)}</td>
                         <td class="col-status">${statusTag}</td>
                         <td class="col-doc" style="text-align:center">${docBtn(svcName)}</td>
@@ -2518,7 +2822,7 @@
                                    onclick="activateService(this,${svcId},'${svcName.replace(/'/g,"\\'")}')">Подключить</button>`
                         : `<span class="no-btn">—</span>`;
                     srvHtml += `<tr class="data-row" data-name="${svcName.toLowerCase()}">
-                        <td class="col-id">${svcId}</td>
+                        <td class="col-id">${idPill(svcId, 'catalog', 'serviceId (каталог) — кликните, чтобы скопировать')}</td>
                         <td class="col-name" title="${esc(svcName)}">${esc(svcName)}${fee}</td>
                         <td class="col-status"><span class="tag-avail">Доступна</span></td>
                         <td class="col-doc" style="text-align:center">${docBtn(svcName)}</td>
@@ -2533,17 +2837,134 @@
 
         function renderAvailTariffsList(data) {
             const tariffs = data.availableRatePlans || [];
+            const currentRpId = (data && data.customer && data.customer.ratePlanId)
+                || (window._lastCustomerData && window._lastCustomerData.customer && window._lastCustomerData.customer.ratePlanId)
+                || null;
             document.getElementById('availTariffsCount').textContent = `(${tariffs.length})`;
+
+            const fmtMoney = (v) => {
+                if (v == null || v === '') return null;
+                const n = Number(v);
+                if (!isFinite(n)) return null;
+                return Math.round(n).toLocaleString('ru-RU');
+            };
+            const feeCell = (val, opts) => {
+                opts = opts || {};
+                const formatted = fmtMoney(val);
+                if (formatted == null) {
+                    return `<td class="fee-cell fee-empty" title="Нет данных">—</td>`;
+                }
+                const num = Number(val);
+                const cls = (num === 0) ? 'fee-cell fee-zero' : 'fee-cell';
+                const txt = (num === 0 && opts.zeroLabel)
+                    ? opts.zeroLabel
+                    : `${formatted}<span class="fee-unit">сум${opts.suffix ? '/' + opts.suffix : ''}</span>`;
+                const ttl = opts.title ? ` title="${esc(opts.title)}"` : '';
+                return `<td class="${cls}"${ttl}>${txt}</td>`;
+            };
+
+            // Достаём fee любым доступным путём: плоское поле → ratePlanCost → _raw → внутри t
+            const pickFee = (t) => {
+                const rpc = t.ratePlanCost || (t._raw && t._raw.ratePlanCost) || null;
+                const sfd = rpc && rpc.subscriptionFeeDetail || null;
+                const ap     = (t.recurringFee   != null) ? t.recurringFee
+                              : (sfd && sfd.amount != null ? sfd.amount : null);
+                const onetime = (t.activationCost != null) ? t.activationCost
+                              : (rpc && rpc.activationCost != null ? rpc.activationCost : null);
+                const period  = t.feePeriod || (sfd && sfd.periodMeasureUnit) || '';
+                return { ap, onetime, period };
+            };
+
             let tHtml = '';
             tariffs.forEach(t => {
                 const name = t.name || 'N/A';
+                const rpId = t.ratePlanId || '';
+                const isCurrent = currentRpId != null && String(rpId) === String(currentRpId);
+
+                const fees = pickFee(t);
+                const period = (fees.period || '').toString().toLowerCase();
+                const periodSuffix = period.startsWith('month') ? 'мес'
+                                   : period.startsWith('day')   ? 'день'
+                                   : period.startsWith('year')  ? 'год'
+                                   : '';
+
+                const apCell = feeCell(fees.ap, {
+                    suffix: periodSuffix,
+                    title: 'Абонентская плата (subscriptionFeeDetail.amount)'
+                });
+                const oneTimeCell = feeCell(fees.onetime, {
+                    zeroLabel: '<span style="color:#22c55e;font-weight:700;">0</span>',
+                    title: 'Разовое начисление при переходе (activationCost)'
+                });
+
+                const safeName = (t.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                const actionCell = isCurrent
+                    ? `<button class="action-btn action-btn-change is-current" disabled title="Это текущий тариф абонента">Текущий</button>`
+                    : (rpId
+                        ? `<button class="action-btn action-btn-change"
+                                   onclick="changeTariffDirect(this, ${rpId}, '${safeName}', ${Number(fees.onetime)||0}, ${Number(fees.ap)||0})"
+                                   title="Сменить тариф через API">Сменить</button>`
+                        : `<span class="no-btn">—</span>`);
+
                 tHtml += `<tr class="data-row" data-name="${esc((t.name||'').toLowerCase())}">
-                    <td class="col-id">${t.ratePlanId||''}</td>
-                    <td>${esc(name)}</td>
+                    <td class="col-id">${idPill(rpId, 'catalog', 'ratePlanId — кликните, чтобы скопировать')}</td>
+                    <td title="${esc(name)}">${esc(name)}</td>
+                    ${apCell}
+                    ${oneTimeCell}
                     <td class="col-doc" style="text-align:center">${docBtn(name)}</td>
+                    <td class="col-action" style="text-align:center">${actionCell}</td>
                 </tr>`;
             });
             document.getElementById('availTariffsList').innerHTML = tHtml;
+        }
+
+        // Прямая смена тарифа из таблицы доступных тарифов.
+        async function changeTariffDirect(btnEl, ratePlanId, name, activationCost, recurringFee) {
+            if (!currentSubscriberId) { alert('Сначала загрузите абонента'); return; }
+            const fmt = (v) => (v == null || v === 0)
+                ? (v === 0 ? '0' : '—')
+                : Number(v).toLocaleString('ru-RU');
+            const lines = [
+                `Сменить тариф абонента на:`,
+                `  «${name}» (ID: ${ratePlanId})`,
+                ``,
+                `Абонплата: ${fmt(recurringFee)} сум`,
+                `Стоимость перехода: ${activationCost ? fmt(activationCost) + ' сум' : '0'}`,
+                ``,
+                `Действие необратимо. Продолжить?`
+            ];
+            if (!confirm(lines.join('\n'))) return;
+
+            const original = btnEl.textContent;
+            btnEl.disabled = true;
+            btnEl.textContent = '⏳ Меняю…';
+            try {
+                const r = await fetch('/api/tariff/change', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscriberId: currentSubscriberId,
+                        ratePlanId,
+                        ...getCredentials()
+                    })
+                });
+                const res = await r.json();
+                if (!r.ok || res.error) {
+                    showToast(`❌ Ошибка: ${res.error || r.statusText}`, 'error');
+                    btnEl.disabled = false;
+                    btnEl.textContent = original;
+                    return;
+                }
+                const orderId = res.ratePlanOrderId ? ` (orderId: ${res.ratePlanOrderId})` : '';
+                showToast(`✅ Запрос отправлен${orderId}. Тариф изменится через несколько секунд.`);
+                btnEl.textContent = '✓ Отправлено';
+                // Перезагрузим карточку через короткую паузу — SBMS обрабатывает асинхронно
+                setTimeout(() => { try { loadCustomer(); } catch(_) {} }, 4000);
+            } catch (e) {
+                showToast(`❌ Сеть/сервер: ${e.message}`, 'error');
+                btnEl.disabled = false;
+                btnEl.textContent = original;
+            }
         }
 
         function renderLists(data) {
@@ -2795,11 +3216,901 @@
             });
         }
 
+        // ==================== CALLS (события абонента) ====================
+        function toggleCallsSection() {
+            // Универсальный toggleList ожидает id+Body/Arrow → используем тот же шаблон
+            toggleList('calls');
+        }
+
+        function _fmtPsixDate(d) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        async function loadCalls(btnEl) {
+            const msisdn = document.getElementById('fMsisdn').value.trim();
+            if (!msisdn) { showToast('Введите номер абонента', 'error'); return; }
+            if (!SbmsAuth.token) {
+                SbmsAuth.promptLogin('Требуется авторизация для загрузки вызовов').catch(() => {});
+                return;
+            }
+            // STRAFF_CALLS_R / PSIX-grid требуют HTTP Basic поверх SESSION_ID.
+            // Если пароль не хранится в sessionStorage (например, страница перезагружена,
+            // токен ещё жив, но sbms.pw был пуст) — заставляем ввести пароль заново.
+            if (!SbmsAuth.password) {
+                try {
+                    SbmsAuth.clearSession('need_password');
+                    await SbmsAuth.promptLogin('Для загрузки вызовов нужно ввести пароль (он не сохранён после перезагрузки)');
+                } catch (_) { return; }
+            }
+            // Раскрываем секцию, если свёрнута
+            const body = document.getElementById('callsBody');
+            if (body && !body.classList.contains('open')) toggleList('calls');
+
+            const tbody = document.getElementById('callsList');
+            const cnt   = document.getElementById('callsCount');
+            const orig  = btnEl ? btnEl.innerHTML : null;
+            if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = btnEl.tagName === 'BUTTON' && btnEl.classList.contains('section-reload') ? '⟳' : '⏳ Загрузка...'; }
+            {
+                const _span = Math.max(1, _getActiveCallsCols().length);
+                tbody.innerHTML = `<tr><td colspan="${_span}" style="text-align:center;color:#94a3b8;padding:14px;">Загрузка вызовов…</td></tr>`;
+            }
+            try {
+                // По умолчанию запрашиваем последние 60 дней
+                const now = new Date();
+                const from = new Date(now.getTime() - 60*24*3600*1000);
+                from.setHours(0,0,0,0);
+                const debugOn = !!document.getElementById('callsDebugChk')?.checked;
+                const payload = getAuthPayload({
+                    msisdn,
+                    subscriberId: currentSubscriberId || null,
+                    customerId: customerData?.customer?.customerId || null,
+                    startDate: _fmtPsixDate(from),
+                    endDate: _fmtPsixDate(now),
+                    limit: 1000,
+                    debug: debugOn,
+                });
+                // STRAFF_CALLS_R требует HTTP Basic — пробрасываем login/password
+                // из sessionStorage (положены SbmsAuth.authenticate при логине)
+                const _pw = SbmsAuth.password;
+                if (SbmsAuth.login) payload.login = SbmsAuth.login;
+                if (_pw) payload.password = _pw;
+                const resp = await fetch('/api/calls/list', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const json = await resp.json();
+                if (!resp.ok) {
+                    // Сервер сообщил, что нужен пароль (PSIX-grid HTTP Basic).
+                    // Запрашиваем заново и сразу повторяем запрос.
+                    if (resp.status === 401 && json && json.code === 'PASSWORD_REQUIRED') {
+                        try {
+                            SbmsAuth.clearSession('need_password');
+                            await SbmsAuth.promptLogin('Введите пароль повторно для STRAFF_CALLS');
+                            if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = orig; }
+                            return loadCalls(btnEl);
+                        } catch (_) {
+                            tbody.innerHTML = `<tr><td colspan="${Math.max(1,_getActiveCallsCols().length)}" style="text-align:center;color:#94a3b8;padding:14px;">Отменено пользователем.</td></tr>`;
+                            return;
+                        }
+                    }
+                    tbody.innerHTML = `<tr><td colspan="${Math.max(1,_getActiveCallsCols().length)}" style="text-align:center;color:#f87171;padding:14px;">Ошибка: ${esc(json.error || resp.status)}</td></tr>`;
+                    if (cnt) cnt.textContent = '—';
+                    showToast(json.error || 'Ошибка загрузки вызовов', 'error');
+                    return;
+                }
+                renderCallsList(json.items || [], json);
+                if (cnt) cnt.textContent = String(json.count || 0);
+                renderCallsDebug(json);
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="${Math.max(1,_getActiveCallsCols().length)}" style="text-align:center;color:#f87171;padding:14px;">Ошибка сети: ${esc(e.message)}</td></tr>`;
+                showToast('Ошибка: ' + e.message, 'error');
+            } finally {
+                if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = orig; }
+            }
+        }
+
+        function renderCallsDebug(json) {
+            const box = document.getElementById('callsDebugBox');
+            if (!box) return;
+            const attempts = Array.isArray(json?.attempts) ? json.attempts : [];
+            const debugOn = !!document.getElementById('callsDebugChk')?.checked;
+            const isEmpty = !json?.count;
+            // Показываем секцию, если включён debug ИЛИ пусто и есть attempts
+            if (!debugOn && !(isEmpty && attempts.length)) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+            if (!attempts.length) {
+                box.style.display = 'block';
+                box.innerHTML = '<div style="color:#94a3b8;">attempts отсутствуют (старая сборка backend?)</div>';
+                return;
+            }
+            const rows = attempts.map((a, i) => {
+                const ok = (a.count || 0) > 0;
+                const head = `<div style="color:${ok?'#22c55e':'#f87171'};font-weight:600;">[${i+1}] ${esc(a.method||'')} ${esc(a.path||'')} mode=${esc(a.mode||'-')} → HTTP ${esc(String(a.status ?? a.error ?? '?'))}, len=${esc(String(a.len ?? '-'))}, ROWs=${esc(String(a.count ?? 0))}</div>`;
+                const body = a.snippet ? `<pre style="white-space:pre-wrap;margin:4px 0 8px 0;color:#cbd5e1;">${esc(String(a.snippet).slice(0,300))}</pre>` : '';
+                const err  = a.error ? `<pre style="color:#f87171;margin:4px 0 8px 0;">${esc(a.error)}</pre>` : '';
+                return head + body + err;
+            }).join('');
+            box.style.display = 'block';
+            box.innerHTML = rows;
+        }
+
+        // ==================== CALLS TABLE: настраиваемые колонки ====================
+        const _callsFmtNum = (v) => {
+            if (v == null || v === '') return '';
+            const n = Number(v);
+            if (!isFinite(n)) return esc(String(v));
+            return n.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+        };
+        const _callsPick = (obj, ...keys) => {
+            for (const k of keys) {
+                if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+            }
+            return '';
+        };
+        // Цветной бейдж по типу вызова: эвристика по словам в названии.
+        function _callsBadge(text){
+            const t = String(text).toLowerCase();
+            let bg = 'rgba(148,163,184,0.18)', fg = '#cbd5e1', dot = '#94a3b8';
+            if (/voice|call|вызов|разговор|conversation/.test(t))      { bg='rgba(59,130,246,0.16)'; fg='#93c5fd'; dot='#3b82f6'; }
+            else if (/sms|смс|message/.test(t))                       { bg='rgba(168,85,247,0.16)'; fg='#d8b4fe'; dot='#a855f7'; }
+            else if (/data|gprs|internet|интернет|трафик|traffic/.test(t)) { bg='rgba(16,185,129,0.16)'; fg='#6ee7b7'; dot='#10b981'; }
+            else if (/charge|fee|плат|abon|abonement|подпис/.test(t)) { bg='rgba(245,158,11,0.16)'; fg='#fcd34d'; dot='#f59e0b'; }
+            else if (/roam/.test(t))                                  { bg='rgba(244,63,94,0.16)';  fg='#fda4af'; dot='#f43f5e'; }
+            return `<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 8px;`
+                 + `border-radius:999px;font-size:11px;font-weight:600;background:${bg};color:${fg};`
+                 + `max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`
+                 + `<span style="width:6px;height:6px;border-radius:50%;background:${dot};flex:none;"></span>`
+                 + `<span style="overflow:hidden;text-overflow:ellipsis;">${esc(String(text))}</span>`
+                 + `</span>`;
+        }
+
+        // Полный набор доступных колонок таблицы вызовов.
+        // default=true → колонка показана по умолчанию.
+        // align='right' → правое выравнивание + monospace.
+        // mono=true → monospace без выравнивания (для дат / номеров).
+        const CALLS_COLUMNS = [
+            { key: 'date',     label: 'Дата',          width: '148px', mono: true,  default: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM');
+                  if (!v) return '';
+                  // Разделим дату/время визуально: светлая дата + блёклое время.
+                  const m = String(v).match(/^(\S+)\s+(.+)$/);
+                  if (m) return `<span style="color:#e2e8f0;">${esc(m[1])}</span> <span style="color:#94a3b8;">${esc(m[2])}</span>`;
+                  return esc(String(v));
+              },
+              search: (it) => _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM') },
+            { key: 'logic',    label: 'Тип вызова',    width: '180px', default: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE'),
+              get: (it) => {
+                  const v = _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE');
+                  if (!v) return '';
+                  return _callsBadge(String(v));
+              },
+              search: (it) => _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE') },
+            { key: 'serv',     label: 'Услуга',        width: '',      default: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE'),
+              get: (it) => esc(_callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE')),
+              search: (it) => _callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE') },
+            { key: 'pack',     label: 'Пакет',         width: '140px', default: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'PACK_NAME','PACKAGE_NAME'),
+              get: (it) => esc(_callsPick(it, 'PACK_NAME','PACKAGE_NAME')),
+              search: (it) => _callsPick(it, 'PACK_NAME','PACKAGE_NAME') },
+            { key: 'discPlan', label: 'План скидок',   width: '140px', default: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN'),
+              get: (it) => esc(_callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN')),
+              search: (it) => _callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN') },
+            { key: 'volume',   label: 'Объём',         width: '90px',  align: 'right', default: true, sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'MINUTS','DURATION','VOLUME','VOL','AMOUNT_VOL'),
+              unit: (it) => _callsPick(it, 'MNT_VOL_UNIT_NAME','DUR_MEAS_UNIT_NAME','VOL_UNIT_NAME','UNIT_NAME','MEAS_UNIT'),
+              get: (it) => {
+                  const v = _callsPick(it, 'MINUTS','DURATION','VOLUME','VOL','AMOUNT_VOL');
+                  const u = _callsPick(it, 'MNT_VOL_UNIT_NAME','DUR_MEAS_UNIT_NAME','VOL_UNIT_NAME','UNIT_NAME','MEAS_UNIT');
+                  if (v === '' && !u) return '';
+                  return _callsFmtNum(v) + (u ? ' <span style="color:#94a3b8;">'+esc(u)+'</span>' : '');
+              } },
+            { key: 'charges',  label: 'Стоимость',     width: '90px',  align: 'right', default: true, sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'CHARGES','CHARGE','AMOUNT','SUM','PRICE','TRAFIC_PRICE'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CHARGES','CHARGE','AMOUNT','SUM','PRICE','TRAFIC_PRICE');
+                  return v === '' ? '' : _callsFmtNum(v);
+              } },
+            { key: 'dialled',  label: 'Номер B',       width: '110px', mono: true, default: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION'),
+              get: (it) => esc(_callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION')),
+              search: (it) => _callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION') },
+            // Опциональные колонки (по умолчанию скрыты)
+            { key: 'startDate',  label: 'Время начала',   width: '138px', mono: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'START_DATE','BEGIN_DATE'),
+              get: (it) => esc(_callsPick(it, 'START_DATE','BEGIN_DATE')) },
+            { key: 'endDate',    label: 'Время конца',    width: '138px', mono: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'END_DATE','FINISH_DATE'),
+              get: (it) => esc(_callsPick(it, 'END_DATE','FINISH_DATE')) },
+            { key: 'duration',   label: 'Длительность',   width: '90px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'CALL_DURATION','DURATION_SEC'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CALL_DURATION','DURATION_SEC');
+                  return v === '' ? '' : _callsFmtNum(v);
+              } },
+            { key: 'tarifVol',   label: 'Тарифицир. объём', width: '110px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'TARIFICATED_VOL','TARIF_VOL'),
+              get: (it) => {
+                  const v = _callsPick(it, 'TARIFICATED_VOL','TARIF_VOL');
+                  const u = _callsPick(it, 'TARIFICATED_VOL_UNIT','TARIF_VOL_UNIT');
+                  if (v === '' && !u) return '';
+                  return _callsFmtNum(v) + (u ? ' <span style="color:#94a3b8;">'+esc(u)+'</span>' : '');
+              } },
+            { key: 'currency',   label: 'Валюта',         width: '70px', sort: 'string',
+              raw: (it) => _callsPick(it, 'CHARGE_CURRENCY','CURRENCY'),
+              get: (it) => esc(_callsPick(it, 'CHARGE_CURRENCY','CURRENCY')) },
+            { key: 'direction',  label: 'Направление',    width: '120px', sort: 'string',
+              raw: (it) => _callsPick(it, 'TRAFIC_DIRECTION','DIRECTION','CALL_DIRECTION'),
+              get: (it) => {
+                  const v = _callsPick(it, 'TRAFIC_DIRECTION','DIRECTION','CALL_DIRECTION');
+                  if (!v) return '';
+                  const s = String(v).toLowerCase();
+                  let bg='rgba(148,163,184,0.18)', fg='#cbd5e1';
+                  if (/in|вход/.test(s))  { bg='rgba(34,197,94,0.16)';  fg='#86efac'; }
+                  if (/out|исход/.test(s)){ bg='rgba(239,68,68,0.16)';  fg='#fca5a5'; }
+                  return `<span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:${bg};color:${fg};">${esc(String(v))}</span>`;
+              } },
+            { key: 'roaming',    label: 'Роуминг',        width: '80px',  align: 'right', sort: 'string',
+              raw: (it) => _callsPick(it, 'ROAMING_FLAG','IS_ROAMING','ROAMING'),
+              get: (it) => {
+                  const v = _callsPick(it, 'ROAMING_FLAG','IS_ROAMING','ROAMING');
+                  if (v === '') return '';
+                  const s = String(v).toLowerCase();
+                  const yes = (s === '1' || s === 'y' || s === 'true');
+                  const bg = yes ? 'rgba(244,63,94,0.16)' : 'rgba(148,163,184,0.14)';
+                  const fg = yes ? '#fda4af' : '#94a3b8';
+                  return `<span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:${bg};color:${fg};">${yes?'да':'нет'}</span>`;
+              } },
+            { key: 'cellId',     label: 'Cell ID',        width: '110px', mono: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'CELL_ID','CGI','LAC_CI'),
+              get: (it) => esc(_callsPick(it, 'CELL_ID','CGI','LAC_CI')) },
+            { key: 'subsId',     label: 'Subscriber ID',  width: '110px', mono: true, sort: 'number',
+              raw: (it) => _callsPick(it, 'SUBS_ID','SUBSCRIBER_ID'),
+              get: (it) => esc(_callsPick(it, 'SUBS_ID','SUBSCRIBER_ID')) },
+            { key: 'clientId',   label: 'Client ID',      width: '110px', mono: true, sort: 'number',
+              raw: (it) => _callsPick(it, 'CLIENT_ID','CLT_ID','CUSTOMER_ID'),
+              get: (it) => esc(_callsPick(it, 'CLIENT_ID','CLT_ID','CUSTOMER_ID')) },
+            { key: 'msisdnA',    label: 'Номер A',        width: '110px', mono: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'MSISDN','MSISDN_A','PHONE_A','A_NUMBER'),
+              get: (it) => esc(_callsPick(it, 'MSISDN','MSISDN_A','PHONE_A','A_NUMBER')) },
+        ];
+        const _CALLS_COL_KEYS = CALLS_COLUMNS.map(c => c.key);
+        const _CALLS_LS_KEY = 'sbms.callsCols';
+        const _CALLS_W_LS_KEY = 'sbms.callsColWidths';
+        const _CALLS_COL_MIN_W = 60;
+        const _CALLS_COL_MAX_W = 800;
+
+        function getCallsVisibleCols() {
+            try {
+                const raw = localStorage.getItem(_CALLS_LS_KEY);
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr)) {
+                        const filtered = arr.filter(k => _CALLS_COL_KEYS.includes(k));
+                        if (filtered.length) return filtered;
+                    }
+                }
+            } catch (_) {}
+            return CALLS_COLUMNS.filter(c => c.default).map(c => c.key);
+        }
+
+        function setCallsVisibleCols(keys) {
+            try { localStorage.setItem(_CALLS_LS_KEY, JSON.stringify(keys)); } catch (_) {}
+        }
+
+        function _getActiveCallsCols() {
+            // Порядок берём из сохранённого массива (учитывает пользовательский DnD-порядок),
+            // а не из исходного CALLS_COLUMNS.
+            const order = getCallsVisibleCols();
+            const map = new Map(CALLS_COLUMNS.map(c => [c.key, c]));
+            const out = [];
+            order.forEach(k => { const c = map.get(k); if (c) out.push(c); });
+            return out;
+        }
+
+        // -------- ширины колонок: хранение в localStorage --------
+        function _getCallsColWidths() {
+            try {
+                const raw = localStorage.getItem(_CALLS_W_LS_KEY);
+                if (raw) {
+                    const obj = JSON.parse(raw);
+                    if (obj && typeof obj === 'object') return obj;
+                }
+            } catch (_) {}
+            return {};
+        }
+
+        function _setCallsColWidth(key, px) {
+            const all = _getCallsColWidths();
+            if (px == null) delete all[key]; else all[key] = Math.round(px);
+            try { localStorage.setItem(_CALLS_W_LS_KEY, JSON.stringify(all)); } catch (_) {}
+        }
+
+        function _resolveColWidth(c, savedMap) {
+            const saved = savedMap[c.key];
+            if (typeof saved === 'number' && isFinite(saved)) return saved + 'px';
+            return c.width || ''; // дефолт из описания (например, '138px') или пусто
+        }
+
+        // Состояние сортировки: { key, dir: 'asc'|'desc' } или null
+        let _callsSort = null;
+
+        function renderCallsTableHead() {
+            const cg = document.getElementById('callsColgroup');
+            const tr = document.getElementById('callsHeadRow');
+            if (!cg || !tr) return;
+            const cols = _getActiveCallsCols();
+            const widths = _getCallsColWidths();
+            cg.innerHTML = cols.map(c => {
+                const w = _resolveColWidth(c, widths);
+                return `<col data-col-key="${esc(c.key)}"${w ? ' style="width:'+w+'"' : ''}>`;
+            }).join('');
+            tr.innerHTML = cols.map((c, idx) => {
+                const align = c.align === 'right' ? 'text-align:right;' : '';
+                const sortable = !!c.sort;
+                const sortCls = (_callsSort && _callsSort.key === c.key)
+                    ? (_callsSort.dir === 'asc' ? ' sort-asc' : ' sort-desc') : '';
+                const arrow = !sortable ? '' :
+                    (_callsSort && _callsSort.key === c.key
+                        ? (_callsSort.dir === 'asc' ? '▲' : '▼')
+                        : '↕');
+                const lbl = `<span class="col-label" draggable="true" title="${esc(c.label)}${sortable?' (клик — сортировка, перетаскивание — изменить порядок колонок)':' (перетащите, чтобы изменить порядок колонок)'}">${esc(c.label)}`
+                          + (arrow ? ` <span class="sort-arr">${arrow}</span>` : '')
+                          + `</span>`;
+                return `<th class="${sortable?'sortable':''}${sortCls}" data-col-key="${esc(c.key)}" data-col-idx="${idx}" style="${align}">`
+                     + lbl
+                     + `<span class="col-resizer" data-col-idx="${idx}" title="Перетащите, чтобы изменить ширину. Двойной клик — сбросить."></span>`
+                     + `</th>`;
+            }).join('');
+            _bindCallsResizers();
+            _bindCallsSortHandlers();
+            _bindCallsDnD();
+        }
+
+        function _bindCallsSortHandlers() {
+            const tr = document.getElementById('callsHeadRow');
+            if (!tr) return;
+            tr.querySelectorAll('th.sortable .col-label').forEach(lbl => {
+                lbl.addEventListener('click', (ev) => {
+                    ev.preventDefault(); ev.stopPropagation();
+                    const th = lbl.closest('th');
+                    const key = th && th.getAttribute('data-col-key');
+                    if (!key) return;
+                    if (_callsSort && _callsSort.key === key) {
+                        _callsSort.dir = (_callsSort.dir === 'asc') ? 'desc' : 'asc';
+                    } else {
+                        _callsSort = { key, dir: 'asc' };
+                    }
+                    if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+                });
+            });
+        }
+
+        function _parseSortValue(col, item) {
+            const raw = (typeof col.raw === 'function') ? col.raw(item) : '';
+            if (raw == null || raw === '') return null;
+            if (col.sort === 'number') {
+                const n = Number(String(raw).replace(/[^\d.\-eE]/g, ''));
+                return isFinite(n) ? n : null;
+            }
+            if (col.sort === 'date') {
+                // Формат SBMS: "DD.MM.YYYY HH:MM:SS" или ISO
+                const s = String(raw).trim();
+                const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?$/);
+                if (m) {
+                    const d = new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+                    return d.getTime();
+                }
+                const t = Date.parse(s);
+                return isFinite(t) ? t : null;
+            }
+            return String(raw).toLowerCase();
+        }
+
+        function _sortCallsItems(items) {
+            if (!_callsSort || !Array.isArray(items)) return items;
+            const col = CALLS_COLUMNS.find(c => c.key === _callsSort.key);
+            if (!col) return items;
+            const dir = _callsSort.dir === 'desc' ? -1 : 1;
+            return items.slice().sort((a, b) => {
+                const va = _parseSortValue(col, a);
+                const vb = _parseSortValue(col, b);
+                // null/undefined → в конец независимо от dir
+                if (va == null && vb == null) return 0;
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+                return String(va).localeCompare(String(vb), 'ru') * dir;
+            });
+        }
+
+        // -------- drag & resize: bind handlers --------
+        function _bindCallsResizers() {
+            const table = document.getElementById('callsTable');
+            if (!table) return;
+            const handles = table.querySelectorAll('th .col-resizer');
+            handles.forEach(h => {
+                h.addEventListener('mousedown', _onCallsResizeStart);
+                h.addEventListener('dblclick', _onCallsResizeReset);
+            });
+        }
+
+        function _onCallsResizeReset(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const th = ev.currentTarget.closest('th');
+            const key = th && th.getAttribute('data-col-key');
+            if (!key) return;
+            _setCallsColWidth(key, null);
+            renderCallsTableHead();
+            // ререндер строк, чтобы ellipsis пересчитался
+            if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+        }
+
+        function _onCallsResizeStart(ev) {
+            if (ev.button !== 0) return; // только ЛКМ
+            ev.preventDefault();
+            ev.stopPropagation();
+            const handle = ev.currentTarget;
+            const th = handle.closest('th');
+            const idx = Number(th.getAttribute('data-col-idx'));
+            const key = th.getAttribute('data-col-key');
+            const table = document.getElementById('callsTable');
+            const colgroup = document.getElementById('callsColgroup');
+            const colEl = colgroup ? colgroup.children[idx] : null;
+            if (!colEl) return;
+
+            const startX = ev.clientX;
+            const startW = th.getBoundingClientRect().width;
+
+            handle.classList.add('dragging');
+            table.classList.add('is-resizing');
+
+            function onMove(e) {
+                const dx = e.clientX - startX;
+                let w = startW + dx;
+                if (w < _CALLS_COL_MIN_W) w = _CALLS_COL_MIN_W;
+                if (w > _CALLS_COL_MAX_W) w = _CALLS_COL_MAX_W;
+                colEl.style.width = w + 'px';
+            }
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                handle.classList.remove('dragging');
+                table.classList.remove('is-resizing');
+                const finalW = parseFloat(colEl.style.width) || startW;
+                _setCallsColWidth(key, finalW);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        }
+
+        // -------- drag & drop: переупорядочивание колонок --------
+        let _callsDragKey = null;
+
+        function _bindCallsDnD() {
+            const tr = document.getElementById('callsHeadRow');
+            if (!tr) return;
+            tr.querySelectorAll('th').forEach(th => {
+                const lbl = th.querySelector('.col-label');
+                if (lbl) {
+                    lbl.addEventListener('dragstart', _onCallsDragStart);
+                    lbl.addEventListener('dragend',   _onCallsDragEnd);
+                }
+                th.addEventListener('dragenter', _onCallsDragEnter);
+                th.addEventListener('dragover',  _onCallsDragOver);
+                th.addEventListener('dragleave', _onCallsDragLeave);
+                th.addEventListener('drop',      _onCallsDrop);
+            });
+        }
+
+        function _onCallsDragStart(ev) {
+            const th = ev.target.closest('th');
+            if (!th) return;
+            _callsDragKey = th.getAttribute('data-col-key');
+            try {
+                ev.dataTransfer.effectAllowed = 'move';
+                ev.dataTransfer.setData('text/plain', _callsDragKey || '');
+            } catch (_) {}
+            th.classList.add('col-dragging');
+        }
+
+        function _onCallsDragOver(ev) {
+            if (!_callsDragKey) return;
+            ev.preventDefault();
+            try { ev.dataTransfer.dropEffect = 'move'; } catch (_) {}
+        }
+
+        function _onCallsDragEnter(ev) {
+            if (!_callsDragKey) return;
+            const th = ev.currentTarget;
+            const k = th.getAttribute('data-col-key');
+            if (!k || k === _callsDragKey) return;
+            th.classList.add('col-drop-target');
+        }
+
+        function _onCallsDragLeave(ev) {
+            const th = ev.currentTarget;
+            // dragleave срабатывает и при переходе на дочерний элемент;
+            // снимаем подсветку только когда курсор реально вышел за th.
+            const rt = ev.relatedTarget;
+            if (rt && th.contains(rt)) return;
+            th.classList.remove('col-drop-target');
+        }
+
+        function _onCallsDrop(ev) {
+            ev.preventDefault();
+            const th = ev.currentTarget;
+            th.classList.remove('col-drop-target');
+            const targetKey = th.getAttribute('data-col-key');
+            const dragKey = _callsDragKey;
+            _callsDragKey = null;
+            if (!dragKey || !targetKey || dragKey === targetKey) return;
+
+            const order = getCallsVisibleCols().slice();
+            const fromIdx = order.indexOf(dragKey);
+            const toIdx   = order.indexOf(targetKey);
+            if (fromIdx < 0 || toIdx < 0) return;
+            order.splice(fromIdx, 1);
+            // Если перетаскиваем слева направо, индекс цели уменьшается на 1 после удаления исходной.
+            const insertIdx = (fromIdx < toIdx) ? toIdx - 1 : toIdx;
+            order.splice(insertIdx, 0, dragKey);
+            setCallsVisibleCols(order);
+            renderCallsTableHead();
+            if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+        }
+
+        function _onCallsDragEnd(_ev) {
+            _callsDragKey = null;
+            document.querySelectorAll('#callsTable thead th.col-dragging').forEach(el => el.classList.remove('col-dragging'));
+            document.querySelectorAll('#callsTable thead th.col-drop-target').forEach(el => el.classList.remove('col-drop-target'));
+        }
+
+        // Кэш последнего ответа, чтобы перерисовать таблицу при смене колонок
+        let _lastCallsItems = null;
+        let _lastCallsMeta  = null;
+
+        function renderCallsList(items, meta) {
+            _lastCallsItems = Array.isArray(items) ? items : null;
+            _lastCallsMeta  = meta || null;
+            renderCallsTableHead();
+            const tbody = document.getElementById('callsList');
+            const cols  = _getActiveCallsCols();
+            const span  = Math.max(1, cols.length);
+            if (!Array.isArray(items) || items.length === 0) {
+                // Различаем: «процедура отработала, событий нет» vs «запрос сломан»
+                const procOk = meta && meta.procedureOk;
+                let hint;
+                if (procOk) {
+                    hint = '<div style="color:#94a3b8;font-size:13px;">'
+                         + '<div style="margin-bottom:6px;">✓ Процедура STRAFF_CALLS_R отработала, но событий за период не найдено.</div>'
+                         + '<div style="font-size:11px;color:#64748b;">Возможные причины: на абоненте действительно не было активности в этот период, либо период слишком узкий. Сервер уже автоматически попытался расширить интервал до 540 дней.</div>'
+                         + '</div>';
+                } else {
+                    hint = '<div style="color:#f87171;font-size:13px;">'
+                         + '<div style="margin-bottom:6px;">⚠ Запрос отработал, но процедура не вернула dataset (вероятно, нужна повторная авторизация или проблема с правами доступа).</div>'
+                         + '<div style="font-size:11px;color:#94a3b8;">Включите чекбокс <b>debug</b> и нажмите «Показать вызовы» ещё раз — будут видны все попытки.</div>'
+                         + '</div>';
+                }
+                tbody.innerHTML = `<tr><td colspan="${span}" style="text-align:center;padding:18px 14px;">${hint}</td></tr>`;
+                _renderCallsTotals([], cols);
+                return;
+            }
+            // Применяем активную сортировку (если выбрана)
+            items = _sortCallsItems(items);
+            const rows = items.map((it) => {
+                const searchParts = cols.map(c => {
+                    if (typeof c.search === 'function') return c.search(it) || '';
+                    return '';
+                }).filter(Boolean).join(' ').toLowerCase();
+                const cells = cols.map(c => {
+                    const style = [];
+                    if (c.align === 'right') {
+                        style.push('text-align:right');
+                        style.push("font-family:'SF Mono','Fira Code',Menlo,monospace");
+                        style.push('font-variant-numeric:tabular-nums');
+                        if (c.key === 'charges') style.push('font-weight:600;color:#f1f5f9');
+                    } else if (c.mono) {
+                        style.push("font-family:'SF Mono','Fira Code',Menlo,monospace");
+                        style.push('color:#cbd5e1');
+                        style.push('font-size:11.5px');
+                    }
+                    const styleAttr = style.length ? ` style="${style.join(';')}"` : '';
+                    return `<td${styleAttr} title="${esc(_textOnly(c.get(it)))}">${c.get(it)}</td>`;
+                }).join('');
+                return `<tr class="data-row" data-name="${esc(searchParts)}">${cells}</tr>`;
+            }).join('');
+            tbody.innerHTML = rows;
+            _renderCallsTotals(items, cols);
+        }
+        function _textOnly(html){
+            // Для title= в ячейках: убираем теги.
+            if (html == null) return '';
+            return String(html).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+        }
+
+        // -------- Итоги (sum по колонкам с sum:true) --------
+        function _renderCallsTotals(items, cols) {
+            const box = document.getElementById('callsTotals');
+            if (!box) return;
+            if (!Array.isArray(items) || items.length === 0) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+            const parts = [`<div><span class="tot-k">Строк:</span><span class="tot-v">${items.length}</span></div>`];
+            if (_lastCallsMeta && _lastCallsMeta.periodDays) {
+                parts.push(`<div><span class="tot-k">Период:</span><span class="tot-v" style="font-weight:500;">${_lastCallsMeta.periodDays} дн</span></div>`);
+            }
+            cols.filter(c => c.sum).forEach(c => {
+                let total = 0; let n = 0;
+                items.forEach(it => {
+                    const raw = (typeof c.raw === 'function') ? c.raw(it) : '';
+                    if (raw == null || raw === '') return;
+                    const x = Number(String(raw).replace(/[^\d.\-eE]/g, ''));
+                    if (isFinite(x)) { total += x; n++; }
+                });
+                if (n === 0) return;
+                // Юнит для объёмных колонок — берём из первой строки, где он есть
+                let unit = '';
+                if (typeof c.unit === 'function') {
+                    for (const it of items) { const u = c.unit(it); if (u) { unit = u; break; } }
+                }
+                const fmt = total.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+                parts.push(`<div><span class="tot-k">∑ ${esc(c.label)}:</span><span class="tot-v">${esc(fmt)}${unit?' <span style="color:#94a3b8;font-weight:400;">'+esc(unit)+'</span>':''}</span></div>`);
+            });
+            if (_callsSort) {
+                const col = CALLS_COLUMNS.find(x => x.key === _callsSort.key);
+                if (col) {
+                    parts.push(`<div style="margin-left:auto;"><span class="tot-k">Сортировка:</span><span class="tot-v" style="font-weight:500;">${esc(col.label)} ${_callsSort.dir==='asc'?'↑':'↓'}</span> <a href="javascript:void(0)" onclick="resetCallsSort()" style="color:#3b82f6;font-size:11px;margin-left:4px;">сбросить</a></div>`);
+                }
+            }
+            box.innerHTML = parts.join('');
+            box.style.display = 'flex';
+        }
+
+        function resetCallsSort() {
+            _callsSort = null;
+            if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+        }
+
+        // -------- CSV export видимых колонок --------
+        function exportCallsCSV() {
+            if (!Array.isArray(_lastCallsItems) || _lastCallsItems.length === 0) {
+                showToast('Нет данных для экспорта. Сначала загрузите вызовы.', 'error');
+                return;
+            }
+            const cols = _getActiveCallsCols();
+            const items = _sortCallsItems(_lastCallsItems);
+            const csvEsc = (v) => {
+                if (v == null) return '';
+                const s = String(v);
+                if (/[",\r\n;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+                return s;
+            };
+            const headers = cols.map(c => csvEsc(c.label)).join(';');
+            const lines = items.map(it => cols.map(c => {
+                if (typeof c.raw === 'function') {
+                    const r = c.raw(it);
+                    if (r != null && r !== '') {
+                        const u = (typeof c.unit === 'function') ? c.unit(it) : '';
+                        return csvEsc(u ? `${r} ${u}` : r);
+                    }
+                }
+                // Fallback: текстовое содержимое HTML-ячейки
+                return csvEsc(_textOnly(c.get(it)));
+            }).join(';'));
+            const csv = '﻿' + [headers, ...lines].join('\r\n'); // BOM для Excel
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const ts = new Date();
+            const pad = (n) => String(n).padStart(2,'0');
+            const stamp = `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+            const msisdn = (document.getElementById('fMsisdn')?.value || '').trim() || 'calls';
+            a.href = url;
+            a.download = `calls_${msisdn}_${stamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+            showToast(`Экспортировано: ${items.length} строк`, 'success');
+        }
+
+        // ==================== Модалка выбора колонок ====================
+        function openCallsColumnsEditor() {
+            // Если модалка уже открыта — не плодим
+            if (document.getElementById('callsColsModal')) return;
+            const visible = new Set(getCallsVisibleCols());
+            const items = CALLS_COLUMNS.map(c => `
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:#e2e8f0;">
+                    <input type="checkbox" data-col="${esc(c.key)}" ${visible.has(c.key) ? 'checked' : ''} style="cursor:pointer;">
+                    <span>${esc(c.label)}</span>
+                    <span style="margin-left:auto;color:#64748b;font-size:11px;font-family:monospace;">${esc(c.key)}</span>
+                </label>
+            `).join('');
+            const bg = document.createElement('div');
+            bg.id = 'callsColsModal';
+            bg.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:system-ui,sans-serif;';
+            bg.innerHTML = `
+                <div style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:12px;padding:20px 22px;width:460px;max-width:94vw;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <h2 style="margin:0;font-size:16px;font-weight:600;">Колонки таблицы вызовов</h2>
+                        <button type="button" id="callsColsClose" style="background:transparent;border:none;color:#94a3b8;font-size:20px;line-height:1;cursor:pointer;padding:0 4px;">×</button>
+                    </div>
+                    <div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">Отметьте колонки, которые нужно отображать. Изменения применяются сразу.</div>
+                    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm" id="callsColsAll">Все</button>
+                        <button type="button" class="btn btn-sm" id="callsColsNone">Снять</button>
+                        <button type="button" class="btn btn-sm" id="callsColsDefault">По умолчанию</button>
+                        <button type="button" class="btn btn-sm" id="callsColsResetW" title="Сбросить пользовательские ширины колонок">Сбросить ширины</button>
+                        <button type="button" class="btn btn-sm" id="callsColsResetOrder" title="Вернуть колонки в исходный порядок">Сбросить порядок</button>
+                    </div>
+                    <div id="callsColsList" style="overflow-y:auto;flex:1;border:1px solid #1e293b;border-radius:8px;padding:6px;background:#0b1220;">${items}</div>
+                    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+                        <button type="button" class="btn btn-sm" id="callsColsApply" style="background:#3b82f6;color:#fff;">Готово</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(bg);
+
+            const list = bg.querySelector('#callsColsList');
+            function applyFromCheckboxes() {
+                const checked = new Set();
+                list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    if (cb.checked) checked.add(cb.getAttribute('data-col'));
+                });
+                // Сохраняем уже существующий пользовательский порядок (DnD),
+                // только удаляя снятые. Новые включённые добавляем в конец
+                // в порядке CALLS_COLUMNS.
+                const prev = getCallsVisibleCols();
+                const keys = [];
+                prev.forEach(k => { if (checked.has(k)) keys.push(k); });
+                CALLS_COLUMNS.forEach(c => {
+                    if (checked.has(c.key) && keys.indexOf(c.key) === -1) keys.push(c.key);
+                });
+                setCallsVisibleCols(keys.length ? keys : [CALLS_COLUMNS[0].key]);
+                // Перерисовываем таблицу с последними данными
+                renderCallsTableHead();
+                if (_lastCallsItems !== null) {
+                    renderCallsList(_lastCallsItems, _lastCallsMeta);
+                } else {
+                    // Обновляем placeholder colspan
+                    const tbody = document.getElementById('callsList');
+                    const span = Math.max(1, _getActiveCallsCols().length);
+                    if (tbody && tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+                        tbody.children[0].children[0].setAttribute('colspan', String(span));
+                    }
+                }
+            }
+            list.addEventListener('change', applyFromCheckboxes);
+
+            bg.querySelector('#callsColsAll').onclick = () => {
+                list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+                applyFromCheckboxes();
+            };
+            bg.querySelector('#callsColsNone').onclick = () => {
+                list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                applyFromCheckboxes();
+            };
+            bg.querySelector('#callsColsDefault').onclick = () => {
+                const def = new Set(CALLS_COLUMNS.filter(c => c.default).map(c => c.key));
+                list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = def.has(cb.getAttribute('data-col'));
+                });
+                applyFromCheckboxes();
+            };
+            bg.querySelector('#callsColsResetW').onclick = () => {
+                try { localStorage.removeItem(_CALLS_W_LS_KEY); } catch (_) {}
+                renderCallsTableHead();
+                if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+                showToast('Ширины колонок сброшены', 'success');
+            };
+            bg.querySelector('#callsColsResetOrder').onclick = () => {
+                // Возвращаем порядок колонок к исходному из CALLS_COLUMNS,
+                // оставляя видимыми только те, что отмечены сейчас (или дефолтные, если не выбрано ничего).
+                const checked = new Set();
+                list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    if (cb.checked) checked.add(cb.getAttribute('data-col'));
+                });
+                const baseSet = checked.size ? checked
+                              : new Set(CALLS_COLUMNS.filter(c => c.default).map(c => c.key));
+                const keys = CALLS_COLUMNS.filter(c => baseSet.has(c.key)).map(c => c.key);
+                setCallsVisibleCols(keys.length ? keys : [CALLS_COLUMNS[0].key]);
+                renderCallsTableHead();
+                if (_lastCallsItems !== null) renderCallsList(_lastCallsItems, _lastCallsMeta);
+                showToast('Порядок колонок сброшен', 'success');
+            };
+
+            function close() { bg.remove(); }
+            bg.querySelector('#callsColsClose').onclick = close;
+            bg.querySelector('#callsColsApply').onclick = close;
+            bg.addEventListener('click', (ev) => { if (ev.target === bg) close(); });
+            document.addEventListener('keydown', function escClose(ev) {
+                if (ev.key === 'Escape') {
+                    close();
+                    document.removeEventListener('keydown', escClose);
+                }
+            });
+        }
+
+        // Инициализируем шапку при первой отрисовке страницы
+        document.addEventListener('DOMContentLoaded', renderCallsTableHead);
+
         // ==================== STEP 2: TARIFF TABLE ====================
+        // Универсальная вытяжка АП и стоимости перехода: пробуем плоские поля,
+        // потом сырой ratePlanCost (как отдаёт SBMS).
+        function _pickRpFees(rp) {
+            const rpc = rp.ratePlanCost || (rp._raw && rp._raw.ratePlanCost) || null;
+            const sfd = (rpc && rpc.subscriptionFeeDetail) || null;
+            const ap = (rp.recurringFee != null) ? rp.recurringFee
+                     : (sfd && sfd.amount != null ? sfd.amount : null);
+            const onetime = (rp.activationCost != null) ? rp.activationCost
+                          : (rpc && rpc.activationCost != null ? rpc.activationCost : null);
+            const period = rp.feePeriod || (sfd && sfd.periodMeasureUnit) || '';
+            return { ap, onetime, period };
+        }
+        function _fmtMoneyRu(v) {
+            if (v == null || v === '') return null;
+            const n = Number(v);
+            if (!isFinite(n)) return null;
+            return Math.round(n).toLocaleString('ru-RU');
+        }
+        function _feeTd(val, opts) {
+            opts = opts || {};
+            const formatted = _fmtMoneyRu(val);
+            if (formatted == null) {
+                return `<td class="fee-cell fee-empty" title="Нет данных">—</td>`;
+            }
+            const num = Number(val);
+            const cls = (num === 0) ? 'fee-cell fee-zero' : 'fee-cell';
+            const txt = (num === 0 && opts.zeroLabel)
+                ? opts.zeroLabel
+                : `${formatted}<span class="fee-unit">сум${opts.suffix ? '/' + opts.suffix : ''}</span>`;
+            const ttl = opts.title ? ` title="${opts.title.replace(/"/g, '&quot;')}"` : '';
+            return `<td class="${cls}"${ttl}>${txt}</td>`;
+        }
+
         function renderTariffTable(tariffs) {
             const tbody = document.getElementById('tariffTableBody');
+            const currentRpId = (window._lastCustomerData
+                               && window._lastCustomerData.customer
+                               && window._lastCustomerData.customer.ratePlanId) || null;
             tbody.innerHTML = '';
             tariffs.forEach((rp, idx) => {
+                const fees = _pickRpFees(rp);
+                const period = (fees.period || '').toString().toLowerCase();
+                const periodSuffix = period.startsWith('month') ? 'мес'
+                                   : period.startsWith('day')   ? 'день'
+                                   : period.startsWith('year')  ? 'год'
+                                   : '';
+                const apCell = _feeTd(fees.ap, {
+                    suffix: periodSuffix,
+                    title: 'Абонентская плата (subscriptionFeeDetail.amount)'
+                });
+                const oneTimeCell = _feeTd(fees.onetime, {
+                    zeroLabel: '<span style="color:#22c55e;font-weight:700;">0</span>',
+                    title: 'Разовое начисление при переходе (activationCost)'
+                });
+
+                const isCurrent = currentRpId != null && String(rp.ratePlanId) === String(currentRpId);
+                const safeName = (rp.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                const actionBtns = isCurrent
+                    ? `<button class="action-btn action-btn-change is-current" disabled title="Это текущий тариф абонента">Текущий</button>`
+                    : `<div style="display:flex;gap:6px;justify-content:center;">
+                            <button class="btn btn-sm btn-secondary" onclick="selectTariff(${rp.ratePlanId}, '${safeName}')" title="Выбрать для теста с проверками">Выбрать</button>
+                            <button class="action-btn action-btn-change"
+                                    onclick="changeTariffDirect(this, ${rp.ratePlanId}, '${safeName}', ${Number(fees.onetime)||0}, ${Number(fees.ap)||0})"
+                                    title="Сменить тариф через API">Сменить</button>
+                       </div>`;
+
                 const tr = document.createElement('tr');
                 tr.id = 'tr_' + rp.ratePlanId;
                 tr.setAttribute('data-name', (rp.name || '').toLowerCase());
@@ -2807,9 +4118,11 @@
                 tr.innerHTML = `
                     <td style="color:#475569;">${idx + 1}</td>
                     <td style="font-family:monospace;font-size:12px;">${rp.ratePlanId}</td>
-                    <td>${esc(rp.name || 'N/A')}</td>
+                    <td title="${esc(rp.name || '')}">${esc(rp.name || 'N/A')}</td>
+                    ${apCell}
+                    ${oneTimeCell}
                     <td style="text-align:center;">${docBtn(rp.name)}</td>
-                    <td><button class="btn btn-sm btn-run" onclick="selectTariff(${rp.ratePlanId}, '${(rp.name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Выбрать</button></td>
+                    <td style="text-align:center;">${actionBtns}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -3367,7 +4680,7 @@
         const VA_ROLES = [
             { id: 'B2B_OP', label: 'B2B · Оператор',     login: 'DBS_CC_OPERATORS_PSO',     password: 'Ucell2026$$',      preset: true },
             { id: 'B2B_FO', label: 'B2B · Фронт-офис',   login: 'DBS_REG_FO_PSO',           password: 'September2025+',   preset: true },
-            { id: 'B2C_FO', label: 'B2C · Фронт-офис',   login: 'DMS_FO_REGION_SPEC_PSO',   password: 'Ucell+pso+2023+',  preset: true },
+            { id: 'B2C_FO', label: 'B2C · Фронт-офис',   login: 'DMS_FO_REGION_SPEC_PSO',   password: 'April042026+++',  preset: true },
             { id: 'B2C_OP', label: 'B2C · Оператор',     login: 'DCC_CALL_CENTER_OPERATORT_PSO', password: 'Ucell+pso+2023+', preset: true },
             { id: 'CUSTOM', label: 'Другая (вручную)…',  login: '', password: '', preset: false },
         ];

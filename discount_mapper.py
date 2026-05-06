@@ -26,10 +26,10 @@ class DiscountMapper:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         candidates = [
             self.excel_path,
+            os.path.join(base_dir, "data", self.excel_path),
+            os.path.join(base_dir, "data", "DISPID.xlsx"),
             os.path.join(base_dir, self.excel_path),
-            os.path.join(base_dir, "dispid.xlsx"),
             os.path.join(base_dir, "DISPID.xlsx"),
-            os.path.join(base_dir, "Dispid.xlsx"),
         ]
         resolved = None
         for c in candidates:

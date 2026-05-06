@@ -20,7 +20,7 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     load_dotenv = None
-from sbms_client import SBMSClient
+from sbms_client import SBMSClient, _psix_safe_snippet, _redact_snippet
 from sbms_checks import save_report, list_reports, get_report, extract_recurring_charge, extract_product_id_from_charges, extract_volumes, extract_volumes_by_product_id
 try:
     from discount_mapper import get_discount_description
@@ -39,10 +39,19 @@ app = Flask(__name__)
 BASE_URL = os.getenv("SBMS_BASE_URL", "https://sbms.ucell")
 TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "30"))
 
+# send_file резолвит относительные пути от cwd. Чтобы работало при запуске
+# из любого каталога, считаем абсолютный путь к templates/ один раз.
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_DIR = os.path.join(APP_DIR, "templates")
+
+
+def _send_template(name):
+    return send_file(os.path.join(TEMPLATES_DIR, name))
+
 # ============================================================
 # TOKEN CACHE — авторизация один раз, переиспользование токена
 # ============================================================
-_auth_cache = {}  # login -> {"token": str, "ts": float}
+_auth_cache = {}  # login -> {"token": str, "ts": float, "password": str}
 TOKEN_TTL = 25 * 60  # 25 минут (сессия SBMS обычно 30 мин)
 
 
@@ -64,6 +73,13 @@ def _get_client(data=None):
     if token:
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.token = token
+        # Часть PSIX-grid процедур (STRAFF_CALLS_R и пр.) требует Basic.
+        # Если в кеше есть запись с таким же токеном — берём оттуда login/password.
+        for cached_login, entry in _auth_cache.items():
+            if entry.get("token") == token and entry.get("password"):
+                client._login = cached_login
+                client._password = entry["password"]
+                break
         return client
 
     login = data.get("login")
@@ -73,12 +89,14 @@ def _get_client(data=None):
     if login and password:
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.authenticate(login, password)
-        _auth_cache[login] = {"token": client.token, "ts": now}
+        _auth_cache[login] = {"token": client.token, "ts": now, "password": password}
         return client
 
     if login and login in _auth_cache and now - _auth_cache[login]["ts"] < TOKEN_TTL:
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.token = _auth_cache[login]["token"]
+        client._login = login
+        client._password = _auth_cache[login].get("password")
         return client
 
     # Фолбэк на .env допустим только для CLI-сценариев; UI всегда прислал бы credentials.
@@ -88,10 +106,12 @@ def _get_client(data=None):
         if env_login in _auth_cache and now - _auth_cache[env_login]["ts"] < TOKEN_TTL:
             client = SBMSClient(BASE_URL, TIMEOUT)
             client.token = _auth_cache[env_login]["token"]
+            client._login = env_login
+            client._password = env_pass
             return client
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.authenticate(env_login, env_pass)
-        _auth_cache[env_login] = {"token": client.token, "ts": now}
+        _auth_cache[env_login] = {"token": client.token, "ts": now, "password": env_pass}
         return client
 
     raise AuthRequired("Требуется авторизация: пришлите authToken или login+password")
@@ -156,7 +176,7 @@ def add_cors_headers(response):
 
 @app.route('/')
 def index():
-    resp = send_file('dashboard.html')
+    resp = _send_template('dashboard.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
@@ -217,28 +237,28 @@ def proxy(path):
 
 @app.route('/tester')
 def tester():
-    resp = send_file('tester.html')
+    resp = _send_template('tester.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
 
 @app.route('/tariff-test')
 def tariff_test():
-    resp = send_file('tariff_test.html')
+    resp = _send_template('tariff_test.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
 
 @app.route('/matrix-test')
 def matrix_test_page():
-    resp = send_file('matrix_test.html')
+    resp = _send_template('matrix_test.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
 
 @app.route('/tme')
 def tme_page():
-    resp = send_file('tme.html')
+    resp = _send_template('tme.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
@@ -397,6 +417,204 @@ def api_matrix_history():
 @app.route('/api/matrix/history/<report_id>')
 def api_matrix_history_detail(report_id):
     rep = _matrix_runner.get_matrix_report(report_id)
+    if not rep:
+        return jsonify({"error": "report not found"}), 404
+    return jsonify(rep)
+
+
+# ============================================================
+# PRODUCT AVAILABILITY — проверка доступности пакета/услуги на списке тарифов
+# ============================================================
+import product_availability_parser as _pa_parser
+import product_availability_runner as _pa_runner
+
+
+@app.route('/product-availability')
+def product_availability_page():
+    resp = _send_template('product_availability.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app.route('/api/product-availability/parse-tariffs', methods=['POST'])
+def api_pa_parse_tariffs():
+    """Парсит источник со списком тарифов и возвращает [{id, name}].
+
+    Тип источника определяется по приоритету:
+    1. multipart-файл (поле 'file') → parse_file
+    2. JSON-тело { "text": "..." } → parse_text
+    3. JSON-тело { "json": [...] }   → parse_json
+    """
+    # 1) файл
+    if 'file' in request.files:
+        f = request.files['file']
+        name = f.filename or ""
+        content = f.read()
+        if not content:
+            return jsonify({"error": "Файл пустой"}), 400
+        try:
+            tariffs = _pa_parser.parse_file(name, content)
+        except Exception as e:
+            return jsonify({"error": str(e), "filename": name}), 400
+        return jsonify({"tariffs": tariffs, "count": len(tariffs), "source": "file", "filename": name})
+
+    data = request.get_json(silent=True) or {}
+    text = data.get("text")
+    json_data = data.get("json")
+    try:
+        if text is not None:
+            tariffs = _pa_parser.parse_text(text)
+            if not tariffs:
+                return jsonify({"error": "Не удалось распознать ни одного тарифа в тексте"}), 400
+            return jsonify({"tariffs": tariffs, "count": len(tariffs), "source": "text"})
+        if json_data is not None:
+            tariffs = _pa_parser.parse(json_data=json_data)
+            return jsonify({"tariffs": tariffs, "count": len(tariffs), "source": "json"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({"error": "Нужен файл (multipart 'file'), либо JSON {text} / {json}"}), 400
+
+
+def _pa_validate_run_payload(data):
+    """Возвращает (errors|None, parsed_kwargs)."""
+    msisdn = (data.get("msisdn") or "").strip()
+    product_id = data.get("product_id")
+    product_kind = (data.get("product_kind") or "").strip().lower()
+    tariffs = data.get("tariffs")
+    admin_creds = data.get("admin") or {}
+    viewer_creds = data.get("viewer") or {}
+    errors = []
+    if not msisdn:
+        errors.append("msisdn обязателен")
+    if product_id in (None, "", 0):
+        errors.append("product_id обязателен")
+    if product_kind not in ("pack", "service"):
+        errors.append("product_kind должен быть 'pack' или 'service'")
+    if not isinstance(tariffs, list) or not tariffs:
+        errors.append("tariffs должен быть непустым списком [{id, name}]")
+    if not admin_creds.get("login"):
+        errors.append("admin{login,password} обязателен")
+    if not viewer_creds.get("login"):
+        errors.append("viewer{login,password} обязателен")
+    if errors:
+        return errors, None
+    try:
+        product_id = int(product_id)
+    except (TypeError, ValueError):
+        return ["product_id должен быть числом"], None
+    return None, {
+        "msisdn": msisdn,
+        "product_id": product_id,
+        "product_kind": product_kind,
+        "tariffs": tariffs,
+        "admin_creds": admin_creds,
+        "viewer_creds": viewer_creds,
+        "only_ids": data.get("only_ids") or None,
+        "wait_after_change": float(data.get("wait_after_change", 5)),
+        "order_timeout": int(data.get("order_timeout", 60)),
+        "resume_from": (data.get("resume_from") or "").strip() or None,
+    }
+
+
+@app.route('/api/product-availability/run', methods=['POST'])
+def api_pa_run():
+    """Синхронный прогон. Возвращает report."""
+    data = request.get_json(silent=True) or {}
+    errors, kw = _pa_validate_run_payload(data)
+    if errors:
+        return jsonify({"error": "; ".join(errors)}), 400
+    try:
+        admin_client = _get_client(kw["admin_creds"])
+    except Exception as e:
+        return jsonify({"error": f"Admin auth failed: {e}", "scope": "admin"}), 401
+    try:
+        viewer_client = _get_client(kw["viewer_creds"])
+    except Exception as e:
+        return jsonify({"error": f"Viewer auth failed: {e}", "scope": "viewer"}), 401
+    try:
+        report = _pa_runner.run_product_availability(
+            msisdn=kw["msisdn"],
+            product_id=kw["product_id"],
+            product_kind=kw["product_kind"],
+            tariffs=kw["tariffs"],
+            admin_client=admin_client,
+            viewer_client=viewer_client,
+            only_ids=kw["only_ids"],
+            wait_after_change=kw["wait_after_change"],
+            order_timeout=kw["order_timeout"],
+            resume_from=kw["resume_from"],
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    return jsonify(report)
+
+
+@app.route('/api/product-availability/run-stream', methods=['POST'])
+def api_pa_run_stream():
+    """SSE-вариант. Тело такое же, как у /run."""
+    data = request.get_json(silent=True) or {}
+    errors, kw = _pa_validate_run_payload(data)
+    if errors:
+        return jsonify({"error": "; ".join(errors)}), 400
+    try:
+        admin_client = _get_client(kw["admin_creds"])
+        viewer_client = _get_client(kw["viewer_creds"])
+    except Exception as e:
+        return jsonify({"error": f"Auth failed: {e}"}), 401
+
+    import queue as _q
+    import threading
+    q: "_q.Queue[dict]" = _q.Queue()
+    abort_event = threading.Event()
+
+    def cb(evt):
+        q.put(evt)
+
+    def worker():
+        try:
+            report = _pa_runner.run_product_availability(
+                msisdn=kw["msisdn"], product_id=kw["product_id"],
+                product_kind=kw["product_kind"], tariffs=kw["tariffs"],
+                admin_client=admin_client, viewer_client=viewer_client,
+                only_ids=kw["only_ids"], wait_after_change=kw["wait_after_change"],
+                order_timeout=kw["order_timeout"], progress_cb=cb,
+                resume_from=kw["resume_from"], abort_event=abort_event,
+            )
+            if not abort_event.is_set():
+                q.put({"event": "final", "report": report})
+        except Exception as e:
+            q.put({"event": "error", "error": str(e)})
+        finally:
+            q.put({"event": "_close"})
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def stream():
+        try:
+            while True:
+                evt = q.get()
+                if evt.get("event") == "_close":
+                    break
+                yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
+        finally:
+            abort_event.set()
+
+    return Response(stream(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+
+@app.route('/api/product-availability/history')
+def api_pa_history():
+    return jsonify(_pa_runner.list_product_avail_reports())
+
+
+@app.route('/api/product-availability/history/<report_id>')
+def api_pa_history_detail(report_id):
+    rep = _pa_runner.get_product_avail_report(report_id)
     if not rep:
         return jsonify({"error": "report not found"}), 404
     return jsonify(rep)
@@ -579,7 +797,7 @@ def api_auth():
         client = SBMSClient(BASE_URL, TIMEOUT)
         client.authenticate(login, password)
         ts = time.time()
-        _auth_cache[login] = {"token": client.token, "ts": ts}
+        _auth_cache[login] = {"token": client.token, "ts": ts, "password": password}
 
         return jsonify({
             "token": client.token,
@@ -589,27 +807,6 @@ def api_auth():
         })
     except Exception as e:
         return jsonify({"error": str(e), "code": "AUTH_FAILED"}), 401
-
-
-@app.route('/api/auth/verify', methods=['POST'])
-def api_auth_verify():
-    """Проверить, жив ли токен. Дёргает лёгкий эндпоинт SBMS."""
-    data = request.get_json() or {}
-    token = data.get("authToken")
-    if not token:
-        return jsonify({"valid": False, "error": "no token"}), 401
-    try:
-        client = SBMSClient(BASE_URL, TIMEOUT)
-        client.token = token
-        # searchBase с заведомо несуществующим MSISDN — быстрая проверка токена
-        resp = client._get("/OAPI/v1/customers/searchBase", {
-            "identification": "000000000000", "authToken": token
-        })
-        if resp.status_code in (200, 204):
-            return jsonify({"valid": True})
-        return jsonify({"valid": False, "status": resp.status_code}), 401
-    except Exception as e:
-        return jsonify({"valid": False, "error": str(e)}), 401
 
 
 @app.route('/api/test/run', methods=['POST'])
@@ -672,20 +869,80 @@ def tariff_load_customer():
         balance_data = client.get_available_balance(cid)
         balance = balance_data.get("availableBalance", balance_data.get("availableAmount")) if balance_data else None
 
-        avail_rps = client.get_available_rateplans(sid)
-        avail_items = avail_rps.get("items", []) if avail_rps else []
+        # Доступные тарифы: вызываем ОБА эндпоинта и сливаем.
+        #   - GET /availableForChange (без /search) → отдаёт ratePlanCost (activationCost +
+        #     subscriptionFeeDetail.amount + periodMeasureUnit). Это источник АП и
+        #     стоимости перехода.
+        #   - POST /availableForChange/search → даёт более широкий список с recurringFlag,
+        #     используется как страховка, если GET не вернул items.
+        fees_resp = None
+        search_resp = None
+        try:
+            fees_resp = client.get_available_rateplans_with_fees(sid)
+        except Exception as _e:
+            print(f"[WARN] GET availableForChange (fees) failed: {_e}")
+        try:
+            search_resp = client.get_available_rateplans(sid)
+        except Exception as _e:
+            print(f"[WARN] POST availableForChange/search failed: {_e}")
 
-        # Нормализация: items содержат вложенный ratePlan {name, ratePlanId}
-        # Вытащить на верхний уровень для удобства фронтенда
-        flat_items = []
-        for item in avail_items:
-            rp_obj = item.get("ratePlan") or {}
-            flat_items.append({
-                "ratePlanId": rp_obj.get("ratePlanId") or item.get("ratePlanId") or item.get("id"),
-                "name": rp_obj.get("name") or item.get("name", "N/A"),
-                "isArchived": item.get("isArchived"),
-                "recurringFlag": item.get("recurringFlag"),
-            })
+        fees_items   = (fees_resp   or {}).get("items", []) or []
+        search_items = (search_resp or {}).get("items", []) or []
+
+        # Сначала строим map ratePlanId → запись из GET (с fees).
+        merged = {}
+        for it in fees_items:
+            if not isinstance(it, dict):
+                continue
+            rp_obj = it.get("ratePlan") or {}
+            rp_id_v = rp_obj.get("ratePlanId") or it.get("ratePlanId") or it.get("id")
+            if rp_id_v is None:
+                continue
+            cost = it.get("ratePlanCost") or {}
+            fee_detail = cost.get("subscriptionFeeDetail") or {}
+            merged[str(rp_id_v)] = {
+                "ratePlanId":     rp_id_v,
+                "name":           rp_obj.get("name") or it.get("name", "N/A"),
+                "isArchived":     it.get("isArchived"),
+                "recurringFlag":  it.get("recurringFlag"),
+                "recurringFee":   fee_detail.get("amount"),
+                "activationCost": cost.get("activationCost"),
+                "feePeriod":      fee_detail.get("periodMeasureUnit"),
+                # Сырой блок — фронт может читать напрямую как fallback
+                "ratePlanCost":   cost or None,
+            }
+
+        # Дополняем недостающими записями из POST/search (без fees).
+        for it in search_items:
+            if not isinstance(it, dict):
+                continue
+            rp_obj = it.get("ratePlan") or {}
+            rp_id_v = rp_obj.get("ratePlanId") or it.get("ratePlanId") or it.get("id")
+            if rp_id_v is None:
+                continue
+            key = str(rp_id_v)
+            if key in merged:
+                # Уже есть из GET — recurringFlag добираем, если в GET его не было
+                if merged[key].get("recurringFlag") is None:
+                    merged[key]["recurringFlag"] = it.get("recurringFlag")
+                continue
+            merged[key] = {
+                "ratePlanId":     rp_id_v,
+                "name":           rp_obj.get("name") or it.get("name", "N/A"),
+                "isArchived":     it.get("isArchived"),
+                "recurringFlag":  it.get("recurringFlag"),
+                "recurringFee":   None,
+                "activationCost": None,
+                "feePeriod":      None,
+            }
+
+        flat_items = list(merged.values())
+
+        # Диагностика — печатаем сколько тарифов получили и сколько с fees.
+        with_fees = sum(1 for x in flat_items if x.get("recurringFee") is not None)
+        print(f"[tariff/load-customer] sid={sid} → {len(flat_items)} тарифов, "
+              f"с АП: {with_fees}, GET items={len(fees_items)}, "
+              f"POST items={len(search_items)}")
 
         current_fee = None
         current_product_id = None
@@ -873,6 +1130,15 @@ def tariff_load_customer():
                 "tariffDetails": tariff_details
             },
             "availableRatePlans": flat_items,
+            "_tariffsDiag": {
+                "feesItemsCount":   len(fees_items),
+                "searchItemsCount": len(search_items),
+                "withFees":         with_fees,
+                "totalMerged":      len(flat_items),
+                "feesRespOk":       fees_resp is not None,
+                "searchRespOk":     search_resp is not None,
+                "firstFeeItemSample": (fees_items[0] if fees_items else None),
+            },
             "activePacks": [{
                 "packInstanceId": p.get("subscriberPackId") or p.get("packInstanceId") or p.get("id"),
                 "packId": (p.get("pack") or {}).get("packId") or p.get("packId"),
@@ -931,6 +1197,36 @@ def api_lifecycle_history():
             "items": items,
             "count": len(items),
         })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tariff/change', methods=['POST'])
+def tariff_change_direct():
+    """Простая прямая смена тарифа без прогона тест-цикла.
+
+    Body: {subscriberId, ratePlanId, [authToken|login+password]}
+    Response: {ok, ratePlanOrderId, raw} либо {error}.
+    """
+    try:
+        data = request.get_json() or {}
+        sid = data.get("subscriberId")
+        rp_id = data.get("ratePlanId")
+        if not sid or not rp_id:
+            return jsonify({"error": "subscriberId и ratePlanId обязательны"}), 400
+
+        client = _get_client(data)
+        resp = client.change_rateplan(sid, rp_id)
+
+        if isinstance(resp, dict) and resp.get("error"):
+            return jsonify({"error": f"SBMS вернул {resp.get('error')}", "details": resp}), 502
+
+        order_id = None
+        if isinstance(resp, dict):
+            order_id = resp.get("ratePlanOrderId") or resp.get("orderId")
+
+        return jsonify({"ok": True, "ratePlanOrderId": order_id, "raw": resp})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -1229,6 +1525,149 @@ def api_limits_all():
 
         return jsonify({"groups": result_groups, "totalItems": len(items)})
 
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# CALLS — события абонента (PSIX STRAFF_CALLS_R)
+# ============================================================
+
+# Регекспы для финальной проверки на границе API: если в snippet всё-таки
+# просочились приметы чужой сессии (32+ символьный токен SBMS, ACCESS_LEVEL_ID,
+# и т.п.) — задавим их и здесь. Belt-and-suspenders поверх _psix_safe_snippet.
+import re as _re_secret
+_SBMS_TOKEN_LIKE_RE = _re_secret.compile(r"AAAI[A-Za-z0-9_.\-]{16,}")  # сигнатура SBMS-токена
+
+
+def _scrub_attempt_for_ui(attempt):
+    """Финальная очистка одной attempt-записи перед отдачей в UI.
+
+    1) Если есть snippet — прогоняем повторно через _redact_snippet
+       (на случай новых тегов или будущих рефакторингов).
+    2) Дополнительно затираем SBMS-токенные сигнатуры по эвристике.
+    3) Никогда не отдаём raw/body/text-поля целиком — только snippet.
+    """
+    if not isinstance(attempt, dict):
+        return attempt
+    safe = {}
+    for k, v in attempt.items():
+        # Запрещаем потенциально сырые поля.
+        if k in {"raw", "body", "text", "response", "html", "xml"}:
+            continue
+        if k == "snippet" and isinstance(v, str):
+            v = _redact_snippet(v)
+            v = _SBMS_TOKEN_LIKE_RE.sub("***", v)
+        safe[k] = v
+    return safe
+
+
+def _scrub_attempts_for_ui(attempts):
+    if not isinstance(attempts, list):
+        return []
+    return [_scrub_attempt_for_ui(a) for a in attempts]
+
+
+@app.route("/api/calls/list", methods=["POST"])
+def api_calls_list():
+    """Список вызовов/событий абонента через PSIX STRAFF_CALLS_R.
+
+    Body: {msisdn, authToken? | login+password?, subscriberId?, customerId?,
+           startDate?, endDate?, limit?, offset?}
+    Возвращает items с укороченным набором полей для UI.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        msisdn = (data.get("msisdn") or "").strip()
+        sid = data.get("subscriberId")
+        cid = data.get("customerId")
+
+        if not (sid or msisdn):
+            return jsonify({"error": "msisdn или subscriberId обязательны"}), 400
+
+        client = _get_client(data)
+
+        # STRAFF_CALLS_R требует HTTP Basic. Если в payload пришли login/password
+        # явно — кладём их в клиент (плюс обновляем кеш для последующих вызовов).
+        explicit_login = (data.get("login") or "").strip()
+        explicit_password = data.get("password") or ""
+        if explicit_login and explicit_password:
+            client._login = explicit_login
+            client._password = explicit_password
+            _auth_cache[explicit_login] = {
+                "token": client.token,
+                "ts": time.time(),
+                "password": explicit_password,
+            }
+
+        # Без пароля STRAFF_CALLS_R вернёт пустой wrapper-ответ. Сообщаем UI явно,
+        # чтобы он заставил пользователя ввести пароль (sessionStorage мог быть пуст).
+        if not getattr(client, "_password", None):
+            return jsonify({
+                "error": "Для STRAFF_CALLS требуется пароль (HTTP Basic). Введите пароль повторно.",
+                "code": "PASSWORD_REQUIRED",
+            }), 401
+
+        # Если sid не передан — найдём по msisdn
+        if not sid:
+            sd = client.search_customer(msisdn)
+            if not sd or not sd.get("searchResults"):
+                return jsonify({"error": "Клиент не найден"}), 404
+            sr = sd["searchResults"][0]
+            sid = sr.get("subscriberId")
+            cid = cid or sr.get("customerId")
+
+        result = client.get_calls(
+            subscriber_id=sid,
+            customer_id=cid,
+            msisdn=msisdn or None,
+            start_date=data.get("startDate"),
+            end_date=data.get("endDate"),
+            limit=int(data.get("limit") or 500),
+            offset=int(data.get("offset") or 0),
+            debug=bool(data.get("debug")),
+        )
+
+        # Серверная диагностика: при пустом результате логируем, что именно
+        # вернул SBMS (без сырых SESSION_ID — но с длиной/именами блоков).
+        items_now = list(result.get("items") or [])
+        if not items_now:
+            atts = result.get("attempts") or []
+            summary = []
+            for a in atts:
+                summary.append(
+                    f"{a.get('method','?')} {a.get('path','?')}"
+                    f" status={a.get('status')} len={a.get('len')}"
+                    f" block={a.get('block')!r} count={a.get('count', 0)}"
+                )
+            print(
+                f"[calls/list] EMPTY result for sid={sid} msisdn={msisdn} "
+                f"procedure_ok={result.get('procedure_ok')}\n  "
+                + "\n  ".join(summary),
+                flush=True,
+            )
+
+        # Возвращаем все поля ROW-а (форматы отличаются между процедурами:
+        # UCL_OAPI_GET_CHARGE / UCL_GET_RTPL_CHARGE_HIST / etc).
+        # UI знает несколько привычных алиасов и сам выбирает что показать.
+        items = list(result.get("items") or [])
+        return jsonify({
+            "items": items,
+            "count": len(items),
+            "subscriberId": sid,
+            "block": result.get("block"),
+            "procedureOk": result.get("procedure_ok", False),
+            "periodDays": result.get("period_days"),
+            "begin": result.get("begin"),
+            "end": result.get("end"),
+            # Финальный scrub на границе API: даже если внутри клиента
+            # что-то поменяется и snippet окажется небезопасным —
+            # сюда просочиться не должно.
+            "attempts": _scrub_attempts_for_ui(result.get("attempts") or []),
+        })
+    except AuthRequired:
+        raise
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

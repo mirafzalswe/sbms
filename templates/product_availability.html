@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Доступность продукта — UCELL SBMS</title>
+<style>
+    :root {
+        --bg: #0f172a; --bg-2: #1e293b; --bg-3: #0b1220;
+        --border: #334155; --border-soft: #1e293b;
+        --text: #e2e8f0; --text-2: #94a3b8; --text-3: #64748b;
+        --brand: #6B1F8A; --brand-hover: #581873; --brand-soft: #6B1F8A1F; --brand-glow: #6B1F8A55;
+        --brand-text: #ffffff;
+        --pass: #22c55e; --fail: #ef4444; --warn: #eab308; --info: #38bdf8; --skip: #64748b;
+        --pass-soft: #22c55e22; --fail-soft: #ef444422; --warn-soft: #eab30822;
+        --info-soft: #38bdf822; --skip-soft: #64748b22;
+    }
+    [data-theme="light"] {
+        --bg: #f3f4f8; --bg-2: #ffffff; --bg-3: #f7f8fb;
+        --border: #d8dde6; --border-soft: #e2e6ec;
+        --text: #1f2937; --text-2: #4b5563; --text-3: #8893a4;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; }
+
+    .topbar { background: var(--bg-2); border-bottom: 1px solid var(--border);
+              padding: 0 16px; display: flex; align-items: center; gap: 14px;
+              height: 52px; position: sticky; top: 0; z-index: 50; }
+    .topbar .brand { display: inline-flex; align-items: center; gap: 10px; }
+    .topbar .brand img { height: 22px; width: auto; background: #fff; padding: 2px 6px; border-radius: 5px; }
+    [data-theme="light"] .topbar .brand img { background: transparent; padding: 0; }
+    .topbar h1 { font-size: 16px; color: var(--brand); font-weight: 800; letter-spacing: .5px; margin: 0; }
+    .topbar nav { display: flex; gap: 2px; margin-left: 8px; }
+    .topbar nav a { color: var(--text-2); text-decoration: none; font-size: 12px; font-weight: 500;
+                    height: 28px; padding: 0 10px; border-radius: 6px;
+                    display: inline-flex; align-items: center; transition: all .15s; }
+    .topbar nav a:hover { background: var(--bg); color: var(--text); }
+    .topbar nav a.active { background: var(--brand); color: var(--brand-text); }
+    .topbar .spacer { flex: 1; }
+    .topbar .icon-btn { width: 32px; height: 28px; border-radius: 6px; cursor: pointer;
+                        background: var(--bg); border: 1px solid var(--border); color: var(--text-2);
+                        display: inline-flex; align-items: center; justify-content: center; }
+    .topbar .icon-btn:hover { color: var(--text); border-color: var(--text-3); }
+    .topbar .icon-btn svg { width: 14px; height: 14px; }
+
+    .container { max-width: 1500px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .card h2 { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .6px;
+               margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+    .card h2 .step { width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff;
+                     display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+    .card h2 .step.locked { background: var(--text-3); }
+    .card.locked { opacity: .5; pointer-events: none; }
+    .card .hint { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+
+    .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; }
+    label.fld { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-3);
+                text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+    label.fld input, label.fld select, label.fld textarea {
+        padding: 8px 12px; border-radius: 6px; background: var(--bg);
+        border: 1px solid var(--border); color: var(--text);
+        font-size: 13px; font-family: inherit; min-height: 34px;
+    }
+    label.fld input:focus, label.fld select:focus, label.fld textarea:focus {
+        outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-glow);
+    }
+    label.fld textarea { font-family: 'SF Mono', Menlo, Consolas, monospace; resize: vertical; min-height: 140px; }
+    .field-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    .btn { height: 34px; padding: 0 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+           border: 1px solid transparent; cursor: pointer; transition: all .15s;
+           display: inline-flex; align-items: center; gap: 6px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--brand); color: var(--brand-text); }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-hover); }
+    .btn-ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text-3); }
+    .btn-danger { background: var(--fail); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-warn { background: var(--warn); color: #1f2937; }
+    .btn-warn:hover:not(:disabled) { background: #ca8a04; color: #fff; }
+    .btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
+
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+    .tab { padding: 8px 14px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-2);
+           border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .product-kind { display: flex; gap: 6px; }
+    .product-kind label { flex: 1; padding: 10px; border-radius: 6px;
+                          background: var(--bg); border: 1px solid var(--border);
+                          cursor: pointer; text-align: center; font-size: 13px; font-weight: 600;
+                          color: var(--text-2); transition: all .15s; }
+    .product-kind label:hover { color: var(--text); border-color: var(--text-3); }
+    .product-kind input[type=radio] { display: none; }
+    .product-kind input[type=radio]:checked + span { color: var(--brand-text); }
+    .product-kind label:has(input[type=radio]:checked) { background: var(--brand); border-color: var(--brand); color: var(--brand-text); }
+
+    .acc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 8px; }
+    .acc { background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 12px;
+           cursor: pointer; transition: all .15s; }
+    .acc:hover { border-color: var(--text-3); }
+    .acc.selected { border-color: var(--brand); background: var(--brand-soft); }
+    .acc .acc-tag { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+    .acc.selected .acc-tag { color: var(--brand); }
+    .acc .acc-name { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 4px; }
+    .acc .acc-login { font-size: 11px; color: var(--text-2); margin-top: 4px; font-family: 'SF Mono', Menlo, monospace; word-break: break-all; }
+
+    .role-block { background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px; margin-top: 10px; }
+    .role-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--text); }
+    .role-badge { background: var(--brand); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: .5px; }
+    .role-badge.viewer { background: var(--info); }
+    .role-desc { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+
+    .preview-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    .preview-table th, .preview-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-soft); text-align: left; }
+    .preview-table th { color: var(--text-3); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+    .preview-table tr:hover { background: var(--bg-3); }
+    .preview-table input[type=checkbox] { cursor: pointer; }
+    .preview-table .id-cell { font-family: 'SF Mono', Menlo, monospace; color: var(--brand); font-weight: 600; }
+    .preview-wrap { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: 6px; }
+
+    .alert { padding: 10px 12px; border-radius: 6px; font-size: 12px; margin-top: 8px; }
+    .alert-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+    .alert-info { background: var(--info-soft); color: var(--info); border: 1px solid var(--info); }
+    .alert-fail { background: var(--fail-soft); color: var(--fail); border: 1px solid var(--fail); }
+    .alert-pass { background: var(--pass-soft); color: var(--pass); border: 1px solid var(--pass); }
+
+    .progress-wrap { background: var(--bg-3); border-radius: 6px; height: 24px; overflow: hidden; border: 1px solid var(--border-soft); }
+    .progress-bar { background: linear-gradient(90deg, var(--brand), #a855f7); height: 100%; color: #fff; font-size: 11px;
+                    display: flex; align-items: center; justify-content: center; transition: width .3s; font-weight: 700; }
+    .progress-step { font-size: 12px; color: var(--text-2); margin-top: 8px; }
+    .progress-meta { font-size: 11px; color: var(--text-3); margin-top: 6px; display: flex; gap: 18px; flex-wrap: wrap; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .kpi { background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: 8px; padding: 12px; text-align: center; }
+    .kpi .n { font-size: 26px; font-weight: 800; line-height: 1; }
+    .kpi .l { font-size: 11px; color: var(--text-3); margin-top: 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    .results-table th, .results-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); }
+    .results-table th { background: var(--bg-3); color: var(--text-3); font-size: 10px;
+                        text-transform: uppercase; letter-spacing: .5px; text-align: left; position: sticky; top: 0; z-index: 1; }
+    .results-table .status-pass { color: var(--pass); font-weight: 700; }
+    .results-table .status-fail { color: var(--fail); font-weight: 700; }
+    .results-table .status-blocked { color: var(--warn); font-weight: 700; }
+    .results-table .status-pending { color: var(--text-3); }
+    .results-table .id-cell { font-family: 'SF Mono', Menlo, monospace; color: var(--brand); font-weight: 600; }
+    .results-wrap { max-height: 600px; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: 6px; }
+
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text-2); margin-bottom: 8px; }
+    .legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+    .legend .sw.pass { background: var(--pass); }
+    .legend .sw.fail { background: var(--fail); }
+    .legend .sw.blocked { background: var(--warn); }
+    .legend .sw.pending { background: var(--text-3); }
+
+    .hidden { display: none !important; }
+
+    /* Лог процесса (drawer) */
+    .log-fab { position: fixed; bottom: 16px; right: 16px; z-index: 60;
+               background: var(--brand); color: #fff; border: none; border-radius: 24px;
+               padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+               box-shadow: 0 4px 12px rgba(0,0,0,.25); font-weight: 600; font-size: 12px; }
+    .log-fab:hover { background: var(--brand-hover); }
+    .fab-counter { background: rgba(255,255,255,.2); padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+    .log-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 70; display: none; }
+    .log-overlay.open { display: block; }
+    .log-drawer { position: fixed; top: 0; right: 0; height: 100vh; width: 480px; max-width: 90vw;
+                  background: var(--bg-2); border-left: 1px solid var(--border); z-index: 80;
+                  transform: translateX(100%); transition: transform .25s; display: flex; flex-direction: column; }
+    .log-drawer.open { transform: translateX(0); }
+    .ld-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .ld-title { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .ld-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+    .ld-status.idle { background: var(--skip-soft); color: var(--skip); }
+    .ld-status.running { background: var(--info-soft); color: var(--info); }
+    .ld-status.error { background: var(--fail-soft); color: var(--fail); }
+    .ld-actions { padding: 8px 14px; border-bottom: 1px solid var(--border-soft); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .ld-body { flex: 1; overflow-y: auto; padding: 8px 14px; font-family: 'SF Mono', Menlo, monospace; font-size: 11px; line-height: 1.5; }
+    .log-entry { padding: 2px 0; }
+    .log-entry .lv { display: inline-block; min-width: 50px; font-weight: 700; }
+    .log-entry.info .lv  { color: var(--info); }
+    .log-entry.step .lv  { color: var(--brand); }
+    .log-entry.pass .lv  { color: var(--pass); }
+    .log-entry.fail .lv  { color: var(--fail); }
+    .log-entry.warn .lv  { color: var(--warn); }
+    .log-entry.debug .lv { color: var(--text-3); }
+    .log-entry .ts { color: var(--text-3); margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <img src="/static/logoUcell.png" alt="UCELL" onerror="this.style.display='none'">
+        <h1>SBMS</h1>
+    </div>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/tariff-test">Тариф / Пакет</a>
+        <a href="/matrix-test">Матрица переходов</a>
+        <a href="/product-availability" class="active">Доступность продукта</a>
+        <a href="/tester">Тестер</a>
+    </nav>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="themeToggle" title="Сменить тему">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/></svg>
+    </button>
+</header>
+
+<div class="container">
+
+    <!-- ШАГ 1: ПРОДУКТ -->
+    <div class="card" id="step1">
+        <h2><span class="step">1</span>Продукт для проверки</h2>
+        <div class="hint">Введите ID продукта и явно укажите его тип — пакет или услуга. Один и тот же числовой ID
+            может относиться к разным сущностям, поэтому выбор обязателен.</div>
+        <div class="field-grid">
+            <label class="fld">ID продукта
+                <input type="number" id="productId" placeholder="например, 12345" inputmode="numeric">
+            </label>
+            <label class="fld">Тип продукта
+                <div class="product-kind" style="height: 34px;">
+                    <label><input type="radio" name="productKind" value="pack" checked><span>Пакет (pack)</span></label>
+                    <label><input type="radio" name="productKind" value="service"><span>Услуга (service)</span></label>
+                </div>
+            </label>
+            <label class="fld">Название (необязательно, для отчёта)
+                <input type="text" id="productName" placeholder="напр., Internet 10GB">
+            </label>
+        </div>
+    </div>
+
+    <!-- ШАГ 2: СПИСОК ТАРИФОВ -->
+    <div class="card" id="step2">
+        <h2><span class="step">2</span>Список тарифов для проверки</h2>
+        <div class="hint">
+            Введите тарифы, на которых проверяется доступность продукта. ID может быть в формате
+            <code>(ID 58)</code> в конце имени, либо отдельным числом в первой колонке.
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="paste">Вставить текст</div>
+            <div class="tab" data-tab="file">Загрузить файл</div>
+            <div class="tab" data-tab="json">JSON</div>
+        </div>
+
+        <div class="tab-pane active" data-pane="paste">
+            <label class="fld">Список тарифов (по одному на строку)
+                <textarea id="pasteText" placeholder="Foydali 45 (ID 58)&#10;Bor 90+90 (ID 84)&#10;46&#10;58, Имя тарифа"></textarea>
+            </label>
+            <div class="field-row" style="margin-top:8px;">
+                <button class="btn btn-primary btn-sm" type="button" onclick="parseFromPaste()">Распознать тарифы</button>
+                <span style="font-size:11px; color: var(--text-3);">Поддерживаются форматы: <code>Имя (ID N)</code>, <code>N, Имя</code>, просто число.</span>
+            </div>
+        </div>
+
+        <div class="tab-pane" data-pane="file">
+            <label class="fld">Файл со списком тарифов
+                <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.csv,.json,.txt">
+            </label>
+            <div class="field-row" style="margin-top:8px;">
+                <button class="btn btn-primary btn-sm" type="button" onclick="parseFromFile()">Загрузить и распознать</button>
+                <span style="font-size:11px; color: var(--text-3);">Поддерживаются: PDF / DOCX / XLSX / CSV / JSON / TXT.</span>
+            </div>
+        </div>
+
+        <div class="tab-pane" data-pane="json">
+            <label class="fld">JSON: массив <code>[{id, name}]</code> или <code>[123, 456]</code>
+                <textarea id="jsonText" placeholder='[{"id": 58, "name": "Foydali 45"}, {"id": 84, "name": "Bor 90+90"}]'></textarea>
+            </label>
+            <div class="field-row" style="margin-top:8px;">
+                <button class="btn btn-primary btn-sm" type="button" onclick="parseFromJSON()">Распознать JSON</button>
+            </div>
+        </div>
+
+        <div id="parseResult" style="margin-top: 12px;"></div>
+
+        <div id="tariffsPreview" class="hidden" style="margin-top: 12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <strong style="font-size:12px; color:var(--text-2);">Распознано тарифов: <span id="tariffsCount">0</span></strong>
+                <span style="display:flex; gap:6px;">
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllTariffs(true)">Выбрать все</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllTariffs(false)">Снять все</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="clearTariffs()">Очистить</button>
+                </span>
+            </div>
+            <div class="preview-wrap">
+                <table class="preview-table" id="tariffsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="tariffsAll" onchange="selectAllTariffs(this.checked)"></th>
+                            <th style="width:80px;">ID</th>
+                            <th>Название</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ШАГ 3: НОМЕР И УЧЁТКИ -->
+    <div class="card" id="step3">
+        <h2><span class="step">3</span>Номер абонента и учётки</h2>
+        <div class="hint">
+            Введите номер тестового абонента и выберите учётки. Достаточно кликнуть по карточке —
+            пароли уже подставлены.
+        </div>
+
+        <div class="field-grid">
+            <label class="fld">MSISDN
+                <input type="text" id="msisdn" placeholder="998500173054" inputmode="numeric">
+            </label>
+            <label class="fld">Пауза после смены (сек)
+                <input type="number" id="waitAfter" value="5" min="0" max="60">
+            </label>
+            <label class="fld">Таймаут заказа (сек)
+                <input type="number" id="orderTimeout" value="60" min="10" max="300">
+            </label>
+        </div>
+
+        <div class="role-block">
+            <div class="role-title">
+                <span class="role-badge">ADMIN</span>
+                Учётка, которая будет переключать тариф абонента
+            </div>
+            <div class="role-desc">
+                Под этой учёткой по очереди вызывается смена тарифа на каждый тариф из списка.
+                Введите логин и пароль вручную.
+            </div>
+            <div class="field-grid" style="margin-top:10px;">
+                <label class="fld">Логин
+                    <input type="text" id="adminLogin" placeholder="например, DBS_CC_OPERATORS_PSO" autocomplete="off">
+                </label>
+                <label class="fld">Пароль
+                    <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="new-password">
+                </label>
+            </div>
+            <div id="adminAuthAlert"></div>
+        </div>
+
+        <div class="role-block">
+            <div class="role-title">
+                <span class="role-badge viewer">VIEWER</span>
+                Учётка, под которой проверяется доступность продукта
+            </div>
+            <div class="role-desc">
+                После каждой смены вызывается <code>/packs/search?onlyRealPackFlag=0</code> (или
+                <code>/services/search</code>) под этой учёткой — в списке подключённых продуктов
+                абонента ищем введённый ID. Можно выбрать пресет или ввести учётку вручную.
+            </div>
+            <div class="acc-grid" id="viewerAccGrid"></div>
+            <div id="viewerCustomFields" class="hidden" style="margin-top:10px;">
+                <div class="field-grid">
+                    <label class="fld">Логин (viewer)
+                        <input type="text" id="viewerLogin" placeholder="например, DCC_CALL_CENTER_OPERATORT_PSO" autocomplete="off">
+                    </label>
+                    <label class="fld">Пароль (viewer)
+                        <input type="password" id="viewerPassword" placeholder="••••••••" autocomplete="new-password">
+                    </label>
+                </div>
+            </div>
+            <div id="viewerAuthAlert"></div>
+        </div>
+
+        <div class="field-row" style="margin-top:14px;">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="testAuth('admin')">Проверить admin</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="testAuth('viewer')">Проверить viewer</button>
+        </div>
+    </div>
+
+    <!-- ШАГ 4: ЗАПУСК -->
+    <div class="card" id="step4">
+        <h2><span class="step">4</span>Запуск</h2>
+        <div class="field-row">
+            <button class="btn btn-primary" id="btnRun" onclick="startRun()">
+                <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M3 2l11 6-11 6V2z"/></svg>
+                <span>Запустить прогон</span>
+            </button>
+            <button class="btn btn-warn hidden" id="btnResume" onclick="resumeRun()">▶ Продолжить</button>
+            <button class="btn btn-ghost hidden" id="btnRestart" onclick="restartRun()">↻ Начать заново</button>
+            <button class="btn btn-danger hidden" id="btnStop" onclick="stopRun()">Остановить</button>
+            <span id="runStatus" style="font-size:12px; color: var(--text-3);"></span>
+        </div>
+        <div style="font-size:12px; color: var(--text-3); margin-top: 8px;" id="runHint">
+            Будет проверено <strong id="runHintN">0</strong> тарифов из <strong id="runHintM">0</strong>.
+        </div>
+        <div class="alert alert-warn" style="margin-top:12px;">
+            ⚠ Каждый тариф из списка реально переключается на номере. Между переходами есть пауза.
+            Прогон 20 тарифов с таймаутом 60s займёт ~5 минут.
+        </div>
+    </div>
+
+    <!-- ПРОГРЕСС -->
+    <div class="card hidden" id="progressCard">
+        <h2>Прогресс</h2>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width: 0%">0%</div></div>
+        <div class="progress-step" id="progressStep">Подготовка...</div>
+        <div class="progress-meta">
+            <span>Тарифов: <strong id="pmRows">0/0</strong></span>
+            <span>Время: <strong id="pmTime">0s</strong></span>
+            <span>Текущий: <strong id="pmCurrent">—</strong></span>
+        </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="card hidden" id="kpiCard">
+        <h2>Сводка</h2>
+        <div class="kpi-grid">
+            <div class="kpi" style="color: var(--info);">
+                <div class="n" id="kTotal">0</div><div class="l">Всего тарифов</div>
+            </div>
+            <div class="kpi" style="color: var(--pass);">
+                <div class="n" id="kPass">0</div><div class="l">Доступен (pass)</div>
+            </div>
+            <div class="kpi" style="color: var(--fail);">
+                <div class="n" id="kFail">0</div><div class="l">Не доступен (fail)</div>
+            </div>
+            <div class="kpi" style="color: var(--warn);">
+                <div class="n" id="kBlocked">0</div><div class="l">Заблокировано</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- РЕЗУЛЬТАТЫ -->
+    <div class="card hidden" id="resultCard">
+        <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Результаты</span>
+            <span style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="downloadJSON()">JSON</button>
+                <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">CSV</button>
+            </span>
+        </h2>
+        <div class="legend">
+            <span class="lg"><span class="sw pass"></span>Доступен</span>
+            <span class="lg"><span class="sw fail"></span>Не доступен</span>
+            <span class="lg"><span class="sw blocked"></span>Не удалось сменить тариф</span>
+            <span class="lg"><span class="sw pending"></span>Ожидает</span>
+        </div>
+        <div class="results-wrap">
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">#</th>
+                        <th style="width:90px;">Tariff ID</th>
+                        <th>Тариф</th>
+                        <th style="width:120px;">Статус</th>
+                        <th style="width:100px;">Время</th>
+                        <th>Деталь</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Лог процесса -->
+<button type="button" class="log-fab" id="logFab" onclick="toggleLogDrawer()">
+    <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h8v2H2z"/></svg>
+    <span>Журнал</span>
+    <span class="fab-counter" id="logFabCounter">0</span>
+</button>
+<div class="log-overlay" id="logOverlay" onclick="toggleLogDrawer(false)"></div>
+<aside class="log-drawer" id="logDrawer">
+    <div class="ld-head">
+        <div class="ld-title">Журнал процесса <span class="ld-status idle" id="ldStatus">idle</span></div>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="toggleLogDrawer(false)">✕</button>
+    </div>
+    <div class="ld-actions">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="clearLogs()">Очистить</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="copyLogs()">Скопировать</button>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);">
+            <input type="checkbox" id="logAutoscroll" checked> авто-скролл
+        </label>
+    </div>
+    <div class="ld-body" id="logBody"></div>
+</aside>
+
+<script>
+// ============================================================
+// ACCOUNT PRESETS
+// ============================================================
+const ACCOUNTS = [
+    { id: 'B2B_OP', tag: 'B2B · Оператор',   name: 'B2B Operator',
+      login: 'DBS_CC_OPERATORS_PSO',          password: 'Ucell2026$$' },
+    { id: 'B2B_FO', tag: 'B2B · Фронт-офис', name: 'B2B Front Office',
+      login: 'DBS_REG_FO_PSO',                password: 'September2025+' },
+    { id: 'B2C_FO', tag: 'B2C · Фронт-офис', name: 'B2C Front Office',
+      login: 'DMS_FO_REGION_SPEC_PSO',        password: 'April042026+++' },
+    { id: 'B2C_OP', tag: 'B2C · Оператор',   name: 'B2C Operator',
+      login: 'DCC_CALL_CENTER_OPERATORT_PSO', password: 'Ucell+pso+2023+' },
+];
+
+const VIEWER_CUSTOM_ID = 'CUSTOM';
+
+const state = {
+    tariffs: [],            // [{id, name}]
+    selectedTariffs: new Set(),
+    selectedViewerId: localStorage.getItem('pa-viewer-id') || 'B2C_OP',
+    runStartedAt: null,
+    activeStream: null,
+    abortRequested: false,
+    partialReportId: null,
+    completedTariffIds: new Set(),
+    report: null,
+    msisdnCacheKey: 'pa-msisdn',
+};
+
+// ============================================================
+// THEME
+// ============================================================
+(function initTheme() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    });
+})();
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tabs .tab').forEach(t => {
+    t.addEventListener('click', () => {
+        document.querySelectorAll('.tabs .tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.querySelector(`.tab-pane[data-pane="${t.dataset.tab}"]`).classList.add('active');
+    });
+});
+
+// ============================================================
+// ACCOUNTS — admin вводится вручную, viewer — пресет ИЛИ ручной ввод
+// ============================================================
+function renderViewerGrid() {
+    const target = document.getElementById('viewerAccGrid');
+    target.innerHTML = '';
+    ACCOUNTS.forEach(acc => {
+        const el = document.createElement('div');
+        el.className = 'acc' + (state.selectedViewerId === acc.id ? ' selected' : '');
+        el.innerHTML = `
+            <div class="acc-tag">${acc.tag}</div>
+            <div class="acc-name">${acc.name}</div>
+            <div class="acc-login">${acc.login}</div>
+        `;
+        el.onclick = () => selectViewer(acc.id);
+        target.appendChild(el);
+    });
+    // спец-карточка «Вручную»
+    const custom = document.createElement('div');
+    custom.className = 'acc' + (state.selectedViewerId === VIEWER_CUSTOM_ID ? ' selected' : '');
+    custom.innerHTML = `
+        <div class="acc-tag">Свой ввод</div>
+        <div class="acc-name">✏ Вручную</div>
+        <div class="acc-login">введите login и пароль ниже</div>
+    `;
+    custom.onclick = () => selectViewer(VIEWER_CUSTOM_ID);
+    target.appendChild(custom);
+
+    document.getElementById('viewerCustomFields').classList.toggle('hidden',
+        state.selectedViewerId !== VIEWER_CUSTOM_ID);
+}
+
+function selectViewer(id) {
+    state.selectedViewerId = id;
+    localStorage.setItem('pa-viewer-id', id);
+    renderViewerGrid();
+    const a = document.getElementById('viewerAuthAlert');
+    if (a) a.innerHTML = '';
+}
+
+renderViewerGrid();
+
+// Персист admin-логина (пароль НЕ сохраняем) и viewer-логина (если custom)
+(function persistCreds() {
+    const adminLogin = document.getElementById('adminLogin');
+    const adminPass  = document.getElementById('adminPassword');
+    const savedAdminLogin = localStorage.getItem('pa-admin-login');
+    if (savedAdminLogin) adminLogin.value = savedAdminLogin;
+    adminLogin.addEventListener('input', () => {
+        localStorage.setItem('pa-admin-login', adminLogin.value);
+        const a = document.getElementById('adminAuthAlert'); if (a) a.innerHTML = '';
+    });
+    adminPass.addEventListener('input', () => {
+        const a = document.getElementById('adminAuthAlert'); if (a) a.innerHTML = '';
+    });
+
+    const viewerLogin = document.getElementById('viewerLogin');
+    const viewerPass  = document.getElementById('viewerPassword');
+    const savedViewerLogin = localStorage.getItem('pa-viewer-login');
+    if (savedViewerLogin) viewerLogin.value = savedViewerLogin;
+    viewerLogin.addEventListener('input', () => {
+        localStorage.setItem('pa-viewer-login', viewerLogin.value);
+        const a = document.getElementById('viewerAuthAlert'); if (a) a.innerHTML = '';
+    });
+    viewerPass.addEventListener('input', () => {
+        const a = document.getElementById('viewerAuthAlert'); if (a) a.innerHTML = '';
+    });
+})();
+
+function getAccount(role) {
+    if (role === 'admin') {
+        const login = (document.getElementById('adminLogin').value || '').trim();
+        const password = document.getElementById('adminPassword').value || '';
+        if (!login || !password) return null;
+        return { id: 'CUSTOM', tag: 'ADMIN (вручную)', name: login, login, password };
+    }
+    if (state.selectedViewerId === VIEWER_CUSTOM_ID) {
+        const login = (document.getElementById('viewerLogin').value || '').trim();
+        const password = document.getElementById('viewerPassword').value || '';
+        if (!login || !password) return null;
+        return { id: 'CUSTOM', tag: 'VIEWER (вручную)', name: login, login, password };
+    }
+    return ACCOUNTS.find(a => a.id === state.selectedViewerId) || null;
+}
+
+// ============================================================
+// MSISDN persistence
+// ============================================================
+(function initMsisdn() {
+    const cached = localStorage.getItem(state.msisdnCacheKey);
+    if (cached) document.getElementById('msisdn').value = cached;
+    document.getElementById('msisdn').addEventListener('change', e => {
+        localStorage.setItem(state.msisdnCacheKey, e.target.value.trim());
+    });
+})();
+
+// ============================================================
+// PARSE TARIFFS
+// ============================================================
+async function parseFromPaste() {
+    const text = document.getElementById('pasteText').value;
+    if (!text.trim()) { showParseAlert('fail', 'Текст пуст'); return; }
+    await _doParse({ text });
+}
+
+async function parseFromFile() {
+    const f = document.getElementById('fileInput').files[0];
+    if (!f) { showParseAlert('fail', 'Файл не выбран'); return; }
+    const fd = new FormData();
+    fd.append('file', f);
+    showParseAlert('info', 'Парсим файл...');
+    try {
+        const r = await fetch('/api/product-availability/parse-tariffs', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Ошибка парсинга');
+        applyParsedTariffs(d.tariffs, `Файл «${d.filename}»: распознано ${d.count} тарифов`);
+    } catch (e) {
+        showParseAlert('fail', e.message);
+    }
+}
+
+async function parseFromJSON() {
+    const text = document.getElementById('jsonText').value.trim();
+    if (!text) { showParseAlert('fail', 'JSON пуст'); return; }
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch (e) { showParseAlert('fail', 'Невалидный JSON: ' + e.message); return; }
+    await _doParse({ json: parsed });
+}
+
+async function _doParse(body) {
+    showParseAlert('info', 'Парсим...');
+    try {
+        const r = await fetch('/api/product-availability/parse-tariffs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Ошибка парсинга');
+        applyParsedTariffs(d.tariffs, `Распознано ${d.count} тарифов`);
+    } catch (e) {
+        showParseAlert('fail', e.message);
+    }
+}
+
+function applyParsedTariffs(tariffs, msg) {
+    state.tariffs = tariffs || [];
+    state.selectedTariffs = new Set(state.tariffs.map(t => Number(t.id)));
+    renderTariffsPreview();
+    showParseAlert('pass', msg);
+    updateRunHint();
+}
+
+function renderTariffsPreview() {
+    const wrap = document.getElementById('tariffsPreview');
+    const tbody = document.querySelector('#tariffsTable tbody');
+    document.getElementById('tariffsCount').textContent = state.tariffs.length;
+    tbody.innerHTML = '';
+    if (state.tariffs.length === 0) {
+        wrap.classList.add('hidden');
+        return;
+    }
+    wrap.classList.remove('hidden');
+    state.tariffs.forEach(t => {
+        const tr = document.createElement('tr');
+        const checked = state.selectedTariffs.has(Number(t.id)) ? 'checked' : '';
+        tr.innerHTML = `
+            <td><input type="checkbox" data-tid="${t.id}" ${checked}></td>
+            <td class="id-cell">${t.id}</td>
+            <td>${escapeHtml(t.name || '—')}</td>
+        `;
+        tr.querySelector('input[type=checkbox]').addEventListener('change', e => {
+            const tid = Number(e.target.dataset.tid);
+            if (e.target.checked) state.selectedTariffs.add(tid);
+            else                  state.selectedTariffs.delete(tid);
+            updateRunHint();
+        });
+        tbody.appendChild(tr);
+    });
+    document.getElementById('tariffsAll').checked = state.selectedTariffs.size === state.tariffs.length;
+}
+
+function selectAllTariffs(on) {
+    if (on) state.selectedTariffs = new Set(state.tariffs.map(t => Number(t.id)));
+    else    state.selectedTariffs = new Set();
+    renderTariffsPreview();
+    updateRunHint();
+}
+
+function clearTariffs() {
+    state.tariffs = [];
+    state.selectedTariffs = new Set();
+    renderTariffsPreview();
+    showParseAlert('info', 'Список очищен');
+    updateRunHint();
+}
+
+function showParseAlert(kind, msg) {
+    const el = document.getElementById('parseResult');
+    el.className = 'alert alert-' + kind;
+    el.textContent = msg;
+    el.style.marginTop = '10px';
+}
+
+function updateRunHint() {
+    document.getElementById('runHintN').textContent = state.selectedTariffs.size;
+    document.getElementById('runHintM').textContent = state.tariffs.length;
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    })[c]);
+}
+
+// ============================================================
+// AUTH TEST
+// ============================================================
+async function testAuth(role) {
+    const alertEl = document.getElementById(role + 'AuthAlert');
+    alertEl.style.marginTop = '8px';
+    const acc = getAccount(role);
+    if (!acc) {
+        alertEl.className = 'alert alert-fail';
+        alertEl.textContent = role === 'admin'
+            ? 'Введите admin login и пароль'
+            : (state.selectedViewerId === VIEWER_CUSTOM_ID
+                ? 'Введите viewer login и пароль'
+                : 'Выберите учётку viewer');
+        return;
+    }
+    alertEl.className = 'alert alert-info';
+    alertEl.textContent = `Проверка ${acc.login}...`;
+    try {
+        const r = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ login: acc.login, password: acc.password }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'auth failed');
+        alertEl.className = 'alert alert-pass';
+        alertEl.textContent = `✓ ${acc.login} — ОК (token истекает через ${Math.round((d.expiresIn || 0)/60)} мин)`;
+    } catch (e) {
+        alertEl.className = 'alert alert-fail';
+        alertEl.textContent = `✗ ${acc.login} — ${e.message}`;
+    }
+}
+
+// ============================================================
+// VALIDATE & RUN
+// ============================================================
+function gatherPayload() {
+    const productId = parseInt(document.getElementById('productId').value, 10);
+    const productKind = document.querySelector('input[name=productKind]:checked').value;
+    const msisdn = document.getElementById('msisdn').value.trim();
+    const wait_after_change = parseFloat(document.getElementById('waitAfter').value || 5);
+    const order_timeout = parseInt(document.getElementById('orderTimeout').value || 60, 10);
+    const admin = getAccount('admin');
+    const viewer = getAccount('viewer');
+    return {
+        msisdn, product_id: productId, product_kind: productKind,
+        tariffs: state.tariffs,
+        admin:  admin  ? { login: admin.login,  password: admin.password  } : null,
+        viewer: viewer ? { login: viewer.login, password: viewer.password } : null,
+        wait_after_change, order_timeout,
+    };
+}
+
+function validatePayload(p) {
+    if (!p.msisdn) return 'Введите MSISDN';
+    if (!p.product_id || isNaN(p.product_id)) return 'Введите ID продукта (число)';
+    if (!p.product_kind) return 'Выберите тип продукта';
+    if (!state.tariffs.length) return 'Загрузите/введите список тарифов';
+    if (state.selectedTariffs.size === 0) return 'Выберите хотя бы один тариф';
+    if (!p.admin)  return 'Введите admin login и пароль';
+    if (!p.viewer) return state.selectedViewerId === VIEWER_CUSTOM_ID
+        ? 'Введите viewer login и пароль'
+        : 'Выберите учётку viewer';
+    return null;
+}
+
+async function startRun() {
+    const p = gatherPayload();
+    const err = validatePayload(p);
+    if (err) { alert(err); return; }
+
+    const total = state.tariffs.length;
+    const sel = state.selectedTariffs.size;
+    const isPartial = sel < total;
+    if (isPartial && !confirm(`Будет проверено ${sel} из ${total} тарифов. Продолжить?`)) return;
+
+    state.report = null;
+    state.partialReportId = null;
+    state.completedTariffIds = new Set();
+    _hideResumeUI();
+    renderEmptyResults();
+    clearLogs();
+    addLog('step', `🚀 Старт: продукт ${p.product_id} (${p.product_kind}), тарифов ${sel}/${total}`);
+    addLog('info', `MSISDN: ${p.msisdn} · admin=${p.admin?.login||'?'} · viewer=${p.viewer?.login||'?'}`);
+
+    const only_ids = isPartial ? [...state.selectedTariffs] : null;
+    await _runStream({ payload: p, only_ids, resume_from: null });
+}
+
+async function resumeRun() {
+    const p = gatherPayload();
+    const err = validatePayload(p);
+    if (err) { alert(err); return; }
+    if (!state.partialReportId) {
+        addLog('debug', 'Ищу последний незавершённый отчёт...');
+        try {
+            const r = await fetch('/api/product-availability/history');
+            const list = await r.json();
+            const found = (Array.isArray(list) ? list : [])
+                .filter(x => x && x.msisdn === p.msisdn && Number(x.product_id) === Number(p.product_id)
+                    && x.product_kind === p.product_kind && (x.resumable || x.status === 'in_progress'))
+                .sort((a,b) => String(b.started_at||'').localeCompare(String(a.started_at||'')))[0];
+            if (!found) { alert('Не найдено незавершённых прогонов с такими параметрами'); return; }
+            state.partialReportId = found.id;
+            const det = await (await fetch(`/api/product-availability/history/${found.id}`)).json();
+            (det.results || []).forEach(rr => {
+                if (rr && rr.tariff_id != null) state.completedTariffIds.add(Number(rr.tariff_id));
+            });
+        } catch (e) { alert('Не удалось получить историю: ' + e.message); return; }
+    }
+    const remaining = [...state.selectedTariffs].filter(id => !state.completedTariffIds.has(Number(id)));
+    if (remaining.length === 0) { alert('Все выбранные тарифы уже обработаны'); _hideResumeUI(); return; }
+    if (!confirm(`Продолжить отчёт ${state.partialReportId}? Осталось ${remaining.length} тарифов.`)) return;
+    addLog('step', `⏵ Продолжение ${state.partialReportId}: ${remaining.length} осталось`);
+    _hideResumeUI();
+    await _runStream({ payload: p, only_ids: remaining, resume_from: state.partialReportId });
+}
+
+async function restartRun() {
+    if (!confirm('Сбросить прогресс и начать заново?')) return;
+    state.completedTariffIds = new Set();
+    state.partialReportId = null;
+    await startRun();
+}
+
+function stopRun() {
+    state.abortRequested = true;
+    if (state.activeStream) state.activeStream.abort();
+    addLog('warn', 'Запрошена остановка...');
+}
+
+async function _runStream({ payload, only_ids, resume_from }) {
+    state.runStartedAt = Date.now();
+    state.abortRequested = false;
+    document.getElementById('progressCard').classList.remove('hidden');
+    document.getElementById('kpiCard').classList.remove('hidden');
+    document.getElementById('resultCard').classList.remove('hidden');
+    document.getElementById('btnStop').classList.remove('hidden');
+    document.getElementById('btnRun').disabled = true;
+    _hideResumeUI();
+    setProgress(0, resume_from ? 'Продолжение...' : 'Авторизация...');
+    if (!resume_from) setKPI({ pass:0, fail:0, blocked:0, total: 0 });
+    setLogStatus('running');
+
+    const body = { ...payload, only_ids, resume_from };
+    const ac = new AbortController();
+    state.activeStream = ac;
+    let sawAborted = false;
+
+    try {
+        addLog('debug', `POST /api/product-availability/run-stream${resume_from ? ' (resume='+resume_from+')' : ''}`);
+        const resp = await fetch('/api/product-availability/run-stream', {
+            method: 'POST', signal: ac.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({error: 'Ошибка запуска'}));
+            throw new Error(d.error || 'Ошибка запуска');
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+            if (state.abortRequested) { ac.abort(); break; }
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+                const chunk = buf.slice(0, idx).trim();
+                buf = buf.slice(idx + 2);
+                if (!chunk.startsWith('data:')) continue;
+                const evt = JSON.parse(chunk.slice(5).trim());
+                handleEvent(evt);
+                if (evt.event === 'start' && evt.report_id) state.partialReportId = evt.report_id;
+                if (evt.event === 'row_done' && evt.row && evt.row.tariff_id != null) {
+                    state.completedTariffIds.add(Number(evt.row.tariff_id));
+                }
+                if (evt.event === 'aborted') {
+                    sawAborted = true;
+                    state.report = evt.report || null;
+                    if (evt.report && evt.report.id) state.partialReportId = evt.report.id;
+                    addLog('warn', `⏸ Остановлено · обработано ${evt.processed||0}, осталось ${evt.remaining||0}`);
+                }
+                if (evt.event === 'error') {
+                    addLog('fail', `✗ Ошибка сервера: ${evt.error || 'неизвестно'}`);
+                    alert('Ошибка: ' + evt.error);
+                }
+            }
+        }
+        if (state.abortRequested || sawAborted) {
+            setLogStatus('idle', 'остановлен');
+            _showResumeUI();
+        } else {
+            setLogStatus('idle', 'завершён');
+            state.partialReportId = null;
+            _hideResumeUI();
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            addLog('fail', `✗ ${e.message}`);
+            setLogStatus('error', 'ошибка');
+            alert('Ошибка: ' + e.message);
+            if (state.partialReportId) _showResumeUI();
+        } else {
+            addLog('warn', 'Поток прерван (abort)');
+            setLogStatus('idle', 'прерван');
+            _showResumeUI();
+        }
+    } finally {
+        document.getElementById('btnStop').classList.add('hidden');
+        document.getElementById('btnRun').disabled = false;
+        state.activeStream = null;
+    }
+}
+
+function _showResumeUI() {
+    const total = state.selectedTariffs.size;
+    const remaining = total - state.completedTariffIds.size;
+    const btnR = document.getElementById('btnResume');
+    const btnRe = document.getElementById('btnRestart');
+    if (remaining > 0) {
+        btnR.classList.remove('hidden');
+        btnR.textContent = `▶ Продолжить (${remaining} осталось)`;
+    } else {
+        btnR.classList.add('hidden');
+    }
+    btnRe.classList.remove('hidden');
+}
+
+function _hideResumeUI() {
+    document.getElementById('btnResume').classList.add('hidden');
+    document.getElementById('btnRestart').classList.add('hidden');
+}
+
+// ============================================================
+// EVENT HANDLER
+// ============================================================
+function handleEvent(evt) {
+    const e = evt.event;
+    if (e === 'start') {
+        document.getElementById('pmRows').textContent = `0/${evt.total || 0}`;
+        addLog('info', `subscriber=${evt.subscriber_id}, текущий тариф=${evt.initial_rateplan}, customer="${evt.customer_name||''}"`);
+        if (evt.skipped_done) addLog('info', `пропущено уже сделанных: ${evt.skipped_done}`);
+        return;
+    }
+    if (e === 'row_start') {
+        document.getElementById('pmCurrent').textContent = `${evt.tariff_id} ${evt.tariff_name||''}`;
+        addLog('step', `→ Тариф ${evt.tariff_id} ${evt.tariff_name||''}`);
+        appendOrUpdateRow({
+            tariff_id: evt.tariff_id, tariff_name: evt.tariff_name,
+            status: 'pending', detail: 'смена тарифа...',
+        });
+        return;
+    }
+    if (e === 'row_done') {
+        const r = evt.row || {};
+        const c = evt.counters || {};
+        setKPI({ ...c, total: state.tariffs.length });
+        const totalRows = state.tariffs.length;
+        const doneRows = (c.pass||0) + (c.fail||0) + (c.blocked||0);
+        const pct = totalRows ? Math.round(doneRows / totalRows * 100) : 0;
+        setProgress(pct, `Обработано ${doneRows}/${totalRows}`);
+        document.getElementById('pmRows').textContent = `${doneRows}/${totalRows}`;
+        document.getElementById('pmTime').textContent = `${evt.elapsed||0}s`;
+
+        let detail;
+        if (r.blocked) {
+            detail = r.block_reason || 'blocked';
+            addLog('warn', `  ⊘ ${r.tariff_id} — blocked: ${detail}`);
+        } else if (r.is_available) {
+            const tries = r.check_attempts > 1 ? ` · с ${r.check_attempts}-й попытки` : '';
+            detail = `доступен (по ${r.matched_field || 'id'})${tries} · из ${r.available_count}${r.product_name ? ' · '+r.product_name : ''}${r.product_fee != null ? ' · fee '+r.product_fee : ''}`;
+            addLog('pass', `  ✓ ${r.tariff_id} — ДОСТУПЕН по ${r.matched_field||'id'}${tries} (order ${r.order_status||'?'} за ${r.wait_order_sec}s)`);
+        } else {
+            const sampleHint = (r.items_sample && r.items_sample[0])
+                ? ` · sample ids: ${Object.keys(r.items_sample[0].ids||{}).slice(0,3).join(',')||'нет'}`
+                : '';
+            const tries = r.check_attempts ? ` · ${r.check_attempts} попыток` : '';
+            const diag = r.diag_hint ? ` · ⚠ ${r.diag_hint}` : '';
+            detail = `не доступен${tries} · в ответе ${r.available_count} (уник. id ${r.available_id_count})${sampleHint}${r.viewer_error ? ' · '+r.viewer_error : ''}${diag}`;
+            addLog('fail', `  ✗ ${r.tariff_id} — недоступен после ${r.check_attempts||1} попыток (order ${r.order_status||'?'} за ${r.wait_order_sec}s)`);
+            if (r.diag_hint) addLog('warn', `     ⚠ ${r.diag_hint}`);
+        }
+        appendOrUpdateRow({ ...r, detail });
+        return;
+    }
+    if (e === 'final' || e === 'aborted') {
+        state.report = evt.report;
+        if (e === 'final') {
+            setProgress(100, 'Завершено');
+            addLog('step', `🏁 Завершено за ${evt.report?.duration||0}s`);
+        }
+        return;
+    }
+}
+
+function setProgress(pct, label) {
+    const bar = document.getElementById('progressBar');
+    bar.style.width = pct + '%';
+    bar.textContent = pct + '%';
+    document.getElementById('progressStep').textContent = label;
+}
+
+function setKPI({ pass, fail, blocked, total }) {
+    document.getElementById('kPass').textContent = pass || 0;
+    document.getElementById('kFail').textContent = fail || 0;
+    document.getElementById('kBlocked').textContent = blocked || 0;
+    document.getElementById('kTotal').textContent = total || state.tariffs.length;
+}
+
+// ============================================================
+// RESULTS TABLE
+// ============================================================
+function renderEmptyResults() {
+    const tbody = document.querySelector('#resultsTable tbody');
+    tbody.innerHTML = '';
+    [...state.selectedTariffs].forEach(tid => {
+        const t = state.tariffs.find(x => Number(x.id) === Number(tid));
+        if (!t) return;
+        appendOrUpdateRow({ tariff_id: t.id, tariff_name: t.name, status: 'pending', detail: '—' });
+    });
+}
+
+function appendOrUpdateRow(r) {
+    const tbody = document.querySelector('#resultsTable tbody');
+    let tr = tbody.querySelector(`tr[data-tid="${r.tariff_id}"]`);
+    if (!tr) {
+        tr = document.createElement('tr');
+        tr.dataset.tid = r.tariff_id;
+        tr.innerHTML = '<td></td><td></td><td></td><td></td><td></td><td></td>';
+        tbody.appendChild(tr);
+    }
+    const cells = tr.querySelectorAll('td');
+    cells[0].textContent = tbody.querySelectorAll('tr').length === 1 ? 1 : Array.from(tbody.children).indexOf(tr) + 1;
+    cells[1].className = 'id-cell';
+    cells[1].textContent = r.tariff_id;
+    cells[2].textContent = r.tariff_name || '';
+    cells[3].className = 'status-' + (r.status || 'pending');
+    cells[3].textContent = ({ pass: 'Доступен', fail: 'Не доступен', blocked: 'Заблокирован', pending: 'Ожидает' })[r.status||'pending'] || r.status;
+    cells[4].textContent = r.duration != null ? r.duration + 's' : '—';
+    cells[5].textContent = r.detail || '';
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function downloadJSON() {
+    if (!state.report) { alert('Отчёт ещё не готов'); return; }
+    const blob = new Blob([JSON.stringify(state.report, null, 2)], { type: 'application/json' });
+    triggerDownload(blob, `product_avail_${state.report.id || 'report'}.json`);
+}
+
+function downloadCSV() {
+    if (!state.report) { alert('Отчёт ещё не готов'); return; }
+    const lines = ['tariff_id;tariff_name;status;is_available;order_status;wait_sec;duration;product_name;product_fee;detail'];
+    (state.report.results || []).forEach(r => {
+        lines.push([
+            r.tariff_id, q(r.tariff_name), r.status, r.is_available,
+            r.order_status || '', r.wait_order_sec || '', r.duration || '',
+            q(r.product_name||''), r.product_fee||'',
+            q(r.block_reason || r.viewer_error || ''),
+        ].join(';'));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    triggerDownload(blob, `product_avail_${state.report.id || 'report'}.csv`);
+}
+
+function q(s) { return '"' + String(s||'').replace(/"/g, '""') + '"'; }
+
+function triggerDownload(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// ============================================================
+// LOG DRAWER
+// ============================================================
+function toggleLogDrawer(force) {
+    const d = document.getElementById('logDrawer');
+    const o = document.getElementById('logOverlay');
+    const open = force === undefined ? !d.classList.contains('open') : force;
+    d.classList.toggle('open', open);
+    o.classList.toggle('open', open);
+}
+
+function addLog(level, msg) {
+    const body = document.getElementById('logBody');
+    const ts = new Date().toLocaleTimeString();
+    const e = document.createElement('div');
+    e.className = 'log-entry ' + level;
+    e.innerHTML = `<span class="ts">${ts}</span><span class="lv">${level.toUpperCase()}</span> ${escapeHtml(msg)}`;
+    body.appendChild(e);
+    if (document.getElementById('logAutoscroll').checked) body.scrollTop = body.scrollHeight;
+    document.getElementById('logFabCounter').textContent = body.children.length;
+}
+
+function clearLogs() {
+    document.getElementById('logBody').innerHTML = '';
+    document.getElementById('logFabCounter').textContent = '0';
+}
+
+function copyLogs() {
+    const text = Array.from(document.querySelectorAll('.log-entry'))
+        .map(e => e.textContent).join('\n');
+    navigator.clipboard.writeText(text).then(
+        () => addLog('info', 'Скопировано в буфер'),
+        () => addLog('warn', 'Не удалось скопировать')
+    );
+}
+
+function setLogStatus(klass, label) {
+    const el = document.getElementById('ldStatus');
+    el.className = 'ld-status ' + klass;
+    el.textContent = label || klass;
+}
+
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        toggleLogDrawer();
+    }
+});
+</script>
+</body>
+</html>

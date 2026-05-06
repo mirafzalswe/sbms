@@ -25,6 +25,10 @@
     const LS_LOGIN = 'sbms.login';
     const SS_TOKEN = 'sbms.token';
     const SS_EXPIRES = 'sbms.expiresAt';
+    // Пароль нужен ТОЛЬКО для PSIX-grid процедур (STRAFF_CALLS_R и пр.),
+    // которые требуют HTTP Basic поверх SESSION_ID. Хранится в sessionStorage —
+    // живёт в пределах вкладки, чистится при logout.
+    const SS_PW = 'sbms.pw';
     const DEFAULT_TTL_SEC = 25 * 60; // совпадает с серверным TOKEN_TTL
 
     const listeners = new Set();
@@ -37,7 +41,7 @@
     function isValid() { return !!_token && _expiresAt > now(); }
     function remaining() { return Math.max(0, _expiresAt - now()); }
 
-    function setSession(token, ttlSec, loginName) {
+    function setSession(token, ttlSec, loginName, password) {
         _token = token;
         _expiresAt = now() + (ttlSec || DEFAULT_TTL_SEC);
         if (loginName) {
@@ -46,6 +50,7 @@
         }
         sessionStorage.setItem(SS_TOKEN, token);
         sessionStorage.setItem(SS_EXPIRES, String(_expiresAt));
+        if (password) sessionStorage.setItem(SS_PW, password);
         emit('login');
     }
 
@@ -54,7 +59,12 @@
         _expiresAt = 0;
         sessionStorage.removeItem(SS_TOKEN);
         sessionStorage.removeItem(SS_EXPIRES);
+        sessionStorage.removeItem(SS_PW);
         emit('logout', reason);
+    }
+
+    function getPassword() {
+        return sessionStorage.getItem(SS_PW) || '';
     }
 
     function emit(event, payload) {
@@ -74,7 +84,7 @@
         if (!resp.ok || !data.token) {
             throw new Error(data.error || `Auth failed (HTTP ${resp.status})`);
         }
-        setSession(data.token, data.expiresIn || DEFAULT_TTL_SEC, login);
+        setSession(data.token, data.expiresIn || DEFAULT_TTL_SEC, login, password);
         return data.token;
     }
 
@@ -261,9 +271,10 @@
     global.SbmsAuth = {
         get token() { return isValid() ? _token : null; },
         get login() { return _login; },
+        get password() { return getPassword(); },
         get expiresAt() { return _expiresAt; },
         isValid, remaining,
-        authenticate, logout,
+        authenticate, logout, getPassword,
         setSession, clearSession,
         appendAuth, proxyUrl, apiGet, apiPost, proxyFetch,
         mountBadge, promptLogin, require, on

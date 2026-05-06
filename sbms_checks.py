@@ -9,6 +9,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
+
 # Импорт модуля для работы с маппингом discountPlanId
 try:
     from discount_mapper import get_discount_description
