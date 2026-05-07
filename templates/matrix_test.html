@@ -3,43 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Матрица переходов — UCELL SBMS</title>
+<title>Матрица переходов · UCELL SBMS</title>
+<link rel="stylesheet" href="/static/sbms-design.css">
+<link rel="stylesheet" href="/static/sbms-ui.css">
 <style>
-    :root {
-        --bg: #0f172a;
-        --bg-2: #1e293b;
-        
-        --bg-3: #0b1220;
-        --border: #334155;
-        --border-soft: #1e293b;
-        --text: #e2e8f0;
-        --text-2: #94a3b8;
-        --text-3: #64748b;
-        --brand: #6B1F8A;
-        --brand-hover: #581873;
-        --brand-soft: #6B1F8A1F;
-        --brand-glow: #6B1F8A55;
-        --brand-text: #ffffff;
-        --pass: #22c55e;
-        --fail: #ef4444;
-        --warn: #eab308;
-        --info: #38bdf8;
-        --skip: #64748b;
-        --pass-soft: #22c55e22;
-        --fail-soft: #ef444422;
-        --warn-soft: #eab30822;
-        --info-soft: #38bdf822;
-        --skip-soft: #64748b22;
+    /* Local aliases mapped to SBMS Design Tokens. Default = dark.
+       SbmsNav переключает data-theme на <html>. */
+    :root,
+    [data-theme="dark"] {
+        --bg: #0A0A0F; --bg-2: #131319; --bg-3: #1C1C24;
+        --border: #27272F; --border-soft: #1C1C24;
+        --text: #FAFAFA; --text-2: #A1A1AA; --text-3: #71717A;
+        --brand: #B86CDA; --brand-hover: #C988E5;
+        --brand-soft: rgba(184,108,218,0.14); --brand-glow: rgba(184,108,218,0.32);
+        --brand-text: #FFFFFF;
+        --pass: #22C55E; --fail: #EF4444; --warn: #F59E0B; --info: #3B82F6; --skip: #71717A;
+        --pass-soft: rgba(34,197,94,.14); --fail-soft: rgba(239,68,68,.14);
+        --warn-soft: rgba(245,158,11,.14); --info-soft: rgba(59,130,246,.14);
+        --skip-soft: rgba(113,113,122,.16);
     }
     [data-theme="light"] {
-        --bg: #f3f4f8;
-        --bg-2: #ffffff;
-        --bg-3: #f7f8fb;
-        --border: #d8dde6;
-        --border-soft: #e2e6ec;
-        --text: #1f2937;
-        --text-2: #4b5563;
-        --text-3: #8893a4;
+        --bg: #FAFAFA; --bg-2: #FFFFFF; --bg-3: #F4F4F5;
+        --border: #E4E4E7; --border-soft: #F4F4F5;
+        --text: #18181B; --text-2: #52525B; --text-3: #71717A;
+        --brand: #6B1F8A; --brand-hover: #581873;
+        --brand-soft: rgba(107,31,138,0.10); --brand-glow: rgba(107,31,138,0.22);
+        --brand-text: #FFFFFF;
+        --pass: #16A34A; --fail: #DC2626; --warn: #D97706; --info: #2563EB; --skip: #71717A;
+        --pass-soft: rgba(22,163,74,.10); --fail-soft: rgba(220,38,38,.10);
+        --warn-soft: rgba(217,119,6,.10); --info-soft: rgba(37,99,235,.10);
+        --skip-soft: rgba(113,113,122,.10);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -119,9 +112,9 @@
     .btn-ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
     .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text-3); }
     .btn-danger { background: var(--fail); color: #fff; }
-    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-danger:hover:not(:disabled) { filter: brightness(0.92); }
     .btn-warn   { background: var(--warn); color: #1a1500; font-weight: 600; }
-    .btn-warn:hover:not(:disabled) { background: #d4a008; }
+    .btn-warn:hover:not(:disabled) { filter: brightness(0.92); }
     .btn-sm { height: 28px; padding: 0 12px; font-size: 12px; }
 
     /* ========== UPLOAD ========== */
@@ -151,10 +144,10 @@
 
     /* ========== ALERTS ========== */
     .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
-    .alert-error { background: var(--fail-soft); border: 1px solid #ef444466; color: #fca5a5; }
-    .alert-warn  { background: var(--warn-soft); border: 1px solid #eab30866; color: #fde68a; }
-    .alert-info  { background: var(--info-soft); border: 1px solid #38bdf866; color: #7dd3fc; }
-    .alert-success { background: var(--pass-soft); border: 1px solid #22c55e66; color: #86efac; }
+    .alert-error   { background: var(--fail-soft); border: 1px solid var(--fail);   color: var(--fail); }
+    .alert-warn    { background: var(--warn-soft); border: 1px solid var(--warn);   color: var(--warn); }
+    .alert-info    { background: var(--info-soft); border: 1px solid var(--info);   color: var(--info); }
+    .alert-success { background: var(--pass-soft); border: 1px solid var(--pass);   color: var(--pass); }
 
     /* ========== KPI ========== */
     .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
@@ -524,23 +517,7 @@
 </head>
 <body>
 
-<header class="topbar">
-    <div class="brand">
-        <img src="/static/logoUcell.png" alt="UCELL" onerror="this.style.display='none'">
-        <h1>SBMS</h1>
-    </div>
-    <nav>
-        <a href="/">Dashboard</a>
-        <a href="/tariff-test">Тариф / Пакет</a>
-        <a href="/matrix-test" class="active">Матрица переходов</a>
-        <a href="/product-availability">Доступность продукта</a>
-        <a href="/tester">Тестер</a>
-    </nav>
-    <div class="spacer"></div>
-    <button class="icon-btn" id="themeToggle" title="Сменить тему">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/></svg>
-    </button>
-</header>
+<div id="sbmsNav"></div>
 
 <div class="container">
 
@@ -590,6 +567,11 @@
                     <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllRows(true)">✓ Выбрать все</button>
                     <button class="btn btn-ghost btn-sm" type="button" onclick="selectAllRows(false)">⊘ Снять все</button>
                     <button class="btn btn-ghost btn-sm" type="button" onclick="invertRowSelection()" title="Инвертировать выбор">⇄ Инверт.</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectFailedRows()"
+                            title="Выделить только строки с провалом/блокировкой после прогона"
+                            style="color: var(--fail);">✗ Только провалы</button>
+                    <button class="btn btn-ghost btn-sm" type="button" onclick="selectIncompleteRows()"
+                            title="Выделить только не пройденные строки">⏭ Незавершённые</button>
                 </div>
                 <ul id="srcList"></ul>
             </div>
@@ -870,6 +852,7 @@ const state = {
     report: null,       // последний (возможно частичный) отчёт
     partialReportId: null,    // id незавершённого прогона — для resume
     completedRowIds: new Set(), // row_id уже отработанных строк (для resume-фильтра)
+    rowResults: new Map(),      // row.id → {hasFail, hasWarn, completed} для bulk-фильтров
     currentRowIdx: 0,
     runStartedAt: 0,
     abortRequested: false,
@@ -1003,19 +986,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ============================================================
-// ТЕМА
-// ============================================================
-function getTheme() { return localStorage.getItem('matrix-theme') || 'dark'; }
-function applyTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-}
-applyTheme(getTheme());
-document.getElementById('themeToggle').addEventListener('click', () => {
-    const next = getTheme() === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('matrix-theme', next);
-    applyTheme(next);
-});
+// Theme + auth + nav теперь у SbmsNav.mount(), см. конец файла.
 
 // ============================================================
 // ПРЕСЕТЫ УЧЁТОК
@@ -1354,7 +1325,12 @@ function invertRowSelection() {
         const id = Number(r.id);
         if (!state.selectedRows.has(id)) inverted.add(id);
     });
-    state.selectedRows = inverted;
+    _applyRowSelectionFromSet(inverted);
+}
+
+// Внутренний хелпер: проставляет state.selectedRows и синхронизирует чекбоксы + UI.
+function _applyRowSelectionFromSet(set) {
+    state.selectedRows = set;
     document.querySelectorAll('#srcList li').forEach(li => {
         const id = Number(li.dataset.rowId);
         const checked = state.selectedRows.has(id);
@@ -1363,6 +1339,46 @@ function invertRowSelection() {
         li.classList.toggle('unselected', !checked);
     });
     updateSelectionUI();
+}
+
+// Выделить только строки, в которых были fail/blocked после последнего прогона.
+function selectFailedRows() {
+    if (!state.spec) return;
+    if (!state.rowResults || state.rowResults.size === 0) {
+        if (window.SbmsToast) SbmsToast.warn('Сначала запустите прогон, чтобы найти провалившиеся');
+        else alert('Сначала запустите прогон');
+        return;
+    }
+    const set = new Set();
+    state.spec.rows.forEach(r => {
+        const id = Number(r.id);
+        const res = state.rowResults.get(id);
+        if (res && (res.hasFail || res.hasWarn)) set.add(id);
+    });
+    if (set.size === 0) {
+        if (window.SbmsToast) SbmsToast.success('Провалившихся строк нет — всё в порядке');
+        else alert('Провалившихся строк нет');
+        return;
+    }
+    _applyRowSelectionFromSet(set);
+    if (window.SbmsToast) SbmsToast.info('Выделено ' + set.size + ' с провалами');
+}
+
+// Выделить только строки, которые ещё не прогонялись (нет в completedRowIds).
+function selectIncompleteRows() {
+    if (!state.spec) return;
+    const set = new Set();
+    state.spec.rows.forEach(r => {
+        const id = Number(r.id);
+        if (!state.completedRowIds.has(id)) set.add(id);
+    });
+    if (set.size === 0) {
+        if (window.SbmsToast) SbmsToast.success('Все строки уже прогнаны');
+        else alert('Все строки уже прогнаны');
+        return;
+    }
+    _applyRowSelectionFromSet(set);
+    if (window.SbmsToast) SbmsToast.info('Выделено ' + set.size + ' незавершённых');
 }
 
 function updateSelectionUI() {
@@ -1877,6 +1893,20 @@ function handleEvent(evt) {
         document.getElementById('runStatus').textContent =
             `Абонент: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · исходный rateplan=${evt.initial_rateplan || '—'}`;
         addLog('info', `👤 Абонент найден: ${evt.customer_name || '—'} · subscriberId=${evt.subscriber_id} · текущий rateplan=${evt.initial_rateplan || '—'}`);
+        // Запоминаем абонента в глобальном Recent (⌘K на всех страницах)
+        try {
+            const m = (document.getElementById('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (window.SbmsRecent && m) {
+                SbmsRecent.add(m, { label: evt.customer_name || '', page: 'matrix' });
+            }
+        } catch (_) {}
+        // Browser-notification на завершение длинного прогона
+        try {
+            if (window.SbmsNotify) {
+                SbmsNotify.ensurePermission();
+                state._notifyTrackerId = SbmsNotify.startTracking({ key: 'matrix-run', minDurationMs: 8000 });
+            }
+        } catch (_) {}
         if (evt.resumed) {
             addLog('info', `⏵ Продолжение отчёта ${evt.report_id}: пропущено уже сделанных ${evt.skipped_done||0}, осталось ${evt.total_rows} строк`);
             // Восстановим completedRowIds из ивента, чтобы кнопка resume считала правильно
@@ -1989,6 +2019,17 @@ function handleEvent(evt) {
         addLog(lvl, `${sym} Прогон завершён за ${formatDuration(evt.report.duration)} · pass=${c.pass||0} fail=${c.fail||0} blocked=${c.blocked||0} skip=${c.skip||0}`);
         addLog('info', `📁 Отчёт сохранён: id=${evt.report.id}`);
         _setLogStatus('завершён', (c.fail || 0) > 0 ? 'error' : 'idle');
+        // Browser-notification (если вкладка не в фокусе и трекер был длинным)
+        try {
+            if (window.SbmsNotify && state._notifyTrackerId) {
+                SbmsNotify.finishTracking(state._notifyTrackerId, {
+                    title: (c.fail || 0) > 0 ? '⚠ Матрица — есть провалы' : '✓ Матрица завершена',
+                    body:  `pass=${c.pass||0} · fail=${c.fail||0} · blocked=${c.blocked||0} · ${formatDuration(evt.report.duration)}`,
+                    failed: c.fail || 0,
+                });
+                state._notifyTrackerId = null;
+            }
+        } catch (_) {}
         return;
     }
 }
@@ -2001,6 +2042,16 @@ function applyRowResult(rowResult) {
     rowResult.cells.forEach(cell => {
         const td = tr.querySelector(`td[data-col="${cell.to_id}"]`);
         if (td) td.innerHTML = renderCell(cell);
+    });
+    // Сохраняем агрегированный итог строки для bulk-actions «только провалившиеся / незавершённые»
+    if (!state.rowResults) state.rowResults = new Map();
+    const cells = rowResult.cells || [];
+    const hasFail = cells.some(c => c.status === 'fail');
+    const hasWarn = cells.some(c => c.status === 'warn' || c.status === 'blocked');
+    state.rowResults.set(Number(rowResult.row_id), {
+        hasFail,
+        hasWarn,
+        completed: true,
     });
 }
 
@@ -2186,6 +2237,10 @@ function formatDuration(sec) {
     return `${m}m ${s}s`;
 }
 </script>
+
+<script src="/static/sbms-auth.js"></script>
+<script src="/static/sbms-nav.js"></script>
+<script>SbmsNav.mount('#sbmsNav', { active: 'matrix' });</script>
 
 </body>
 </html>

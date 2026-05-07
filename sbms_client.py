@@ -149,6 +149,13 @@ class SBMSClient:
         # authenticate() для повторного использования.
         self._login = None
         self._password = None
+        # Persistent requests.Session() для PSIX-вызовов:
+        # SBMS PSIX — это легаси-PHP с PHPSESSID-cookies + referer-check.
+        # Без cookies сервер возвращает 404 на корректные процедуры.
+        # Session заводится lazy (при первом _psix_call) и пере-инициализируется
+        # при инвалидации (401/403/404 после warm-up).
+        self._psix_session = None
+        self._psix_warm = False
 
     def _get(self, path, params=None):
         url = f"{self.base_url}/{path.lstrip('/')}"
@@ -169,12 +176,130 @@ class SBMSClient:
         except Exception:
             return None
 
+    # ======================== PSIX session management ========================
+
+    def _psix_default_headers(self):
+        """Headers, которые SBMS UI шлёт на /PSIX/* (см. curl-дамп с прода).
+
+        - `Referer` — некоторые SBMS-инсталляции отвергают PSIX-вызовы,
+          если referer не указывает на shell.html. Это не CSRF, а origin-check.
+        - `User-Agent` — иногда WAF блокирует `python-requests/*`.
+        - `pstxid` — уникальный transaction ID; на quota-процедуру не строго
+          обязателен, но добавляем для консистентности и трассировки.
+        - `Accept` — без него часть PSIX-сборок отдаёт XML вместо JSON.
+        """
+        import uuid
+        return {
+            "Accept":          "application/json, text/plain, */*",
+            "Accept-Language": "ru,en;q=0.9",
+            "Referer":         f"{self.base_url}/ps/sbms/shell.html",
+            "Origin":          self.base_url,
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/147.0.0.0 Safari/537.36"
+            ),
+            "pstxid":          str(uuid.uuid4()),
+            "X-Requested-With": "XMLHttpRequest",
+        }
+
+    def _psix_get_session(self):
+        """Возвращает persistent requests.Session() для PSIX, прогревая её
+        при первом обращении.
+
+        Warm-up = GET `/ps/sbms/shell.html` (страница, на которую ссылается
+        Referer). Этого достаточно, чтобы SBMS установил `PHPSESSID` cookie,
+        привязанный к нашему IP/UA. Дальше каждый PSIX-вызов идёт через
+        ту же сессию, и сервер уже видит контекст.
+        """
+        if self._psix_session is None:
+            sess = requests.Session()
+            sess.verify = False
+            if self._login and self._password:
+                sess.auth = (self._login, self._password)
+            self._psix_session = sess
+            self._psix_warm = False
+        if not self._psix_warm:
+            try:
+                warm_url = f"{self.base_url}/ps/sbms/shell.html"
+                self._psix_session.get(
+                    warm_url,
+                    headers={
+                        "Accept": "text/html,application/xhtml+xml",
+                        "User-Agent": self._psix_default_headers()["User-Agent"],
+                    },
+                    timeout=self.timeout,
+                )
+                self._psix_warm = True
+            except Exception:
+                # Warm-up best-effort: даже если упал, идём дальше — на проде
+                # cookies могут уже быть установлены другим способом.
+                self._psix_warm = True
+        return self._psix_session
+
+    def _psix_invalidate_session(self):
+        """Сбросить PSIX-сессию (и cookies/warm-up). Вызывается на 401/403/404
+        от живого endpoint'а, чтобы дать одну попытку с чистой сессией."""
+        try:
+            if self._psix_session is not None:
+                self._psix_session.close()
+        except Exception:
+            pass
+        self._psix_session = None
+        self._psix_warm = False
+
+    def _psix_call(self, path, params=None, allow_retry=True):
+        """Единая точка входа для PSIX-вызовов с правильным контекстом.
+
+        Поведение:
+          1. Берём persistent Session с уже накопленным PHPSESSID-cookie
+             и Basic-auth (если есть login/password).
+          2. Шлём GET с полным набором headers (Referer, UA, Accept, pstxid).
+          3. На 401/403/404 при первой попытке — сбрасываем сессию и
+             повторяем один раз (часто помогает: сервер просрочил
+             PHPSESSID, переотдаёт после warm-up).
+
+        Возвращает (response, attempts:list[dict]). Каждый attempt:
+          { url, status, retry?:int, error?:str, snippet?:str }
+        """
+        sess = self._psix_get_session()
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        headers = self._psix_default_headers()
+        attempts = []
+
+        def _do(retry_idx):
+            try:
+                r = sess.get(url, params=params, headers=headers, timeout=self.timeout)
+                a = {"url": path, "status": r.status_code, "retry": retry_idx}
+                return r, a
+            except requests.RequestException as e:
+                return None, {"url": path, "error": str(e)[:200], "retry": retry_idx}
+
+        resp, attempt = _do(0)
+        attempts.append(attempt)
+        if resp is not None and resp.status_code == 200:
+            return resp, attempts
+
+        # Вторая попытка только на «вероятно auth/cookie» ошибках, не на 5xx.
+        if allow_retry and resp is not None and resp.status_code in (401, 403, 404):
+            self._psix_invalidate_session()
+            sess = self._psix_get_session()
+            headers = self._psix_default_headers()
+            resp2, attempt2 = _do(1)
+            attempts.append(attempt2)
+            if resp2 is not None:
+                resp = resp2
+        return resp, attempts
+
     # ======================== AUTH ========================
 
     def authenticate(self, login, password):
         # Сохраняем для PSIX-grid процедур, требующих HTTP Basic
         self._login = login
         self._password = password
+        # Новый логин = новая сессия. Сбрасываем PSIX-cookies, чтобы
+        # следующий PSIX-вызов сделал warm-up с актуальной учёткой.
+        self._psix_invalidate_session()
         resp = self._get("/OAPI/v1/tokens-stub/get", {"login": login, "password": password})
         if resp.status_code != 200:
             raise Exception(f"Auth failed: HTTP {resp.status_code} — {resp.text[:300]}")
@@ -223,6 +348,22 @@ class SBMSClient:
     def get_subscriber_info(self, subscriber_id):
         resp = self._get(f"/OAPI/v1/subscribers/{subscriber_id}", {
             "languageId": 1, "authToken": self.token
+        })
+        return self._safe_json(resp)
+
+    def get_subscriber_identification(self, subscriber_id):
+        """Identification + mainSIMCard (откуда берётся IMSI).
+
+        Зеркалит запрос, который SBMS UI делает перед `UCELL_GET_SUBSCRIBER_ALL_QUOTA`:
+          GET /OAPI/v1/subscribers/{sid}?fields=identification,typeSpecificAttributes(mainSIMCard)
+
+        Возвращает dict с полями `identification` (MSISDN) и
+        `typeSpecificAttributes.mainSIMCard.imsi`.
+        """
+        resp = self._get(f"/OAPI/v1/subscribers/{subscriber_id}", {
+            "fields": "identification,typeSpecificAttributes(mainSIMCard)",
+            "languageId": 1,
+            "authToken": self.token,
         })
         return self._safe_json(resp)
 
@@ -695,6 +836,222 @@ class SBMSClient:
             except Exception:
                 return {"raw": resp.text}
         return {"raw": resp.text}
+
+    @staticmethod
+    def _parse_quota_xml(text):
+        """Парсер ответа `UCELL_GET_SUBSCRIBER_ALL_QUOTA`.
+
+        Реальная структура (см. дамп с прода):
+
+            <SELFCARE>
+              ...meta...
+              <UCELL_GET_SUBSCRIBER_ALL_QUOTA>
+                <RESULT>1</RESULT>
+                <PCRF_SUBSCRIBER_GET>
+                  <SUBSCRIBER_QUOTA>
+                    <QTANAME>Q_Un_Soc_Msg</QTANAME>
+                    <QTAVALUE>2147483648</QTAVALUE>
+                    <QTACONSUMPTION>426805</QTACONSUMPTION>
+                    <QTABALANCE>2147056843</QTABALANCE>
+                    <QTASTARTDATETIME>2026-05-06T16:11:33</QTASTARTDATETIME>
+                    <QTARSTDATETIME>-1--T::</QTARSTDATETIME>
+                    <SRVNAME>S_Un_Soc_Msg</SRVNAME>
+                  </SUBSCRIBER_QUOTA>
+                  <SUBSCRIBER_QUOTA>...</SUBSCRIBER_QUOTA>
+                </PCRF_SUBSCRIBER_GET>
+              </UCELL_GET_SUBSCRIBER_ALL_QUOTA>
+            </SELFCARE>
+
+        Возвращает (items, meta) либо (None, meta_with_error).
+        items — список словарей с raw-полями. meta — {result, count, block}.
+        """
+        if not text:
+            return None, {"error": "empty"}
+        try:
+            root = ET.fromstring(text)
+        except ET.ParseError as e:
+            return None, {"error": f"xml parse: {str(e)[:120]}"}
+
+        proc = root.find(".//UCELL_GET_SUBSCRIBER_ALL_QUOTA")
+        if proc is None:
+            # Иногда блок может быть на верхнем уровне, без SELFCARE-обёртки —
+            # но фактически на проде есть всегда. Если нет — wrapper-only.
+            return None, {"error": "no UCELL_GET_SUBSCRIBER_ALL_QUOTA block"}
+
+        meta = {"block": "UCELL_GET_SUBSCRIBER_ALL_QUOTA"}
+        result_el = proc.find("RESULT")
+        if result_el is not None and result_el.text:
+            meta["result"] = result_el.text.strip()
+
+        items = []
+        # SUBSCRIBER_QUOTA-элементы могут лежать под PCRF_SUBSCRIBER_GET либо
+        # сразу под процедурой — ищем рекурсивно.
+        for sq in proc.iter("SUBSCRIBER_QUOTA"):
+            row = {}
+            for child in sq:
+                if list(child):
+                    # вложенный объект — пропускаем (не ожидается в quota)
+                    continue
+                row[child.tag] = (child.text or "").strip() if child.text else None
+            if row:
+                items.append(row)
+        meta["count"] = len(items)
+        return items, meta
+
+    def get_subscriber_all_quota(self, subscriber_id=None, msisdn=None, imsi=None):
+        """Все квоты/остатки/бонусы абонента — `UCELL_GET_SUBSCRIBER_ALL_QUOTA`.
+
+        Реальный путь, по которому SBMS UI зовёт эту процедуру:
+          GET /PSIX/ucell/UCELL_GET_SUBSCRIBER_ALL_QUOTA
+                ?IMSI=434054443280878
+                &MSISDN=998500061400
+                &SESSION_ID=<token>
+
+        Параметры IMSI и MSISDN обязательны. IMSI берётся из
+        `/OAPI/v1/subscribers/{sid}?fields=...mainSIMCard` (если не передан явно).
+
+        Возвращает dict:
+          { items: [...], count, http_status, path,
+            imsi, msisdn, attempts: [{path,status,snippet?}] }
+        Если процедура вернула HTTP-ошибку или wrapper-only — items=[],
+        в `error` ляжет краткая причина, а в `attempts` — детали для UI.
+        """
+        out = {"items": [], "count": 0, "attempts": []}
+
+        # Резолвим IMSI, если не передан
+        if not imsi and subscriber_id:
+            try:
+                info = self.get_subscriber_identification(subscriber_id) or {}
+                ts = (info.get("typeSpecificAttributes") or {})
+                sim = (ts.get("mainSIMCard") or {})
+                imsi = sim.get("imsi") or sim.get("IMSI")
+                if not msisdn:
+                    msisdn = info.get("identification") or msisdn
+            except Exception as e:
+                out["attempts"].append({
+                    "path": f"/OAPI/v1/subscribers/{subscriber_id}",
+                    "error": "identification fetch failed: " + str(e)[:120],
+                })
+
+        if not imsi or not msisdn:
+            out["error"] = "Не удалось получить IMSI/MSISDN абонента (нужны для UCELL_GET_SUBSCRIBER_ALL_QUOTA)"
+            return out
+
+        path = "/PSIX/ucell/UCELL_GET_SUBSCRIBER_ALL_QUOTA"
+        params = {
+            "IMSI":       imsi,
+            "MSISDN":     msisdn,
+            "SESSION_ID": self.token,
+        }
+        # Через PSIX-helper: persistent Session + warm-up + retry на 401/403/404.
+        # Это снимает основной источник «404 на корректном URL» —
+        # отсутствие PHPSESSID-cookie и Referer-header.
+        resp, call_attempts = self._psix_call(path, params=params)
+        for a in call_attempts:
+            out["attempts"].append({"path": path, **{k: v for k, v in a.items() if k != "url"}})
+
+        if resp is None:
+            out["http_status"] = None
+            out["error"] = "Сетевая ошибка при обращении к PSIX"
+            out["imsi"], out["msisdn"] = imsi, msisdn
+            return out
+
+        text = resp.text or ""
+
+        if resp.status_code != 200:
+            # Снапшот snippet'а (после redact) кладём в последнюю attempt
+            if out["attempts"]:
+                out["attempts"][-1]["snippet"] = _psix_safe_snippet(text, max_len=200)
+            out["http_status"] = resp.status_code
+            # Маркер для UI/server, чтобы можно было различать «404 = нужно
+            # переавторизоваться» и «404 = действительно нет URL».
+            if resp.status_code in (401, 403):
+                out["error_kind"] = "auth_expired"
+                out["error"] = f"Токен/сессия отклонены SBMS (HTTP {resp.status_code})"
+            elif resp.status_code == 404:
+                # 404 после двух попыток с warm-up = либо токен невалиден,
+                # либо у учётки нет прав на эту процедуру. Чаще — первое.
+                out["error_kind"] = "auth_or_permission"
+                out["error"] = (
+                    "PSIX вернул 404 даже после обновления сессии. "
+                    "Вероятно, истёк authToken — переавторизуйтесь. "
+                    "Если ошибка повторяется — у учётки нет прав на UCELL_GET_SUBSCRIBER_ALL_QUOTA."
+                )
+            else:
+                out["error_kind"] = "upstream_error"
+                out["error"] = f"HTTP {resp.status_code} @ {path}"
+            out["imsi"], out["msisdn"] = imsi, msisdn
+            return out
+
+        out["http_status"] = 200
+        out["path"] = path
+        out["imsi"], out["msisdn"] = imsi, msisdn
+
+        if not text.strip():
+            if out["attempts"]:
+                out["attempts"][-1]["empty"] = True
+            out["error_kind"] = "empty_body"
+            out["error"] = "HTTP 200 empty body"
+            return out
+
+        # Helper: метаданные парсинга кладём в последнюю записанную попытку
+        # (helper _psix_call уже добавил attempts в out['attempts']).
+        last_attempt = out["attempts"][-1] if out["attempts"] else None
+
+        # JSON?
+        try:
+            j = resp.json()
+            items = None
+            if isinstance(j, dict):
+                items = j.get("items") or j.get("rows") or j.get("data")
+                # Иногда SBMS оборачивает в SELFCARE-подобный JSON-ключ
+                if not items:
+                    for k, v in j.items():
+                        if isinstance(v, list) and v and isinstance(v[0], dict):
+                            items = v
+                            break
+            elif isinstance(j, list):
+                items = j
+            if isinstance(items, list):
+                if last_attempt is not None:
+                    last_attempt["parsed"] = "json"
+                    last_attempt["count"] = len(items)
+                out["items"] = items
+                out["count"] = len(items)
+                return out
+        except Exception:
+            pass
+
+        # XML SELFCARE — используем спец-парсер под структуру
+        # UCELL_GET_SUBSCRIBER_ALL_QUOTA → PCRF_SUBSCRIBER_GET → SUBSCRIBER_QUOTA
+        items, meta = self._parse_quota_xml(text)
+        if items is not None:
+            if last_attempt is not None:
+                last_attempt["parsed"] = "xml"
+                last_attempt["count"] = len(items)
+                if meta.get("result"):
+                    last_attempt["result"] = meta["result"]
+                if meta.get("block"):
+                    last_attempt["block"] = meta["block"]
+            if meta.get("block"):
+                out["block"] = meta["block"]
+            if meta.get("result"):
+                out["result"] = meta["result"]
+            out["items"] = items
+            out["count"] = len(items)
+            # SBMS возвращает RESULT=1 при успехе; всё остальное (например, 0
+            # или -1) — ошибка процедуры, но это не наша проблема: процедура
+            # отработала, items пустые → UI покажет «нет квот».
+            return out
+
+        # _parse_quota_xml сообщил об ошибке — wrapper-only либо чужая структура
+        if last_attempt is not None:
+            last_attempt["parsed"] = "unknown"
+            last_attempt["snippet"] = _psix_safe_snippet(text, max_len=300)
+            if meta.get("error"):
+                last_attempt["parse_error"] = meta["error"]
+        out["error"] = "Не удалось распарсить ответ ({})".format(meta.get("error") or "wrapper-only")
+        return out
 
     # ======================== PSIX CALLS (события абонента) ========================
 

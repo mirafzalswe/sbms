@@ -3,100 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UCELL SBMS - QA Tester</title>
+    <title>UCELL SBMS · QA Tester</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
     <style>
-        /* ========== THEME VARIABLES ========== */
-        :root {
-            --bg-primary: #f5f7fa;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #f0f2f5;
-            --bg-input: #f8f9fb;
-            --border: #e2e6ec;
-            --border-hover: #c8cdd6;
-            --text-primary: #1a2332;
-            --text-secondary: #5a6577;
-            --text-muted: #8893a4;
-            --text-hint: #9ca5b4;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --accent-light: #dbeafe;
-            --green: #16a34a;
-            --green-bg: #dcfce7;
-            --green-text: #15803d;
-            --red: #dc2626;
-            --red-bg: #fee2e2;
-            --red-text: #b91c1c;
-            --yellow: #ca8a04;
-            --yellow-bg: #fef9c3;
-            --yellow-text: #a16207;
-            --purple: #7c3aed;
-            --purple-bg: #ede9fe;
-            --orange: #ea580c;
-            --orange-bg: #fff7ed;
-            --gray-badge-bg: #f1f5f9;
-            --gray-badge-text: #64748b;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-            --shadow-md: 0 4px 12px rgba(0,0,0,.08);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,.1);
+        /* ========== LOCAL ALIASES → SBMS DESIGN TOKENS ==========
+           Default = DARK (consistent across the app).
+           SbmsNav прокидывает data-theme в <html>, и [data-theme="light"]
+           переключает локальные переменные на светлые DS-значения. */
+        :root,
+        [data-theme="dark"] {
+            --bg-primary:   #0A0A0F;
+            --bg-secondary: #131319;
+            --bg-tertiary:  #1C1C24;
+            --bg-input:     #0A0A0F;
+            --border:       #27272F;
+            --border-hover: #3F3F46;
+            --text-primary:   #FAFAFA;
+            --text-secondary: #A1A1AA;
+            --text-muted:     #71717A;
+            --text-hint:      #52525B;
+            --accent:        #B86CDA;
+            --accent-hover:  #C988E5;
+            --accent-light:  rgba(184,108,218,0.18);
+            --green:      #22C55E;
+            --green-bg:   rgba(34,197,94,.14);
+            --green-text: #4ADE80;
+            --red:        #EF4444;
+            --red-bg:     rgba(239,68,68,.14);
+            --red-text:   #F87171;
+            --yellow:      #F59E0B;
+            --yellow-bg:   rgba(245,158,11,.14);
+            --yellow-text: #FBBF24;
+            --purple:    #B86CDA;
+            --purple-bg: rgba(184,108,218,.16);
+            --orange:    #F97316;
+            --orange-bg: rgba(249,115,22,.14);
+            --gray-badge-bg:   rgba(113,113,122,.16);
+            --gray-badge-text: #A1A1AA;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.40), 0 1px 3px rgba(0,0,0,.20);
+            --shadow-md: 0 4px 8px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.25);
+            --shadow-lg: 0 10px 20px rgba(0,0,0,.50), 0 4px 8px rgba(0,0,0,.30);
             --radius: 10px;
             --radius-sm: 6px;
-            --transition: .2s ease;
-            --topbar-bg: #ffffff;
-            --topbar-border: #e2e6ec;
-            --topbar-title: #2563eb;
-            --progress-bg: #e2e6ec;
-            --raw-header-bg: #f0f2f5;
-            --raw-body-bg: #f8f9fb;
-            --scrollbar-track: #f0f2f5;
-            --scrollbar-thumb: #c8cdd6;
-            --table-header-bg: #f8f9fb;
-            --table-row-hover: #f5f7fa;
-            --mono-color: #475569;
+            --transition: .15s cubic-bezier(.2,.8,.2,1);
+            --topbar-bg:     #131319;
+            --topbar-border: #27272F;
+            --topbar-title:  #FAFAFA;
+            --progress-bg:    #1C1C24;
+            --raw-header-bg:  #0A0A0F;
+            --raw-body-bg:    #0A0A0F;
+            --scrollbar-track: #131319;
+            --scrollbar-thumb: #3F3F46;
+            --table-header-bg: #1C1C24;
+            --table-row-hover: rgba(28,28,36,.6);
+            --mono-color: #A1A1AA;
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #0f172a;
-            --bg-input: #0f172a;
-            --border: #334155;
-            --border-hover: #475569;
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --text-hint: #475569;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --accent-light: #1e3a5f;
-            --green: #22c55e;
-            --green-bg: rgba(34,197,94,.12);
-            --green-text: #4ade80;
-            --red: #ef4444;
-            --red-bg: rgba(239,68,68,.12);
-            --red-text: #f87171;
-            --yellow: #eab308;
-            --yellow-bg: rgba(234,179,8,.12);
-            --yellow-text: #facc15;
-            --purple: #a78bfa;
-            --purple-bg: rgba(167,139,250,.12);
-            --orange: #f97316;
-            --orange-bg: rgba(249,115,22,.12);
-            --gray-badge-bg: #334155;
-            --gray-badge-text: #94a3b8;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
-            --shadow-md: 0 4px 12px rgba(0,0,0,.3);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,.4);
-            --topbar-bg: #1e293b;
-            --topbar-border: #334155;
-            --topbar-title: #38bdf8;
-            --progress-bg: #0f172a;
-            --raw-header-bg: #0f172a;
-            --raw-body-bg: #0f172a;
-            --scrollbar-track: #1e293b;
-            --scrollbar-thumb: #475569;
-            --table-header-bg: #0f172a;
-            --table-row-hover: rgba(15,23,42,.4);
-            --mono-color: #94a3b8;
+        [data-theme="light"] {
+            --bg-primary:   #FAFAFA;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary:  #F4F4F5;
+            --bg-input:     #FAFAFA;
+            --border:       #E4E4E7;
+            --border-hover: #D4D4D8;
+            --text-primary:   #18181B;
+            --text-secondary: #52525B;
+            --text-muted:     #71717A;
+            --text-hint:      #A1A1AA;
+            --accent:        #6B1F8A;
+            --accent-hover:  #581873;
+            --accent-light:  rgba(107,31,138,0.10);
+            --green:      #16A34A;
+            --green-bg:   rgba(22,163,74,.10);
+            --green-text: #15803D;
+            --red:        #DC2626;
+            --red-bg:     rgba(220,38,38,.10);
+            --red-text:   #B91C1C;
+            --yellow:      #D97706;
+            --yellow-bg:   rgba(217,119,6,.10);
+            --yellow-text: #B45309;
+            --purple:    #6B1F8A;
+            --purple-bg: rgba(107,31,138,.10);
+            --orange:    #EA580C;
+            --orange-bg: rgba(234,88,12,.10);
+            --gray-badge-bg:   rgba(113,113,122,.10);
+            --gray-badge-text: #52525B;
+            --shadow-sm: 0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04);
+            --shadow-md: 0 4px 6px rgba(15,23,42,.07), 0 2px 4px rgba(15,23,42,.04);
+            --shadow-lg: 0 10px 15px rgba(15,23,42,.08), 0 4px 6px rgba(15,23,42,.04);
+            --topbar-bg:     #FFFFFF;
+            --topbar-border: #E4E4E7;
+            --topbar-title:  #18181B;
+            --progress-bg:    #E4E4E7;
+            --raw-header-bg:  #F4F4F5;
+            --raw-body-bg:    #FAFAFA;
+            --scrollbar-track: #F4F4F5;
+            --scrollbar-thumb: #D4D4D8;
+            --table-header-bg: #FAFAFA;
+            --table-row-hover: #F4F4F5;
+            --mono-color: #52525B;
         }
 
         /* ========== BASE ========== */
@@ -265,7 +271,7 @@
             font-size: 15px;
             box-shadow: 0 2px 8px rgba(22,163,74,.25);
         }
-        .btn-run:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,.35); transform: translateY(-1px); }
+        .btn-run:hover { filter: brightness(0.93); box-shadow: 0 4px 12px rgba(22,163,74,.35); transform: translateY(-1px); }
         .btn-run:active { transform: translateY(0); }
         .btn-run:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-secondary {
@@ -517,21 +523,7 @@
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <h1>UCELL SBMS - QA Tester</h1>
-        <div class="nav">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/tester" class="nav-link active">QA Tester</a>
-            <a href="/tariff-test" class="nav-link">Тест тарифа</a>
-            <a href="/matrix-test" class="nav-link">Матрица переходов</a>
-            <a href="/product-availability" class="nav-link">Доступность продукта</a>
-            <a href="/tme" class="nav-link">TME</a>
-            <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
-                <span class="icon" id="themeIcon">&#9788;</span>
-                <span id="themeLabel">Светлая</span>
-            </div>
-        </div>
-    </div>
+    <div id="sbmsNav"></div>
 
     <div class="container">
         <!-- Test Form -->
@@ -746,35 +738,17 @@
     </div>
 
     <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
     <script>
+        // Mount unified navbar (theme + auth badge handled inside)
+        SbmsNav.mount('#sbmsNav', { active: 'tester' });
+
         let lastReport = null;
 
-        // ==================== THEME ====================
-        function getTheme() {
-            return localStorage.getItem('sbms-theme') || 'light';
-        }
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            const icon = document.getElementById('themeIcon');
-            const label = document.getElementById('themeLabel');
-            if (theme === 'dark') {
-                icon.innerHTML = '&#9790;';
-                label.textContent = 'Тёмная';
-            } else {
-                icon.innerHTML = '&#9788;';
-                label.textContent = 'Светлая';
-            }
-        }
-        function toggleTheme() {
-            const current = getTheme();
-            const next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('sbms-theme', next);
-            applyTheme(next);
-        }
-        applyTheme(getTheme());
-
         // ==================== AUTH (SbmsAuth) ====================
-        SbmsAuth.mountBadge('#authBadge');
+        // основной badge монтируется автоматически из SbmsNav.
+        // Доп. badge внутри формы логина:
+        if (window.SbmsAuth) SbmsAuth.mountBadge('#authBadge');
         document.getElementById('fLogin').value = SbmsAuth.login || '';
         function _tuneAuthUI() {
             const on = SbmsAuth.isValid();
@@ -966,6 +940,15 @@
 
                 renderReport(report);
                 loadHistory();
+
+                // Запоминаем абонента в глобальном Recent (⌘K на всех страницах)
+                try {
+                    const ci = report.customerInfo || {};
+                    const m = (report.msisdn || document.getElementById('fMsisdn').value || '').replace(/[^0-9]/g, '');
+                    if (window.SbmsRecent && m) {
+                        SbmsRecent.add(m, { label: ci.name || '', page: 'tester' });
+                    }
+                } catch (_) {}
 
             } catch (e) {
                 clearInterval(progressInterval);

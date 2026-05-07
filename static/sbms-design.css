@@ -1,0 +1,238 @@
+/* ============================================================
+   SBMS Design Tokens
+   Единый источник истины для цвета / типографики / spacing.
+   Подключение: <link rel="stylesheet" href="/static/sbms-design.css">
+   Темы: data-theme="dark" (default) | data-theme="light"
+   ============================================================ */
+
+:root,
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* ---------- Brand (UCELL violet) ---------- */
+    --brand-50:  #F5EAFB;
+    --brand-100: #E5CDF3;
+    --brand-200: #C99CE5;
+    --brand-300: #AC6CD6;
+    --brand-400: #8F3CC7;
+    --brand-500: #6B1F8A;   /* official UCELL */
+    --brand-600: #581873;
+    --brand-700: #44115B;
+    --brand-800: #2F0C40;
+    --brand-900: #1B0726;
+
+    /* На тёмном фоне primary должен быть чуть светлее ради контраста */
+    --brand:        #B86CDA;
+    --brand-hover:  #C988E5;
+    --brand-active: #A655CC;
+    --brand-soft:   rgba(184, 108, 218, 0.12);
+    --brand-glow:   rgba(184, 108, 218, 0.32);
+    --brand-text:   #FFFFFF;
+
+    /* ---------- Neutrals ---------- */
+    --neutral-0:   #FFFFFF;
+    --neutral-50:  #FAFAFA;
+    --neutral-100: #F4F4F5;
+    --neutral-200: #E4E4E7;
+    --neutral-300: #D4D4D8;
+    --neutral-400: #A1A1AA;
+    --neutral-500: #71717A;
+    --neutral-600: #52525B;
+    --neutral-700: #3F3F46;
+    --neutral-800: #27272F;
+    --neutral-900: #18181B;
+    --neutral-950: #0A0A0F;
+
+    /* ---------- Semantic surfaces (dark) ---------- */
+    --bg-canvas:   #0A0A0F;
+    --bg-surface:  #131319;
+    --bg-subtle:   #1C1C24;
+    --bg-elevated: #22222C;
+    --bg-overlay:  rgba(2, 6, 23, 0.72);
+
+    --border:        #27272F;
+    --border-strong: #3F3F46;
+    --border-subtle: rgba(63, 63, 70, 0.5);
+
+    --text-1: #FAFAFA;          /* primary */
+    --text-2: #A1A1AA;          /* secondary */
+    --text-3: #71717A;          /* tertiary / hints */
+    --text-disabled: #52525B;
+    --text-inverse: #18181B;
+
+    /* ---------- Status ---------- */
+    --success:        #22C55E;
+    --success-hover:  #16A34A;
+    --success-soft:   rgba(34, 197, 94, 0.14);
+    --success-text:   #4ADE80;
+
+    --warning:        #F59E0B;
+    --warning-hover:  #D97706;
+    --warning-soft:   rgba(245, 158, 11, 0.14);
+    --warning-text:   #FBBF24;
+
+    --danger:         #EF4444;
+    --danger-hover:   #DC2626;
+    --danger-soft:    rgba(239, 68, 68, 0.14);
+    --danger-text:    #F87171;
+
+    --info:           #3B82F6;
+    --info-hover:     #2563EB;
+    --info-soft:      rgba(59, 130, 246, 0.14);
+    --info-text:      #60A5FA;
+
+    --neutral-soft:   rgba(113, 113, 122, 0.16);
+
+    /* ---------- Focus ring ---------- */
+    --focus-ring: 0 0 0 3px var(--brand-glow);
+
+    /* ---------- Shadows (dark = тоньше, на свету = мягче) ---------- */
+    --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.30);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40), 0 1px 3px rgba(0, 0, 0, 0.20);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.50), 0 4px 8px rgba(0, 0, 0, 0.30);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.35);
+
+    /* ---------- Typography ---------- */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono',
+                 Menlo, Consolas, monospace;
+
+    --text-xs:   12px;
+    --text-sm:   13px;
+    --text-base: 14px;
+    --text-md:   15px;
+    --text-lg:   16px;
+    --text-xl:   18px;
+    --text-2xl:  20px;
+    --text-3xl:  24px;
+    --text-4xl:  30px;
+
+    --leading-tight:  1.25;
+    --leading-snug:   1.4;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.65;
+
+    --weight-regular:  400;
+    --weight-medium:   500;
+    --weight-semibold: 600;
+    --weight-bold:     700;
+
+    --tracking-tight:  -0.01em;
+    --tracking-normal: 0;
+    --tracking-wide:   0.04em;
+    --tracking-wider:  0.08em;
+
+    /* ---------- Radius ---------- */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-2xl: 18px;
+    --radius-full: 9999px;
+
+    /* ---------- Spacing (4px base) ---------- */
+    --space-0:  0;
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-7:  28px;
+    --space-8:  32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* ---------- Sizing ---------- */
+    --control-height-sm: 28px;
+    --control-height-md: 34px;
+    --control-height-lg: 40px;
+
+    /* ---------- Motion ---------- */
+    --motion-fast:  120ms;
+    --motion-base:  200ms;
+    --motion-slow:  320ms;
+    --ease-standard:    cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-emphasized:  cubic-bezier(0.3, 0.7, 0.1, 1.1);
+
+    /* ---------- Z-index scale ---------- */
+    --z-base:    1;
+    --z-sticky:  100;
+    --z-overlay: 1000;
+    --z-modal:   2000;
+    --z-toast:   3000;
+    --z-tooltip: 4000;
+
+    /* ---------- Layout ---------- */
+    --max-content: 1400px;
+    --topbar-height: 56px;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
+
+    /* На светлом фоне primary тёмный */
+    --brand:        #6B1F8A;
+    --brand-hover:  #581873;
+    --brand-active: #44115B;
+    --brand-soft:   rgba(107, 31, 138, 0.10);
+    --brand-glow:   rgba(107, 31, 138, 0.22);
+    --brand-text:   #FFFFFF;
+
+    --bg-canvas:   #FAFAFA;
+    --bg-surface:  #FFFFFF;
+    --bg-subtle:   #F4F4F5;
+    --bg-elevated: #FFFFFF;
+    --bg-overlay:  rgba(15, 23, 42, 0.45);
+
+    --border:        #E4E4E7;
+    --border-strong: #D4D4D8;
+    --border-subtle: rgba(228, 228, 231, 0.6);
+
+    --text-1: #18181B;
+    --text-2: #52525B;
+    --text-3: #71717A;
+    --text-disabled: #A1A1AA;
+    --text-inverse: #FAFAFA;
+
+    --success:      #16A34A;
+    --success-hover:#15803D;
+    --success-soft: rgba(22, 163, 74, 0.10);
+    --success-text: #15803D;
+
+    --warning:      #D97706;
+    --warning-hover:#B45309;
+    --warning-soft: rgba(217, 119, 6, 0.10);
+    --warning-text: #B45309;
+
+    --danger:       #DC2626;
+    --danger-hover: #B91C1C;
+    --danger-soft:  rgba(220, 38, 38, 0.10);
+    --danger-text:  #B91C1C;
+
+    --info:         #2563EB;
+    --info-hover:   #1D4ED8;
+    --info-soft:    rgba(37, 99, 235, 0.10);
+    --info-text:    #1D4ED8;
+
+    --neutral-soft: rgba(113, 113, 122, 0.10);
+
+    --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.07), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.08), 0 4px 6px rgba(15, 23, 42, 0.04);
+    --shadow-xl: 0 20px 25px rgba(15, 23, 42, 0.10), 0 8px 10px rgba(15, 23, 42, 0.04);
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --motion-fast: 0ms;
+        --motion-base: 0ms;
+        --motion-slow: 0ms;
+    }
+}

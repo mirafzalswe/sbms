@@ -3,22 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Доступность продукта — UCELL SBMS</title>
+<title>Доступность продукта · UCELL SBMS</title>
+<link rel="stylesheet" href="/static/sbms-design.css">
+<link rel="stylesheet" href="/static/sbms-ui.css">
 <style>
-    :root {
-        --bg: #0f172a; --bg-2: #1e293b; --bg-3: #0b1220;
-        --border: #334155; --border-soft: #1e293b;
-        --text: #e2e8f0; --text-2: #94a3b8; --text-3: #64748b;
-        --brand: #6B1F8A; --brand-hover: #581873; --brand-soft: #6B1F8A1F; --brand-glow: #6B1F8A55;
-        --brand-text: #ffffff;
-        --pass: #22c55e; --fail: #ef4444; --warn: #eab308; --info: #38bdf8; --skip: #64748b;
-        --pass-soft: #22c55e22; --fail-soft: #ef444422; --warn-soft: #eab30822;
-        --info-soft: #38bdf822; --skip-soft: #64748b22;
+    /* Local aliases mapped to SBMS Design Tokens.
+       Default = dark; SbmsNav переключает data-theme="light" на <html>. */
+    :root,
+    [data-theme="dark"] {
+        --bg: #0A0A0F; --bg-2: #131319; --bg-3: #1C1C24;
+        --border: #27272F; --border-soft: #1C1C24;
+        --text: #FAFAFA; --text-2: #A1A1AA; --text-3: #71717A;
+        --brand: #B86CDA; --brand-hover: #C988E5;
+        --brand-soft: rgba(184,108,218,0.14); --brand-glow: rgba(184,108,218,0.32);
+        --brand-text: #FFFFFF;
+        --pass: #22C55E; --fail: #EF4444; --warn: #F59E0B; --info: #3B82F6; --skip: #71717A;
+        --pass-soft: rgba(34,197,94,.14); --fail-soft: rgba(239,68,68,.14);
+        --warn-soft: rgba(245,158,11,.14); --info-soft: rgba(59,130,246,.14);
+        --skip-soft: rgba(113,113,122,.16);
     }
     [data-theme="light"] {
-        --bg: #f3f4f8; --bg-2: #ffffff; --bg-3: #f7f8fb;
-        --border: #d8dde6; --border-soft: #e2e6ec;
-        --text: #1f2937; --text-2: #4b5563; --text-3: #8893a4;
+        --bg: #FAFAFA; --bg-2: #FFFFFF; --bg-3: #F4F4F5;
+        --border: #E4E4E7; --border-soft: #F4F4F5;
+        --text: #18181B; --text-2: #52525B; --text-3: #71717A;
+        --brand: #6B1F8A; --brand-hover: #581873;
+        --brand-soft: rgba(107,31,138,0.10); --brand-glow: rgba(107,31,138,0.22);
+        --brand-text: #FFFFFF;
+        --pass: #16A34A; --fail: #DC2626; --warn: #D97706; --info: #2563EB; --skip: #71717A;
+        --pass-soft: rgba(22,163,74,.10); --fail-soft: rgba(220,38,38,.10);
+        --warn-soft: rgba(217,119,6,.10); --info-soft: rgba(37,99,235,.10);
+        --skip-soft: rgba(113,113,122,.10);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -78,9 +92,9 @@
     .btn-ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
     .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text-3); }
     .btn-danger { background: var(--fail); color: #fff; }
-    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-danger:hover:not(:disabled) { filter: brightness(0.92); }
     .btn-warn { background: var(--warn); color: #1f2937; }
-    .btn-warn:hover:not(:disabled) { background: #ca8a04; color: #fff; }
+    .btn-warn:hover:not(:disabled) { filter: brightness(0.92); color: #fff; }
     .btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
 
     .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
@@ -131,7 +145,7 @@
     .alert-pass { background: var(--pass-soft); color: var(--pass); border: 1px solid var(--pass); }
 
     .progress-wrap { background: var(--bg-3); border-radius: 6px; height: 24px; overflow: hidden; border: 1px solid var(--border-soft); }
-    .progress-bar { background: linear-gradient(90deg, var(--brand), #a855f7); height: 100%; color: #fff; font-size: 11px;
+    .progress-bar { background: linear-gradient(90deg, var(--brand), var(--pass)); height: 100%; color: #fff; font-size: 11px;
                     display: flex; align-items: center; justify-content: center; transition: width .3s; font-weight: 700; }
     .progress-step { font-size: 12px; color: var(--text-2); margin-top: 8px; }
     .progress-meta { font-size: 11px; color: var(--text-3); margin-top: 6px; display: flex; gap: 18px; flex-wrap: wrap; }
@@ -196,23 +210,11 @@
 </head>
 <body>
 
-<header class="topbar">
-    <div class="brand">
-        <img src="/static/logoUcell.png" alt="UCELL" onerror="this.style.display='none'">
-        <h1>SBMS</h1>
-    </div>
-    <nav>
-        <a href="/">Dashboard</a>
-        <a href="/tariff-test">Тариф / Пакет</a>
-        <a href="/matrix-test">Матрица переходов</a>
-        <a href="/product-availability" class="active">Доступность продукта</a>
-        <a href="/tester">Тестер</a>
-    </nav>
-    <div class="spacer"></div>
-    <button class="icon-btn" id="themeToggle" title="Сменить тему">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a6 6 0 1 0 5.6 8.2A5 5 0 0 1 7.2 3.4 6 6 0 0 0 8 2z"/></svg>
-    </button>
-</header>
+<div id="sbmsNav"></div>
+
+<script src="/static/sbms-auth.js"></script>
+<script src="/static/sbms-nav.js"></script>
+<script>SbmsNav.mount('#sbmsNav', { active: 'product' });</script>
 
 <div class="container">
 
@@ -518,16 +520,7 @@ const state = {
 // ============================================================
 // THEME
 // ============================================================
-(function initTheme() {
-    const saved = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', saved);
-    document.getElementById('themeToggle').addEventListener('click', () => {
-        const cur = document.documentElement.getAttribute('data-theme');
-        const next = cur === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    });
-})();
+// Theme + auth + nav теперь у SbmsNav.mount(), см. конец файла.
 
 // ============================================================
 // TABS
@@ -1003,6 +996,20 @@ function handleEvent(evt) {
         document.getElementById('pmRows').textContent = `0/${evt.total || 0}`;
         addLog('info', `subscriber=${evt.subscriber_id}, текущий тариф=${evt.initial_rateplan}, customer="${evt.customer_name||''}"`);
         if (evt.skipped_done) addLog('info', `пропущено уже сделанных: ${evt.skipped_done}`);
+        // Запоминаем абонента в глобальном Recent (⌘K на всех страницах)
+        try {
+            const m = (document.getElementById('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (window.SbmsRecent && m) {
+                SbmsRecent.add(m, { label: evt.customer_name || '', page: 'product' });
+            }
+        } catch (_) {}
+        // Browser-notification трекер
+        try {
+            if (window.SbmsNotify) {
+                SbmsNotify.ensurePermission();
+                state._notifyTrackerId = SbmsNotify.startTracking({ key: 'product-run', minDurationMs: 8000 });
+            }
+        } catch (_) {}
         return;
     }
     if (e === 'row_start') {
@@ -1052,6 +1059,20 @@ function handleEvent(evt) {
             setProgress(100, 'Завершено');
             addLog('step', `🏁 Завершено за ${evt.report?.duration||0}s`);
         }
+        // Browser-notification на завершение / отмену
+        try {
+            if (window.SbmsNotify && state._notifyTrackerId) {
+                const c = (evt.report && evt.report.counters) || {};
+                const failed = c.fail || 0;
+                SbmsNotify.finishTracking(state._notifyTrackerId, {
+                    title: e === 'aborted' ? '⏸ Доступность отменена' :
+                           (failed > 0 ? '⚠ Доступность — провалы' : '✓ Доступность завершена'),
+                    body:  `pass=${c.pass||0} · fail=${failed} · blocked=${c.blocked||0}`,
+                    failed,
+                });
+                state._notifyTrackerId = null;
+            }
+        } catch (_) {}
         return;
     }
 }

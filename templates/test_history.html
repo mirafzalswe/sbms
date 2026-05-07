@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История прогонов · UCELL SBMS</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <link rel="stylesheet" href="/static/sbms-tablecols.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-canvas);
+            color: var(--text-1);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .page-header {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6) var(--space-6) var(--space-4);
+        }
+        .page-header h1 {
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+            letter-spacing: var(--tracking-tight);
+        }
+        .page-header p {
+            margin-top: 4px;
+            color: var(--text-2);
+            font-size: var(--text-sm);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-6) var(--space-12);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-3);
+        }
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4) var(--space-5);
+            box-shadow: var(--shadow-xs);
+        }
+        .stat-card__label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            font-weight: var(--weight-semibold);
+        }
+        .stat-card__num {
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-bold);
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+            letter-spacing: var(--tracking-tight);
+        }
+        .stat-card.tariff .stat-card__num  { color: var(--brand); }
+        .stat-card.matrix .stat-card__num  { color: var(--info-text); }
+        .stat-card.product .stat-card__num { color: var(--success-text); }
+        .stat-card.total .stat-card__num   { color: var(--text-1); }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            gap: var(--space-2);
+            align-items: stretch;
+            flex-wrap: wrap;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3) var(--space-4);
+            box-shadow: var(--shadow-xs);
+        }
+        .filter-bar input,
+        .filter-bar select {
+            height: var(--control-height-md);
+            padding: 0 var(--space-3);
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: var(--text-sm);
+            font-family: var(--font-mono);
+            transition: border-color var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard);
+        }
+        .filter-bar input:focus,
+        .filter-bar select:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: var(--focus-ring);
+        }
+        .filter-bar input.q { flex: 1 1 280px; min-width: 220px; font-family: var(--font-sans); }
+        .filter-bar input.msisdn { width: 160px; }
+        .filter-bar select.kind  { width: 160px; }
+
+        /* Bookmarks dropdown */
+        .bm-dropdown { position: relative; }
+        .bm-dropdown > summary {
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+        }
+        .bm-dropdown > summary::-webkit-details-marker { display: none; }
+        .bm-dropdown > summary::marker { content: ''; }
+        .bm-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 260px;
+            max-width: 360px;
+            background: var(--bg-elevated, var(--bg-surface));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 4px;
+            z-index: 100;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .bm-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            font-size: var(--text-sm);
+            color: var(--text-1);
+            cursor: pointer;
+            user-select: none;
+        }
+        .bm-item:hover { background: var(--bg-subtle); }
+        .bm-item__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bm-item__meta { font-size: 11px; color: var(--text-3); margin-left: 4px; flex-shrink: 0; }
+        .bm-item__del {
+            border: none;
+            background: transparent;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            line-height: 1;
+        }
+        .bm-item__del:hover { background: var(--danger-soft); color: var(--danger-text); }
+        .bm-divider { height: 1px; background: var(--border); margin: 4px 0; }
+        .bm-action {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            font-size: var(--text-sm);
+            color: var(--brand);
+            cursor: pointer;
+            user-select: none;
+            font-weight: var(--weight-medium);
+        }
+        .bm-action:hover { background: var(--brand-soft); }
+        .bm-empty { padding: 8px 10px; color: var(--text-3); font-size: 12px; }
+
+        /* Table */
+        .table-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-xs);
+        }
+        .table-wrap {
+            overflow: auto;
+            max-height: 70vh;
+        }
+        table.t {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: var(--text-sm);
+        }
+        table.t th, table.t td {
+            padding: 8px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        table.t thead th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-subtle);
+            z-index: 1;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            font-weight: var(--weight-semibold);
+            color: var(--text-3);
+            border-bottom: 1px solid var(--border-strong);
+        }
+        table.t tbody tr:hover td { background: var(--bg-subtle); cursor: pointer; }
+        table.t tbody tr:last-child td { border-bottom: 0; }
+        table.t .num     { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+        table.t .id-col  { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+        table.t .msisdn  { font-family: var(--font-mono); }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: var(--weight-semibold);
+            background: var(--neutral-soft);
+            color: var(--text-2);
+        }
+        .badge--brand { background: var(--brand-soft); color: var(--brand); }
+        .badge--ok    { background: var(--success-soft); color: var(--success-text); }
+        .badge--warn  { background: var(--warning-soft); color: var(--warning-text); }
+        .badge--info  { background: var(--info-soft); color: var(--info-text); }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-5);
+            font-size: var(--text-sm);
+            color: var(--text-3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Pagination */
+        .pager {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-5);
+            font-size: var(--text-sm);
+            color: var(--text-3);
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .pager__spacer { flex: 1 1 auto; }
+        .pager__btn {
+            min-width: 32px;
+            height: 28px;
+            padding: 0 8px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            cursor: pointer;
+            font-size: var(--text-sm);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+            transition: all var(--motion-fast) var(--ease-standard);
+        }
+        .pager__btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+        .pager__btn:disabled { opacity: .4; cursor: not-allowed; }
+        .pager__btn.is-current {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+            font-weight: var(--weight-semibold);
+        }
+        .pager__sep { color: var(--text-3); padding: 0 2px; }
+        .pager select {
+            height: 28px;
+            padding: 0 8px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: var(--text-sm);
+        }
+        .pager__info { color: var(--text-3); font-size: 12px; }
+
+        .empty {
+            padding: var(--space-12) var(--space-4);
+            color: var(--text-3);
+            text-align: center;
+            font-size: var(--text-sm);
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid var(--border-strong);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 700px) {
+            .page-header { padding: var(--space-4); }
+            .container { padding: 0 var(--space-3) var(--space-8); }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .filter-bar input.q { flex: 1 1 100%; }
+            table.t th:nth-child(5),
+            table.t td:nth-child(5),
+            table.t th:nth-child(6),
+            table.t td:nth-child(6) { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="sbmsNav"></div>
+
+    <header class="page-header">
+        <h1>История прогонов</h1>
+        <p>Все отчёты по тестам тарифа, матрице переходов и доступности продукта</p>
+    </header>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card total">
+                <div class="stat-card__label">Всего отчётов</div>
+                <div class="stat-card__num" id="kTotal">—</div>
+            </div>
+            <div class="stat-card tariff">
+                <div class="stat-card__label">Тариф / QA</div>
+                <div class="stat-card__num" id="kTariff">—</div>
+            </div>
+            <div class="stat-card matrix">
+                <div class="stat-card__label">Матрица</div>
+                <div class="stat-card__num" id="kMatrix">—</div>
+            </div>
+            <div class="stat-card product">
+                <div class="stat-card__label">Доступность</div>
+                <div class="stat-card__num" id="kProduct">—</div>
+            </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <input type="search" class="q" id="fQ" placeholder="Поиск по абоненту, цели, MSISDN…">
+            <input type="text" class="msisdn" id="fMsisdn" placeholder="MSISDN" inputmode="numeric">
+            <select class="kind" id="fKind">
+                <option value="">Все типы</option>
+                <option value="tariff">Тариф / QA</option>
+                <option value="matrix">Матрица</option>
+                <option value="product">Доступность</option>
+            </select>
+            <button type="button" class="sb-btn sb-btn--secondary" id="fApply">Применить</button>
+            <button type="button" class="sb-btn sb-btn--ghost" id="fClear">Сбросить</button>
+            <button type="button" class="sb-btn sb-btn--ghost" id="fExport" title="Скачать текущую выборку как CSV" disabled>⤓ CSV</button>
+            <details class="cols-dropdown" id="histColsDropdown">
+                <summary class="sb-btn sb-btn--ghost" title="Настроить колонки таблицы">⚙ <span id="histColsCount">—</span></summary>
+                <div class="cols-menu" id="histColsMenu" role="menu"></div>
+            </details>
+            <details class="bm-dropdown" id="bmDropdown">
+                <summary class="sb-btn sb-btn--ghost" title="Сохранённые комбинации фильтров">★ Закладки <span style="opacity:.5;font-size:10px;">▾</span></summary>
+                <div class="bm-menu" id="bmMenu" role="menu"></div>
+            </details>
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <div class="meta" id="metaBar">
+                <span><span class="spinner"></span>&nbsp;Загрузка…</span>
+            </div>
+            <div class="table-wrap">
+                <table class="t" id="histTbl">
+                    <colgroup id="histColg"></colgroup>
+                    <thead><tr id="histHead"></tr></thead>
+                    <tbody id="rows">
+                        <tr><td class="empty">Загружаем историю…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pager" id="pager" style="display:none;">
+                <span class="pager__info" id="pagerInfo">—</span>
+                <span class="pager__spacer"></span>
+                <span style="font-size:12px;">На странице:</span>
+                <select id="pagerSize">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span class="pager__spacer"></span>
+                <div id="pagerNav" style="display:flex;gap:4px;align-items:center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
+    <script src="/static/sbms-tablecols.js"></script>
+    <script>
+        SbmsNav.mount('#sbmsNav', { active: 'history' });
+
+        const $ = (id) => document.getElementById(id);
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function fmtTs(s) {
+            if (!s) return '—';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return s;
+            return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+        }
+        function fmtDur(sec) {
+            if (sec == null) return '—';
+            const n = Number(sec);
+            if (!Number.isFinite(n)) return '—';
+            if (n < 60) return n.toFixed(1) + 's';
+            const m = Math.floor(n / 60), s = Math.round(n - m*60);
+            return m + 'm ' + s + 's';
+        }
+
+        const KIND = {
+            tariff:  { label: 'Тариф',     cls: 'badge--brand' },
+            matrix:  { label: 'Матрица',   cls: 'badge--info' },
+            product: { label: 'Доступн.',  cls: 'badge--ok' },
+        };
+
+        // Cache of last loaded items (for CSV export)
+        let lastItems = [];
+
+        // Helpers для извлечения значений из item
+        function _hPass(it) {
+            const s = it.summary || {};
+            return s.passed != null ? s.passed : (s.pass != null ? s.pass : null);
+        }
+        function _hFail(it) {
+            const s = it.summary || {};
+            return s.failed != null ? s.failed : (s.fail != null ? s.fail : null);
+        }
+        function _hTotal(it) {
+            const s = it.summary || {};
+            return s.total != null ? s.total : null;
+        }
+
+        // Колонки таблицы истории: key + label + group + default + cell-render + raw для CSV
+        const HISTORY_COLUMNS = [
+            // ───── Сводка ─────
+            { key: 'kind',     label: 'Тип',          group: 'summary', default: true, width: '90px',
+              raw:  (it) => (KIND[it.kind] && KIND[it.kind].label) || it.kind || '',
+              cell: (it) => {
+                  const k = KIND[it.kind] || { label: it.kind, cls: '' };
+                  return `<td><span class="badge ${k.cls}">${esc(k.label)}</span></td>`;
+              } },
+            { key: 'ts',       label: 'Время',        group: 'summary', default: true, width: '170px',
+              raw:  (it) => it.ts || '',
+              cell: (it) => `<td class="id-col">${esc(fmtTs(it.ts))}</td>` },
+            { key: 'msisdn',   label: 'MSISDN',       group: 'summary', default: true, width: '130px',
+              raw:  (it) => it.msisdn || '',
+              cell: (it) => `<td class="msisdn">${esc(it.msisdn || '—')}</td>` },
+            { key: 'customer', label: 'Абонент / цель', group: 'summary', default: true, width: '',
+              raw:  (it) => (it.customerName || '') + (it.target ? ' · ' + it.target : ''),
+              cell: (it) => `<td>${esc(it.customerName || '—')} <span style="color:var(--text-3);font-size:11px;">· ${esc(it.target || '')}</span></td>` },
+            { key: 'target',   label: 'Цель',         group: 'summary', default: false, width: '180px',
+              raw:  (it) => it.target || '',
+              cell: (it) => `<td style="color:var(--text-2);font-size:12px;">${esc(it.target || '—')}</td>` },
+
+            // ───── Метрики ─────
+            { key: 'total', label: 'Total',           group: 'metrics', default: true, width: '60px', num: true,
+              raw:  (it) => _hTotal(it) ?? '',
+              cell: (it) => { const v = _hTotal(it); return `<td class="num">${v != null ? v : '—'}</td>`; } },
+            { key: 'pass',  label: 'Pass',            group: 'metrics', default: true, width: '60px', num: true,
+              raw:  (it) => _hPass(it) ?? '',
+              cell: (it) => { const v = _hPass(it); return `<td class="num" style="color:var(--success-text);font-weight:600;">${v != null ? v : '—'}</td>`; } },
+            { key: 'fail',  label: 'Fail',            group: 'metrics', default: true, width: '60px', num: true,
+              raw:  (it) => _hFail(it) ?? '',
+              cell: (it) => {
+                  const v = _hFail(it);
+                  const fc = (Number(v) || 0) > 0 ? 'var(--danger-text)' : 'var(--text-3)';
+                  return `<td class="num" style="color:${fc};font-weight:600;">${v != null ? v : '—'}</td>`;
+              } },
+            { key: 'duration', label: 'Длит.',        group: 'metrics', default: true, width: '80px', num: true,
+              raw:  (it) => it.duration != null ? it.duration : '',
+              cell: (it) => `<td class="num">${esc(fmtDur(it.duration))}</td>` },
+
+            // ───── Технические ─────
+            { key: 'id', label: 'ID',                 group: 'tech', default: false, width: '180px',
+              raw:  (it) => it.id || '',
+              cell: (it) => `<td style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);">${esc(it.id || '—')}</td>` },
+        ];
+
+        const _HIST_COL_GROUPS = [
+            { id: 'summary', label: 'Сводка' },
+            { id: 'metrics', label: 'Метрики' },
+            { id: 'tech',    label: 'Технические' },
+        ];
+
+        const _HIST_PRESETS = {
+            standard: HISTORY_COLUMNS.filter(c => c.default).map(c => c.key),    // 8 default
+            compact:  ['kind', 'msisdn', 'customer', 'total'],                   // 4 быстрого скана
+            full:     HISTORY_COLUMNS.map(c => c.key),                           // все 10
+        };
+
+        // Инстанс менеджера колонок — должен быть до первого рендера
+        const _histCols = SbmsTableCols.create({
+            tableId: 'histTbl',
+            storageKey: 'sbms-history-cols-v1',
+            columns: HISTORY_COLUMNS.map(c => ({
+                key: c.key, label: c.label, group: c.group, default: c.default,
+                minWidth: 50, maxWidth: 500,
+            })),
+            groups: _HIST_COL_GROUPS,
+            presets: _HIST_PRESETS,
+            defaultPreset: 'standard',
+            pickerEl: '#histColsMenu',
+            countEl:  '#histColsCount',
+            onChange: () => { renderHistRows(); },
+        });
+
+        function _getActiveHistCols() {
+            const map = new Map(HISTORY_COLUMNS.map(c => [c.key, c]));
+            return _histCols.getActive().map(lc => map.get(lc.key)).filter(Boolean);
+        }
+
+        function renderHistHead() {
+            const cg = $('histColg');
+            const tr = $('histHead');
+            const cols = _getActiveHistCols();
+            cg.innerHTML = cols.map(c => {
+                const persisted = _histCols.getWidth(c.key);
+                const w = persisted ? (persisted + 'px') : (c.width || '');
+                return `<col data-col-key="${esc(c.key)}"${w ? ' style="width:' + w + '"' : ''}>`;
+            }).join('');
+            tr.innerHTML = cols.map(c => {
+                const cls = c.num ? ' class="num"' : '';
+                return `<th data-col-key="${esc(c.key)}"${cls} title="Перетащите для смены порядка · потяните за правый край для ширины">${esc(c.label)}</th>`;
+            }).join('');
+            _histCols.bindHead();
+        }
+
+        // Перерисовать только текущее тело (re-use already-loaded lastItems)
+        function renderHistRows() {
+            renderHistHead();
+            const cols = _getActiveHistCols();
+            const span = Math.max(1, cols.length);
+            const body = $('rows');
+            if (!Array.isArray(lastItems) || !lastItems.length) {
+                // Не трогаем тело если оно сейчас в empty/error/loading
+                if (body.children.length === 1 && body.children[0].children[0]) {
+                    body.children[0].children[0].setAttribute('colspan', span);
+                }
+                return;
+            }
+            body.innerHTML = lastItems.map(it => {
+                const tds = cols.map(c => c.cell(it)).join('');
+                return `<tr onclick="goSubscriber('${esc(it.msisdn)}')">${tds}</tr>`;
+            }).join('');
+        }
+
+        function csvEscape(v) {
+            if (v == null) return '';
+            const s = String(v);
+            if (/[",\n\r;]/.test(s)) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        function exportCsv() {
+            if (!lastItems.length) {
+                if (window.SbmsToast) SbmsToast.warn('Нечего экспортировать');
+                return;
+            }
+            // Экспорт по активным колонкам — то, что видит пользователь (включая порядок)
+            const cols = _getActiveHistCols();
+            const headers = cols.map(c => c.label);
+            const rows = lastItems.map(it =>
+                cols.map(c => csvEscape(c.raw(it))).join(',')
+            );
+            // BOM + CRLF for Excel compatibility
+            const csv = '﻿' + headers.map(csvEscape).join(',') + '\r\n' + rows.join('\r\n') + '\r\n';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+            a.href = url;
+            a.download = `sbms-history-${stamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                a.remove();
+            }, 0);
+            if (window.SbmsToast) SbmsToast.success('Экспортировано: ' + lastItems.length + ' строк');
+        }
+
+        // Pagination state
+        let pageOffset = 0;
+        let pageSize = 50;
+        try {
+            const stored = Number(localStorage.getItem('sbms-history-page-size'));
+            if ([25, 50, 100, 200].includes(stored)) pageSize = stored;
+        } catch {}
+        $('pagerSize').value = String(pageSize);
+
+        async function loadAll(opts) {
+            opts = opts || {};
+            if (opts.resetPage) pageOffset = 0;
+            const params = new URLSearchParams();
+            const kind = $('fKind').value.trim();
+            const msisdn = ($('fMsisdn').value || '').replace(/[^0-9]/g, '');
+            const q = $('fQ').value.trim();
+            if (kind)   params.set('kind', kind);
+            if (msisdn) params.set('msisdn', msisdn);
+            if (q)      params.set('q', q);
+            params.set('limit', String(pageSize));
+            params.set('offset', String(pageOffset));
+
+            $('rows').innerHTML = `<tr><td colspan="${_getActiveHistCols().length}" class="empty"><span class="spinner"></span>&nbsp;Загрузка…</td></tr>`;
+            $('metaBar').innerHTML = `<span><span class="spinner"></span>&nbsp;Загрузка…</span>`;
+
+            try {
+                const r = await fetch('/api/history/all?' + params.toString());
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                const data = await r.json();
+                const totals = data.totals || {};
+                $('kTotal').textContent   = (totals.tariff || 0) + (totals.matrix || 0) + (totals.product || 0);
+                $('kTariff').textContent  = totals.tariff  || 0;
+                $('kMatrix').textContent  = totals.matrix  || 0;
+                $('kProduct').textContent = totals.product || 0;
+
+                const items = data.items || [];
+                lastItems = items;
+                $('fExport').disabled = !items.length;
+                const total = data.count || items.length;
+                const off = data.offset || 0;
+                const lim = data.limit || pageSize;
+                const fromN = total ? off + 1 : 0;
+                const toN = off + items.length;
+                $('metaBar').innerHTML = total > items.length
+                    ? `Показано <b style="color:var(--text-1);">${fromN}–${toN}</b> из <b style="color:var(--text-1);">${total}</b>`
+                    : `Найдено: <b style="color:var(--text-1);">${total}</b>`;
+                renderPager(total, off, lim);
+
+                if (!items.length) {
+                    $('rows').innerHTML = `<tr><td colspan="${_getActiveHistCols().length}" class="empty">${off > 0 ? 'На этой странице ничего нет — вернитесь к первой' : 'Под фильтр ничего не подошло'}</td></tr>`;
+                    return;
+                }
+
+                // Делегируем рендер строк менеджеру колонок (учитывает видимость + порядок)
+                renderHistRows();
+            } catch (e) {
+                lastItems = [];
+                $('fExport').disabled = true;
+                $('pager').style.display = 'none';
+                $('rows').innerHTML = `<tr><td colspan="${_getActiveHistCols().length}" class="empty" style="color:var(--danger-text);">Ошибка: ${esc(e.message)}</td></tr>`;
+                if (window.SbmsToast) SbmsToast.error('Не удалось загрузить: ' + e.message);
+            }
+        }
+
+        function renderPager(total, offset, limit) {
+            const pager = $('pager');
+            const info = $('pagerInfo');
+            const nav = $('pagerNav');
+            if (!total || total <= limit) {
+                // Still show selector if there's enough data to choose pageSize from
+                if (total > 25) {
+                    pager.style.display = 'flex';
+                    info.textContent = `Всего ${total}`;
+                    nav.innerHTML = '';
+                } else {
+                    pager.style.display = 'none';
+                }
+                return;
+            }
+            pager.style.display = 'flex';
+            const totalPages = Math.ceil(total / limit);
+            const cur = Math.floor(offset / limit);
+            info.textContent = `Стр. ${cur + 1} из ${totalPages}`;
+
+            const pages = [];
+            const add = (n) => pages.push(n);
+            const range = (a, b) => { for (let i = a; i <= b; i++) add(i); };
+            if (totalPages <= 7) {
+                range(0, totalPages - 1);
+            } else {
+                add(0);
+                if (cur > 3) pages.push('…');
+                const lo = Math.max(1, cur - 1);
+                const hi = Math.min(totalPages - 2, cur + 1);
+                range(lo, hi);
+                if (cur < totalPages - 4) pages.push('…');
+                add(totalPages - 1);
+            }
+            nav.innerHTML = '';
+            const mkBtn = (label, opts) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'pager__btn' + (opts.current ? ' is-current' : '');
+                b.textContent = label;
+                if (opts.disabled) b.disabled = true;
+                if (opts.title) b.title = opts.title;
+                if (typeof opts.gotoPage === 'number') {
+                    b.addEventListener('click', () => {
+                        pageOffset = opts.gotoPage * limit;
+                        loadAll();
+                        $('rows').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                }
+                return b;
+            };
+            nav.appendChild(mkBtn('‹', { disabled: cur === 0, title: 'Назад', gotoPage: cur - 1 }));
+            pages.forEach(p => {
+                if (p === '…') {
+                    const sep = document.createElement('span');
+                    sep.className = 'pager__sep';
+                    sep.textContent = '…';
+                    nav.appendChild(sep);
+                } else {
+                    nav.appendChild(mkBtn(String(p + 1), { current: p === cur, gotoPage: p }));
+                }
+            });
+            nav.appendChild(mkBtn('›', { disabled: cur >= totalPages - 1, title: 'Вперёд', gotoPage: cur + 1 }));
+        }
+
+        $('pagerSize').addEventListener('change', () => {
+            const v = Number($('pagerSize').value);
+            if ([25, 50, 100, 200].includes(v)) {
+                pageSize = v;
+                try { localStorage.setItem('sbms-history-page-size', String(v)); } catch {}
+                pageOffset = 0;
+                loadAll();
+            }
+        });
+
+        function goSubscriber(msisdn) {
+            if (msisdn) window.location.href = '/subscriber?msisdn=' + encodeURIComponent(msisdn);
+        }
+        window.goSubscriber = goSubscriber;
+
+        $('fApply').addEventListener('click', () => loadAll({ resetPage: true }));
+        $('fClear').addEventListener('click', () => {
+            $('fQ').value = '';
+            $('fMsisdn').value = '';
+            $('fKind').value = '';
+            loadAll({ resetPage: true });
+        });
+        $('fExport').addEventListener('click', exportCsv);
+
+        // Saved filters
+        const BM_KEY = 'sbms-history-saved-filters';
+        function bmLoad() {
+            try {
+                const arr = JSON.parse(localStorage.getItem(BM_KEY) || '[]');
+                return Array.isArray(arr) ? arr : [];
+            } catch { return []; }
+        }
+        function bmSaveAll(arr) {
+            try { localStorage.setItem(BM_KEY, JSON.stringify(arr)); }
+            catch (e) { if (window.SbmsToast) SbmsToast.error('Не удалось сохранить: ' + e.message); }
+        }
+        function bmCurrentFilter() {
+            return {
+                q: $('fQ').value.trim(),
+                msisdn: ($('fMsisdn').value || '').replace(/[^0-9]/g, ''),
+                kind: $('fKind').value.trim(),
+            };
+        }
+        function bmDescribe(f) {
+            const parts = [];
+            if (f.kind) parts.push(KIND[f.kind] ? KIND[f.kind].label : f.kind);
+            if (f.msisdn) parts.push(f.msisdn);
+            if (f.q) parts.push('"' + (f.q.length > 18 ? f.q.slice(0, 18) + '…' : f.q) + '"');
+            return parts.length ? parts.join(' · ') : 'без фильтров';
+        }
+        function bmApply(f) {
+            $('fQ').value = f.q || '';
+            $('fMsisdn').value = f.msisdn || '';
+            $('fKind').value = f.kind || '';
+            $('bmDropdown').open = false;
+            loadAll({ resetPage: true });
+        }
+        function bmRender() {
+            const arr = bmLoad();
+            const menu = $('bmMenu');
+            const items = arr.map((f, i) => {
+                const meta = bmDescribe(f);
+                return `<div class="bm-item" data-idx="${i}" role="menuitem">
+                    <span class="bm-item__name">${esc(f.name)}</span>
+                    <span class="bm-item__meta">${esc(meta)}</span>
+                    <button type="button" class="bm-item__del" data-del="${i}" title="Удалить">×</button>
+                </div>`;
+            }).join('');
+            const empty = arr.length ? '' : '<div class="bm-empty">Закладок пока нет</div>';
+            menu.innerHTML = items + empty + '<div class="bm-divider"></div>' +
+                '<div class="bm-action" id="bmSaveCur">＋ Сохранить текущий фильтр…</div>';
+            menu.querySelectorAll('.bm-item').forEach(el => {
+                el.addEventListener('click', (ev) => {
+                    if (ev.target.closest('.bm-item__del')) return;
+                    const idx = Number(el.dataset.idx);
+                    const cur = bmLoad()[idx];
+                    if (cur) bmApply(cur);
+                });
+            });
+            menu.querySelectorAll('.bm-item__del').forEach(btn => {
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const idx = Number(btn.dataset.del);
+                    const cur = bmLoad();
+                    if (idx >= 0 && idx < cur.length) {
+                        const removed = cur.splice(idx, 1)[0];
+                        bmSaveAll(cur);
+                        bmRender();
+                        if (window.SbmsToast) SbmsToast.info('Закладка «' + removed.name + '» удалена');
+                    }
+                });
+            });
+            $('bmSaveCur').addEventListener('click', () => {
+                const f = bmCurrentFilter();
+                const name = (window.prompt('Название закладки:', bmDescribe(f)) || '').trim();
+                if (!name) return;
+                const cur = bmLoad();
+                const existIdx = cur.findIndex(x => x.name === name);
+                const entry = { name, ...f };
+                if (existIdx >= 0) cur[existIdx] = entry;
+                else cur.push(entry);
+                bmSaveAll(cur);
+                bmRender();
+                $('bmDropdown').open = false;
+                if (window.SbmsToast) SbmsToast.success('Сохранено: ' + name);
+            });
+        }
+        // Close dropdown on outside click
+        document.addEventListener('click', (ev) => {
+            const dd = $('bmDropdown');
+            if (dd && dd.open && !dd.contains(ev.target)) dd.open = false;
+        });
+        // Cross-tab sync
+        window.addEventListener('storage', (ev) => {
+            if (ev.key === BM_KEY) bmRender();
+        });
+        bmRender();
+        ['fQ','fMsisdn','fKind'].forEach(id => {
+            $(id).addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter') loadAll({ resetPage: true });
+            });
+        });
+        $('fKind').addEventListener('change', () => loadAll({ resetPage: true }));
+
+        // Init head до первого fetch — чтобы шапка была видна сразу
+        renderHistHead();
+
+        // Initial load
+        loadAll();
+    </script>
+</body>
+</html>

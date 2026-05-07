@@ -1,0 +1,110 @@
+/* ============================================================
+   SBMS Docs — стили reusable модуля «Документация» + «Приказ».
+
+   Использует токены из sbms-design.css.
+   Префикс классов: .sd-* (избегаем коллизий с локальными стилями
+   страниц — например, .docs-cell в tariff_test).
+   ============================================================ */
+
+.sd-cell {
+    display: inline-flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.sd-empty {
+    color: var(--text-disabled, #52525B);
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+}
+
+.sd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s, color .15s, transform .12s;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-2, #A1A1AA);
+    flex-shrink: 0;
+}
+.sd-btn > svg { width: 14px; height: 14px; display: block; }
+.sd-btn:hover { transform: translateY(-1px); }
+.sd-btn:active { transform: translateY(0); }
+.sd-btn:focus-visible { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(184,108,218,.32)); }
+.sd-btn[disabled],
+.sd-btn[aria-disabled="true"] {
+    opacity: .45;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none !important;
+}
+
+/* «Документация» — нейтрально-синий (info) */
+.sd-btn--doc {
+    color: var(--info-text, #60A5FA);
+    background: var(--info-soft, rgba(59,130,246,.14));
+    border-color: rgba(59, 130, 246, 0.22);
+}
+.sd-btn--doc:hover {
+    background: var(--info, #3B82F6);
+    border-color: var(--info, #3B82F6);
+    color: #FFFFFF;
+}
+
+/* «Приказ» — фирменный (UCELL violet) */
+.sd-btn--order {
+    color: var(--brand, #B86CDA);
+    background: var(--brand-soft, rgba(184,108,218,.12));
+    border-color: var(--brand-glow, rgba(184,108,218,.32));
+}
+.sd-btn--order:hover {
+    background: var(--brand, #B86CDA);
+    border-color: var(--brand, #B86CDA);
+    color: var(--brand-text, #FFFFFF);
+}
+
+/* Light-тема: то же, но через отдельный селектор для контраста */
+[data-theme="light"] .sd-btn { color: var(--text-2, #71717A); }
+[data-theme="light"] .sd-btn--doc {
+    color: #2563EB;
+    background: #EFF6FF;
+    border-color: #BFDBFE;
+}
+[data-theme="light"] .sd-btn--doc:hover {
+    background: #DBEAFE;
+    border-color: #2563EB;
+    color: #1E40AF;
+}
+[data-theme="light"] .sd-btn--order {
+    color: var(--brand-500, #6B1F8A);
+    background: #F5EDFA;
+    border-color: #D8C2E6;
+}
+[data-theme="light"] .sd-btn--order:hover {
+    background: #EAD7F3;
+    border-color: var(--brand-500, #6B1F8A);
+    color: var(--brand-700, #44115B);
+}
+
+/* TD-обёртка: гарантированно центрируем и не даём ellipsis */
+.sd-td {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    text-align: center;
+}
+
+/* Mobile: оставляем кнопки, но чуть компактнее */
+@media (max-width: 700px) {
+    .sd-btn { width: 24px; height: 24px; }
+    .sd-btn > svg { width: 13px; height: 13px; }
+}

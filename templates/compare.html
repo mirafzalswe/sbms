@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сравнение абонентов · SBMS</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <style>
+        body { background: var(--bg-canvas); color: var(--text-1); font-family: var(--font-sans); }
+        .page-header {
+            padding: var(--space-4) var(--space-6);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
+            display: flex; flex-direction: column; gap: var(--space-3);
+        }
+        .page-header h1 { margin: 0; font-size: 18px; }
+        .page-header p { margin: 2px 0 0; font-size: 12px; color: var(--text-3); }
+        .container { max-width: 1400px; margin: 0 auto; padding: var(--space-4); }
+
+        /* Поисковая панель */
+        .cmp-search {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            gap: var(--space-2);
+            align-items: end;
+        }
+        @media (max-width: 760px) {
+            .cmp-search { grid-template-columns: 1fr; }
+        }
+        .cmp-search__field { display: flex; flex-direction: column; gap: 4px; }
+        .cmp-search__field label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            font-weight: 600;
+        }
+        .cmp-search__field input {
+            padding: 9px 12px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-family: var(--font-mono);
+            color: var(--text-1);
+        }
+        .cmp-search__field input:focus { border-color: var(--brand); outline: none; }
+        .cmp-search__swap {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-3);
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s;
+            margin-bottom: 2px;
+        }
+        .cmp-search__swap:hover { color: var(--brand); border-color: var(--brand); }
+
+        /* Hero-карточки рядом */
+        .cmp-heroes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+        @media (max-width: 760px) {
+            .cmp-heroes { grid-template-columns: 1fr; }
+        }
+        .cmp-hero {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            display: flex; flex-direction: column; gap: var(--space-2);
+        }
+        .cmp-hero.is-a { border-left: 4px solid var(--brand); }
+        .cmp-hero.is-b { border-left: 4px solid var(--warning-text, #b45309); }
+        .cmp-hero__msisdn {
+            font-family: var(--font-mono);
+            font-size: 22px;
+            color: var(--text-1);
+            font-weight: 600;
+            letter-spacing: .5px;
+        }
+        .cmp-hero__name {
+            font-size: 13px;
+            color: var(--text-2);
+        }
+        .cmp-hero__row {
+            display: flex; gap: var(--space-2);
+            font-size: 12px;
+            color: var(--text-3);
+        }
+        .cmp-hero__row b {
+            color: var(--text-1);
+            font-family: var(--font-mono);
+            font-weight: var(--weight-medium);
+        }
+        .cmp-hero__error {
+            color: var(--danger-text);
+            font-size: 13px;
+            padding: var(--space-2);
+            background: rgba(239, 68, 68, .08);
+            border-radius: var(--radius-md);
+        }
+
+        /* Табы */
+        .cmp-tabs {
+            display: flex;
+            gap: 4px;
+            margin-top: var(--space-4);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+        .cmp-tab {
+            background: transparent;
+            border: 0;
+            padding: 10px 18px;
+            font-size: 13px;
+            color: var(--text-3);
+            cursor: pointer;
+            font-weight: 600;
+            font-family: inherit;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .cmp-tab:hover { color: var(--text-1); }
+        .cmp-tab.is-active {
+            color: var(--brand);
+            border-bottom-color: var(--brand);
+        }
+        .cmp-tab .cmp-tab__count {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 11px;
+            background: var(--bg-subtle);
+            color: var(--text-3);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        /* Tab pane */
+        .cmp-pane {
+            display: none;
+            padding-top: var(--space-3);
+        }
+        .cmp-pane.is-active { display: block; }
+
+        /* Toolbar (поиск, фильтры) */
+        .cmp-toolbar {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+            margin-bottom: var(--space-3);
+            flex-wrap: wrap;
+        }
+        .cmp-toolbar__search {
+            flex: 1;
+            min-width: 220px;
+            padding: 7px 12px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-1);
+            font-family: inherit;
+        }
+        .cmp-toolbar__search:focus { border-color: var(--brand); outline: none; }
+        .cmp-toolbar__filter {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px;
+            color: var(--text-2);
+            user-select: none;
+            cursor: pointer;
+        }
+        .cmp-toolbar__filter input { accent-color: var(--brand); }
+
+        /* Diff summary */
+        .cmp-summary {
+            font-size: 12px;
+            color: var(--text-3);
+            padding: 8px 12px;
+            background: var(--bg-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-3);
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+        }
+        .cmp-summary__num { color: var(--warning-text, #b45309); font-weight: 700; font-family: var(--font-mono); }
+
+        /* Split panels */
+        .cmp-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+        }
+        @media (max-width: 760px) {
+            .cmp-split { grid-template-columns: 1fr; }
+        }
+        .cmp-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            min-height: 240px;
+            max-height: 600px;
+            overflow: hidden;
+        }
+        .cmp-panel__head {
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .cmp-panel.is-a .cmp-panel__head { color: var(--brand); background: rgba(59, 130, 246, .05); }
+        .cmp-panel.is-b .cmp-panel__head { color: var(--warning-text, #b45309); background: rgba(245, 158, 11, .05); }
+        .cmp-panel__count {
+            font-size: 11px;
+            color: var(--text-3);
+            font-weight: 500;
+            font-family: var(--font-mono);
+        }
+        .cmp-panel__body {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .cmp-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 7px 14px;
+            font-size: 12.5px;
+            border-bottom: 1px solid var(--border);
+        }
+        .cmp-row:last-child { border-bottom: 0; }
+        .cmp-row.is-only {
+            background: rgba(245, 158, 11, .07);
+        }
+        .cmp-row__id {
+            font-family: var(--font-mono);
+            color: var(--text-3);
+            font-size: 11px;
+            min-width: 60px;
+        }
+        .cmp-row__name {
+            color: var(--text-1);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .cmp-row__name b {
+            color: var(--text-2);
+            font-family: var(--font-mono);
+            font-weight: var(--weight-medium);
+            font-size: 11px;
+        }
+        .cmp-row__cost {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--text-2);
+            text-align: right;
+        }
+        .cmp-row__current {
+            color: var(--brand);
+            font-weight: 700;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        .cmp-stat {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+        .cmp-stat--active { background: rgba(59, 130, 246, .15); color: var(--brand); }
+        .cmp-stat--available { background: rgba(34, 197, 94, .15); color: var(--success-text, #15803d); }
+        .cmp-stat--archived { background: rgba(100, 116, 139, .15); color: var(--text-3); }
+
+        .cmp-empty {
+            padding: 32px 14px;
+            text-align: center;
+            color: var(--text-3);
+            font-size: 12px;
+        }
+        .cmp-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-3);
+            font-size: 13px;
+            gap: 8px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid var(--bg-subtle);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav id="sbmsNav"></nav>
+
+    <header class="page-header">
+        <div>
+            <h1>⇆ Сравнение двух абонентов</h1>
+            <p>Side-by-side: тарифы · пакеты · услуги · скидки. Diff подсвечивается автоматически.</p>
+        </div>
+        <form class="cmp-search" onsubmit="event.preventDefault(); doCompare();">
+            <div class="cmp-search__field">
+                <label>Абонент A</label>
+                <input type="text" id="msisdnA" placeholder="998500173054"
+                       inputmode="numeric" autocomplete="off" autofocus>
+            </div>
+            <button type="button" class="cmp-search__swap" onclick="swapMsisdns()" title="Поменять местами">⇆</button>
+            <div class="cmp-search__field">
+                <label>Абонент B</label>
+                <input type="text" id="msisdnB" placeholder="998901234567"
+                       inputmode="numeric" autocomplete="off">
+            </div>
+            <button type="submit" class="sb-btn sb-btn--primary" id="cmpRunBtn" style="height:38px;">Сравнить</button>
+        </form>
+    </header>
+
+    <div class="container">
+        <div id="cmpEmpty" class="card" style="text-align:center; padding: 60px 20px;">
+            <p style="color: var(--text-3); margin: 0;">Введите два MSISDN и нажмите «Сравнить».</p>
+            <p style="color: var(--text-3); font-size: 11px; margin: 6px 0 0;">
+                Можно открыть deeplink: <code>?a=998xxx&amp;b=998yyy</code>
+            </p>
+        </div>
+
+        <div id="cmpLoading" class="cmp-loading" style="display:none;">
+            <span class="spinner"></span> Загружаем обоих абонентов параллельно…
+        </div>
+
+        <div id="cmpResult" style="display:none;">
+            <!-- Hero-карточки -->
+            <div class="cmp-heroes">
+                <div class="cmp-hero is-a" id="heroA"></div>
+                <div class="cmp-hero is-b" id="heroB"></div>
+            </div>
+
+            <!-- Табы -->
+            <div class="cmp-tabs" id="cmpTabs">
+                <button class="cmp-tab is-active" data-tab="profile">Профиль</button>
+                <button class="cmp-tab" data-tab="tariffs">Тарифы <span class="cmp-tab__count" id="cntTariffs">—</span></button>
+                <button class="cmp-tab" data-tab="packs">Пакеты <span class="cmp-tab__count" id="cntPacks">—</span></button>
+                <button class="cmp-tab" data-tab="services">Услуги <span class="cmp-tab__count" id="cntServices">—</span></button>
+                <button class="cmp-tab" data-tab="limits">Лимиты <span class="cmp-tab__count" id="cntLimits">—</span></button>
+            </div>
+
+            <!-- Панели -->
+            <div class="cmp-pane is-active" data-pane="profile" id="paneProfile"></div>
+            <div class="cmp-pane" data-pane="tariffs" id="paneTariffs"></div>
+            <div class="cmp-pane" data-pane="packs" id="panePacks"></div>
+            <div class="cmp-pane" data-pane="services" id="paneServices"></div>
+            <div class="cmp-pane" data-pane="limits" id="paneLimits"></div>
+        </div>
+    </div>
+
+    <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
+    <script src="/static/sbms-toast.js"></script>
+    <script>
+        SbmsNav.mount('#sbmsNav', { active: 'compare' });
+        const $ = (id) => document.getElementById(id);
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function fmtMoney(n) {
+            if (n == null || n === '') return '—';
+            const v = Number(n);
+            if (!isFinite(v)) return String(n);
+            return v.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' сум';
+        }
+
+        let _data = null;     // { a: {...}, b: {...} }
+        let _activeTab = 'profile';
+        let _searchQ   = '';
+        let _onlyDiff  = false;
+
+        // ===== Загрузка =====
+        async function doCompare() {
+            const a = ($('msisdnA').value || '').replace(/[^0-9]/g, '');
+            const b = ($('msisdnB').value || '').replace(/[^0-9]/g, '');
+            if (!a || !b) {
+                if (window.SbmsToast) SbmsToast.warn('Введите оба MSISDN');
+                return;
+            }
+            if (a === b) {
+                if (window.SbmsToast) SbmsToast.warn('Введите два разных номера');
+                return;
+            }
+            if (!window.SbmsAuth || !SbmsAuth.token) {
+                try { await SbmsAuth.require(); }
+                catch { return; }
+            }
+
+            $('cmpEmpty').style.display = 'none';
+            $('cmpResult').style.display = 'none';
+            $('cmpLoading').style.display = 'flex';
+            $('cmpRunBtn').disabled = true;
+
+            // Обновляем URL без перезагрузки
+            const url = new URL(window.location.href);
+            url.searchParams.set('a', a);
+            url.searchParams.set('b', b);
+            window.history.replaceState(null, '', url.toString());
+
+            try {
+                const resp = await fetch('/api/compare/subscribers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ msisdn1: a, msisdn2: b, authToken: SbmsAuth.token }),
+                });
+                const json = await resp.json();
+                if (!resp.ok) throw new Error(json.message || json.error || 'HTTP ' + resp.status);
+                _data = json;
+                _renderAll();
+                $('cmpResult').style.display = 'block';
+                if (window.SbmsToast) {
+                    const okA = json.a && json.a.ok;
+                    const okB = json.b && json.b.ok;
+                    if (okA && okB) SbmsToast.success('Загружены оба абонента');
+                    else if (okA || okB) SbmsToast.warn('Один из абонентов не загружен');
+                    else SbmsToast.error('Ни один абонент не найден');
+                }
+            } catch (e) {
+                if (window.SbmsToast) SbmsToast.error('Ошибка: ' + (e.message || e));
+                $('cmpEmpty').style.display = 'block';
+                $('cmpEmpty').innerHTML = `<p style="color: var(--danger-text);">Ошибка: ${esc(e.message || String(e))}</p>`;
+            } finally {
+                $('cmpLoading').style.display = 'none';
+                $('cmpRunBtn').disabled = false;
+            }
+        }
+        window.doCompare = doCompare;
+
+        function swapMsisdns() {
+            const a = $('msisdnA').value;
+            $('msisdnA').value = $('msisdnB').value;
+            $('msisdnB').value = a;
+            // если уже сравнивали — повторим
+            if (_data) doCompare();
+        }
+        window.swapMsisdns = swapMsisdns;
+
+        // ===== Hero rendering =====
+        function _renderHero(elId, side, payload) {
+            const el = $(elId);
+            if (!payload) { el.innerHTML = ''; return; }
+            if (!payload.ok) {
+                el.innerHTML = `
+                    <div class="cmp-hero__msisdn">${esc(payload.msisdn || '—')}</div>
+                    <div class="cmp-hero__error">⚠ ${esc(payload.message || payload.error || 'Не загружен')}</div>
+                `;
+                return;
+            }
+            const c = payload.customer || {};
+            const rp = payload.currentRatePlan || {};
+            el.innerHTML = `
+                <div class="cmp-hero__msisdn">${esc(payload.msisdn)}</div>
+                <div class="cmp-hero__name">${esc(c.name || '—')}${c.categoryName ? ' · <span style="color:var(--text-3);">'+esc(c.categoryName)+'</span>' : ''}</div>
+                <div class="cmp-hero__row">
+                    <span>Customer ID: <b>${esc(payload.customerId || '—')}</b></span>
+                    <span>·</span>
+                    <span>Subscriber ID: <b>${esc(payload.subscriberId || '—')}</b></span>
+                </div>
+                <div class="cmp-hero__row">
+                    <span>Тариф: <b>${esc(rp.name || '—')}</b></span>
+                    ${rp.ratePlanId ? `<span style="color:var(--text-3);">(ID ${esc(rp.ratePlanId)})</span>` : ''}
+                </div>
+                <div class="cmp-hero__row">
+                    <span>Баланс: <b>${esc(fmtMoney(payload.balance))}</b></span>
+                </div>
+            `;
+        }
+
+        // ===== Diff helpers =====
+        function _setOf(arr, keyFn) {
+            const s = new Set();
+            (arr || []).forEach(it => { const k = keyFn(it); if (k != null && k !== '') s.add(String(k)); });
+            return s;
+        }
+
+        // ===== Profile tab =====
+        function _renderProfile() {
+            const a = _data && _data.a, b = _data && _data.b;
+            if (!a || !b) { $('paneProfile').innerHTML = ''; return; }
+            const rows = [
+                ['MSISDN',         a.msisdn || '—',                    b.msisdn || '—'],
+                ['Имя',            (a.customer || {}).name || '—',     (b.customer || {}).name || '—'],
+                ['Категория',      (a.customer || {}).categoryName || '—', (b.customer || {}).categoryName || '—'],
+                ['Тип абонента',   (a.customer || {}).customerType || '—', (b.customer || {}).customerType || '—'],
+                ['Customer ID',    a.customerId || '—',                b.customerId || '—'],
+                ['Subscriber ID',  a.subscriberId || '—',              b.subscriberId || '—'],
+                ['Текущий тариф',  ((a.currentRatePlan||{}).name)   || '—', ((b.currentRatePlan||{}).name)   || '—'],
+                ['Тариф ID',       ((a.currentRatePlan||{}).ratePlanId) || '—', ((b.currentRatePlan||{}).ratePlanId) || '—'],
+                ['Баланс',         fmtMoney(a.balance),                 fmtMoney(b.balance)],
+                ['Активных пакетов',  (a.activePacks||[]).length,       (b.activePacks||[]).length],
+                ['Доступных пакетов', (a.availablePacks||[]).length,    (b.availablePacks||[]).length],
+                ['Активных услуг',    (a.activeServices||[]).length,    (b.activeServices||[]).length],
+                ['Доступных услуг',   (a.availableServices||[]).length, (b.availableServices||[]).length],
+                ['Доступных тарифов', (a.availableRatePlans||[]).length, (b.availableRatePlans||[]).length],
+                ['Скидок (rtDiscounts)', (a.discounts||[]).length,      (b.discounts||[]).length],
+            ];
+            const html = rows.map(([k, va, vb]) => {
+                const same = String(va) === String(vb);
+                const cls = same ? '' : 'is-only';
+                return `<tr class="${cls}" style="${same ? '' : 'background:rgba(245,158,11,.07);'}">
+                    <td style="padding:7px 14px;color:var(--text-3);font-size:12px;">${esc(k)}</td>
+                    <td style="padding:7px 14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);">${esc(va)}</td>
+                    <td style="padding:7px 14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);">${esc(vb)}</td>
+                </tr>`;
+            }).join('');
+            $('paneProfile').innerHTML = `
+                <table class="t" style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <th style="text-align:left;padding:8px 14px;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;">Поле</th>
+                            <th style="text-align:left;padding:8px 14px;font-size:11px;color:var(--brand);text-transform:uppercase;letter-spacing:.3px;">Абонент A</th>
+                            <th style="text-align:left;padding:8px 14px;font-size:11px;color:var(--warning-text,#b45309);text-transform:uppercase;letter-spacing:.3px;">Абонент B</th>
+                        </tr>
+                    </thead>
+                    <tbody>${html}</tbody>
+                </table>
+            `;
+        }
+
+        // ===== Generic split rendering (tariffs / packs / services / limits) =====
+        function _renderSplit(paneId, kind) {
+            const pane = $(paneId);
+            const a = _data && _data.a, b = _data && _data.b;
+            if (!a || !b) { pane.innerHTML = ''; return; }
+
+            // Извлечь items + key + label + status в зависимости от kind
+            const cfg = _kindConfig(kind, a, b);
+            const aItems = cfg.aItems;
+            const bItems = cfg.bItems;
+            const aKeys = _setOf(aItems, cfg.keyFn);
+            const bKeys = _setOf(bItems, cfg.keyFn);
+
+            // Diff summary
+            const onlyA = aItems.filter(i => !bKeys.has(String(cfg.keyFn(i)))).length;
+            const onlyB = bItems.filter(i => !aKeys.has(String(cfg.keyFn(i)))).length;
+            const both  = aItems.filter(i => bKeys.has(String(cfg.keyFn(i)))).length;
+            const totalDiff = onlyA + onlyB;
+
+            // Update counts
+            const cntEl = $({tariffs:'cntTariffs', packs:'cntPacks', services:'cntServices', limits:'cntLimits'}[kind]);
+            if (cntEl) cntEl.textContent = totalDiff > 0 ? `${totalDiff} Δ` : '—';
+
+            // Apply search/filter
+            const q = _searchQ.trim().toLowerCase();
+            const filterFn = (i) => {
+                if (q) {
+                    const txt = String(cfg.keyFn(i) || '').toLowerCase() + ' ' + String(cfg.labelFn(i) || '').toLowerCase();
+                    if (!txt.includes(q)) return false;
+                }
+                if (_onlyDiff) {
+                    const k = String(cfg.keyFn(i));
+                    const inA = aKeys.has(k), inB = bKeys.has(k);
+                    if (inA && inB) return false;  // в обеих — не diff
+                }
+                return true;
+            };
+            const aShown = aItems.filter(filterFn);
+            const bShown = bItems.filter(filterFn);
+
+            const renderRows = (items, side, otherKeys) => {
+                if (!items.length) return `<div class="cmp-empty">${q || _onlyDiff ? 'Под фильтр ничего не подошло' : 'Нет данных'}</div>`;
+                return items.map(i => {
+                    const key = String(cfg.keyFn(i) || '');
+                    const inOther = otherKeys.has(key);
+                    const cls = inOther ? '' : 'is-only';
+                    const stat = cfg.statFn(i);
+                    const cost = cfg.costFn ? cfg.costFn(i) : '';
+                    return `<div class="cmp-row ${cls}">
+                        <span class="cmp-row__id">${esc(key || '—')}</span>
+                        <span class="cmp-row__name" title="${esc(cfg.labelFn(i))}">${esc(cfg.labelFn(i))}${cfg.markFn ? cfg.markFn(i, side) : ''}</span>
+                        <span class="cmp-row__cost">${stat}${cost ? ' · ' + cost : ''}</span>
+                    </div>`;
+                }).join('');
+            };
+
+            pane.innerHTML = `
+                <div class="cmp-toolbar">
+                    <input type="text" class="cmp-toolbar__search" id="cmpSearch_${kind}"
+                           placeholder="Поиск по ID или названию…" value="${esc(_searchQ)}">
+                    <label class="cmp-toolbar__filter">
+                        <input type="checkbox" id="cmpOnlyDiff_${kind}" ${_onlyDiff ? 'checked' : ''}>
+                        Только различия
+                    </label>
+                </div>
+                <div class="cmp-summary">
+                    <span>В обоих: <span class="cmp-summary__num" style="color:var(--success-text,#15803d);">${both}</span></span>
+                    <span>·</span>
+                    <span>Только у A: <span class="cmp-summary__num">${onlyA}</span></span>
+                    <span>·</span>
+                    <span>Только у B: <span class="cmp-summary__num">${onlyB}</span></span>
+                    <span>·</span>
+                    <span style="color:var(--text-3);">всего различий: <span class="cmp-summary__num">${totalDiff}</span></span>
+                </div>
+                <div class="cmp-split">
+                    <div class="cmp-panel is-a">
+                        <div class="cmp-panel__head">
+                            <span>Абонент A · ${esc(a.msisdn || '—')}</span>
+                            <span class="cmp-panel__count">${aShown.length}${q || _onlyDiff ? ' / ' + aItems.length : ''} поз.</span>
+                        </div>
+                        <div class="cmp-panel__body">${renderRows(aShown, 'a', bKeys)}</div>
+                    </div>
+                    <div class="cmp-panel is-b">
+                        <div class="cmp-panel__head">
+                            <span>Абонент B · ${esc(b.msisdn || '—')}</span>
+                            <span class="cmp-panel__count">${bShown.length}${q || _onlyDiff ? ' / ' + bItems.length : ''} поз.</span>
+                        </div>
+                        <div class="cmp-panel__body">${renderRows(bShown, 'b', aKeys)}</div>
+                    </div>
+                </div>
+            `;
+
+            // Bind toolbar
+            const sEl = $('cmpSearch_' + kind);
+            if (sEl) {
+                let _t = null;
+                sEl.addEventListener('input', () => {
+                    clearTimeout(_t);
+                    _t = setTimeout(() => {
+                        _searchQ = sEl.value || '';
+                        _renderSplit(paneId, kind);
+                        // Восстановим фокус в новом поле (после re-render)
+                        const nx = $('cmpSearch_' + kind);
+                        if (nx) {
+                            nx.focus();
+                            nx.setSelectionRange(_searchQ.length, _searchQ.length);
+                        }
+                    }, 120);
+                });
+            }
+            const dEl = $('cmpOnlyDiff_' + kind);
+            if (dEl) {
+                dEl.addEventListener('change', () => {
+                    _onlyDiff = !!dEl.checked;
+                    _renderSplit(paneId, kind);
+                });
+            }
+        }
+
+        function _kindConfig(kind, a, b) {
+            // Возвращает { aItems, bItems, keyFn, labelFn, statFn, costFn?, markFn? }
+            if (kind === 'tariffs') {
+                const aRps = a.ok ? (a.availableRatePlans || []) : [];
+                const bRps = b.ok ? (b.availableRatePlans || []) : [];
+                const aCur = a.ok ? ((a.currentRatePlan || {}).ratePlanId) : null;
+                const bCur = b.ok ? ((b.currentRatePlan || {}).ratePlanId) : null;
+                return {
+                    aItems: aRps,
+                    bItems: bRps,
+                    keyFn:   (it) => it.ratePlanId,
+                    labelFn: (it) => it.name || 'N/A',
+                    statFn:  (it) => it.isArchived
+                        ? `<span class="cmp-stat cmp-stat--archived">архив</span>`
+                        : `<span class="cmp-stat cmp-stat--available">доступ.</span>`,
+                    markFn: (it, side) => {
+                        const cur = side === 'a' ? aCur : bCur;
+                        return (cur && String(cur) === String(it.ratePlanId))
+                            ? ' <span class="cmp-row__current">★ ТЕКУЩИЙ</span>'
+                            : '';
+                    },
+                };
+            }
+            if (kind === 'packs') {
+                const aActive = a.ok ? (a.activePacks   || []) : [];
+                const aAvail  = a.ok ? (a.availablePacks || []) : [];
+                const bActive = b.ok ? (b.activePacks   || []) : [];
+                const bAvail  = b.ok ? (b.availablePacks || []) : [];
+                const merge = (act, avl) => [
+                    ...act.map(p => ({ ...p, _status: 'active' })),
+                    ...avl.map(p => ({ ...p, _status: 'available' })),
+                ];
+                return {
+                    aItems: merge(aActive, aAvail),
+                    bItems: merge(bActive, bAvail),
+                    keyFn:   (it) => it.packId || it.id || '',
+                    labelFn: (it) => it.name || ((it.pack || {}).name) || 'N/A',
+                    statFn:  (it) => it._status === 'active'
+                        ? `<span class="cmp-stat cmp-stat--active">актив.</span>`
+                        : `<span class="cmp-stat cmp-stat--available">доступ.</span>`,
+                };
+            }
+            if (kind === 'services') {
+                const aActive = a.ok ? (a.activeServices    || []) : [];
+                const aAvail  = a.ok ? (a.availableServices || []) : [];
+                const bActive = b.ok ? (b.activeServices    || []) : [];
+                const bAvail  = b.ok ? (b.availableServices || []) : [];
+                const merge = (act, avl) => [
+                    ...act.map(s => ({ ...s, _status: 'active' })),
+                    ...avl.map(s => ({ ...s, _status: 'available' })),
+                ];
+                return {
+                    aItems: merge(aActive, aAvail),
+                    bItems: merge(bActive, bAvail),
+                    keyFn:   (it) => it.serviceId || it.id || '',
+                    labelFn: (it) => it.name || 'N/A',
+                    statFn:  (it) => it._status === 'active'
+                        ? `<span class="cmp-stat cmp-stat--active">актив.</span>`
+                        : `<span class="cmp-stat cmp-stat--available">доступ.</span>`,
+                };
+            }
+            if (kind === 'limits') {
+                const UNITS = { 0: 'сум', 1: 'мин', 7: 'sms', 14: 'МБ' };
+                const aDisc = a.ok ? (a.discounts || []) : [];
+                const bDisc = b.ok ? (b.discounts || []) : [];
+                return {
+                    aItems: aDisc,
+                    bItems: bDisc,
+                    keyFn:   (it) => it.discountPlanId || it.productId || '',
+                    labelFn: (it) => {
+                        const u = UNITS[it.measureUnitId] || '';
+                        const name = it.discountName || ('Plan ' + (it.discountPlanId || ''));
+                        const rem = it.remainingValue != null ? Number(it.remainingValue).toLocaleString('ru-RU', {maximumFractionDigits:2}) : '—';
+                        return `${name} · остаток: ${rem} ${u}`;
+                    },
+                    statFn: (it) => {
+                        const t = ({4:'Пакет',6:'Безлим',11:'День',12:'Бонус'})[it.discountType] || ('тип '+it.discountType);
+                        return `<span class="cmp-stat cmp-stat--available">${esc(t)}</span>`;
+                    },
+                };
+            }
+            return { aItems: [], bItems: [], keyFn: x=>'', labelFn: x=>'', statFn: x=>'' };
+        }
+
+        function _renderAll() {
+            const a = _data && _data.a, b = _data && _data.b;
+            _renderHero('heroA', 'a', a);
+            _renderHero('heroB', 'b', b);
+            _renderProfile();
+            _renderSplit('paneTariffs',  'tariffs');
+            _renderSplit('panePacks',    'packs');
+            _renderSplit('paneServices', 'services');
+            _renderSplit('paneLimits',   'limits');
+        }
+
+        // ===== Tabs =====
+        $('cmpTabs').addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.cmp-tab');
+            if (!btn) return;
+            _activeTab = btn.dataset.tab;
+            document.querySelectorAll('.cmp-tab').forEach(b => b.classList.toggle('is-active', b === btn));
+            document.querySelectorAll('.cmp-pane').forEach(p =>
+                p.classList.toggle('is-active', p.dataset.pane === _activeTab)
+            );
+        });
+
+        // ===== Deep-link: ?a=...&b=... =====
+        (function _initFromUrl() {
+            const u = new URL(window.location.href);
+            const a = (u.searchParams.get('a') || '').replace(/[^0-9]/g, '');
+            const b = (u.searchParams.get('b') || '').replace(/[^0-9]/g, '');
+            if (a) $('msisdnA').value = a;
+            if (b) $('msisdnB').value = b;
+            if (a && b && a !== b) {
+                // Авто-старт
+                setTimeout(() => doCompare(), 100);
+            }
+        })();
+
+        // Hotkeys: Ctrl/Cmd+Enter — start compare; Tab между полями
+        document.addEventListener('keydown', (ev) => {
+            if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+                ev.preventDefault();
+                doCompare();
+            }
+        });
+    </script>
+</body>
+</html>

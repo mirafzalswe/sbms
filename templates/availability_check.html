@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Проверка доступности пакетов и услуг — SBMS</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <style>
+        /* ============== Page-specific styles ============== */
+        .ac-wrap {
+            max-width: 1480px;
+            margin: 0 auto;
+            padding: var(--space-4);
+        }
+        .ac-grid {
+            display: grid;
+            grid-template-columns: minmax(360px, 460px) 1fr;
+            gap: var(--space-4);
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .ac-grid { grid-template-columns: 1fr; }
+        }
+
+        .ac-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+        .ac-card__head {
+            display: flex; align-items: center; gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--border);
+        }
+        .ac-card__title {
+            font-size: var(--text-md);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+        }
+        .ac-card__hint {
+            margin-left: auto;
+            font-size: var(--text-xs);
+            color: var(--text-3);
+        }
+        .ac-card__body { padding: var(--space-3) var(--space-4); }
+        .ac-card__body--flush { padding: 0; }
+
+        .ac-toolbar {
+            display: grid;
+            grid-template-columns: minmax(180px, 240px) 1fr auto;
+            gap: var(--space-2);
+            align-items: end;
+        }
+        @media (max-width: 760px) { .ac-toolbar { grid-template-columns: 1fr; } }
+
+        .ac-field {
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .ac-field__label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            font-weight: var(--weight-semibold);
+        }
+        .ac-field__input,
+        .ac-field__textarea {
+            background: var(--bg-canvas);
+            color: var(--text-1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-family: var(--font-sans);
+            font-size: var(--text-sm);
+            outline: none;
+        }
+        .ac-field__textarea {
+            min-height: 110px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.55;
+            resize: vertical;
+            white-space: pre;
+            overflow: auto;
+        }
+        .ac-field__input:focus,
+        .ac-field__textarea:focus {
+            border-color: var(--brand);
+            box-shadow: var(--focus-ring);
+        }
+
+        .ac-roles {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .ac-role {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg-canvas);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: var(--text-xs);
+            font-weight: var(--weight-medium);
+            transition: background-color .15s, color .15s, border-color .15s;
+            user-select: none;
+        }
+        .ac-role:hover { color: var(--text-1); border-color: var(--border-strong); }
+        .ac-role.is-on {
+            background: var(--brand-soft);
+            color: var(--text-1);
+            border-color: var(--brand);
+        }
+        .ac-role__bullet {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-3);
+        }
+        .ac-role.is-on .ac-role__bullet { background: var(--brand); }
+
+        /* Drop zones */
+        .ac-drop {
+            position: relative;
+            border: 1.5px dashed var(--border-strong);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            color: var(--text-3);
+            font-size: var(--text-xs);
+            cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+            background: transparent;
+        }
+        .ac-drop:hover { background: var(--bg-subtle); color: var(--text-1); border-color: var(--brand); }
+        .ac-drop.is-active { background: var(--brand-soft); border-color: var(--brand); color: var(--text-1); }
+        .ac-drop__hint { font-weight: var(--weight-semibold); color: var(--text-2); }
+        .ac-drop input[type="file"] { display: none; }
+
+        /* Parsed preview */
+        .ac-preview {
+            margin-top: var(--space-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-canvas);
+            max-height: 240px;
+            overflow: auto;
+        }
+        .ac-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .ac-preview th, .ac-preview td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .ac-preview th {
+            position: sticky; top: 0;
+            background: var(--bg-surface);
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-3);
+            font-weight: var(--weight-semibold);
+        }
+        .ac-preview td:first-child {
+            font-family: var(--font-mono);
+            color: var(--info-text);
+            width: 90px;
+        }
+        .ac-preview td.no-id { color: var(--warning-text); }
+        .ac-preview tr:last-child td { border-bottom: none; }
+        .ac-preview-empty {
+            padding: 16px;
+            color: var(--text-3);
+            font-size: var(--text-xs);
+            text-align: center;
+        }
+
+        .ac-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--text-xs);
+            color: var(--text-3);
+            margin-top: 6px;
+        }
+        .ac-meta b { color: var(--text-1); }
+
+        /* Run button */
+        .ac-run {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 16px;
+            background: var(--brand);
+            color: var(--brand-text);
+            border: none;
+            border-radius: 8px;
+            font-weight: var(--weight-semibold);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: background-color .15s, transform .15s;
+        }
+        .ac-run:hover { background: var(--brand-hover); transform: translateY(-1px); }
+        .ac-run:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+        .ac-run svg { width: 14px; height: 14px; }
+
+        /* Result table */
+        .ac-result-toolbar {
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            padding: 10px var(--space-4);
+            border-bottom: 1px solid var(--border);
+        }
+        .ac-result-toolbar input[type="search"] {
+            flex: 1 1 200px;
+            background: var(--bg-canvas);
+            color: var(--text-1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: var(--text-sm);
+            outline: none;
+        }
+        .ac-result-toolbar input[type="search"]:focus { border-color: var(--brand); }
+        .ac-result-toolbar select {
+            background: var(--bg-canvas);
+            color: var(--text-1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: var(--text-sm);
+        }
+
+        .ac-summary {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            padding: 10px var(--space-4);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-canvas);
+        }
+        .ac-stat {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: var(--text-xs);
+            color: var(--text-2);
+        }
+        .ac-stat b {
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
+            font-weight: var(--weight-bold);
+        }
+        .ac-stat--ok      b { color: var(--success-text); }
+        .ac-stat--warn    b { color: var(--warning-text); }
+        .ac-stat--danger  b { color: var(--danger-text); }
+
+        .ac-rtable-wrap { max-height: 65vh; overflow: auto; }
+        .ac-rtable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            font-family: var(--font-sans);
+        }
+        .ac-rtable th, .ac-rtable td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .ac-rtable th {
+            position: sticky; top: 0; z-index: 2;
+            background: var(--bg-surface);
+            color: var(--text-3);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            font-weight: var(--weight-semibold);
+        }
+        .ac-rtable tr:hover td { background: var(--bg-subtle); }
+        .ac-rtable td.col-id {
+            font-family: var(--font-mono);
+            color: var(--info-text);
+            font-size: 12px;
+        }
+        .ac-rtable td.col-id.is-missing { color: var(--warning-text); }
+        .ac-rtable td.col-name { white-space: normal; max-width: 260px; word-break: break-word; }
+        .ac-rtable td.col-kind {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--text-3);
+            font-weight: var(--weight-semibold);
+        }
+
+        /* Status badges */
+        .ac-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: var(--weight-bold);
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            border: 1px solid transparent;
+        }
+        .ac-badge--active     { background: var(--info-soft);    color: var(--info-text);    border-color: rgba(59,130,246,.3); }
+        .ac-badge--available  { background: var(--success-soft); color: var(--success-text); border-color: rgba(34,197,94,.3); }
+        .ac-badge--hidden     { background: var(--neutral-soft); color: var(--text-2);       border-color: rgba(100,100,110,.3); }
+        .ac-badge--restricted { background: var(--warning-soft); color: var(--warning-text); border-color: rgba(245,158,11,.3); }
+        .ac-badge--conflict   { background: rgba(217,70,239,.14); color: #f0abfc;            border-color: rgba(217,70,239,.4); }
+        .ac-badge--notfound   { background: var(--danger-soft);  color: var(--danger-text);  border-color: rgba(239,68,68,.3); }
+        .ac-badge--error      { background: var(--danger-soft);  color: var(--danger-text);  border-color: rgba(239,68,68,.3); }
+        .ac-badge--idle       { background: transparent;          color: var(--text-3);       border-color: var(--border); }
+
+        .ac-empty {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-3);
+            font-size: var(--text-sm);
+        }
+        .ac-empty__title { font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text-1); margin-bottom: 6px; }
+
+        .ac-warning {
+            margin: 8px var(--space-4) 0;
+            padding: 8px 12px;
+            background: var(--warning-soft);
+            color: var(--warning-text);
+            border: 1px solid rgba(245,158,11,.3);
+            border-radius: 6px;
+            font-size: var(--text-xs);
+        }
+        .ac-warning code { background: rgba(0,0,0,.3); padding: 1px 4px; border-radius: 3px; }
+
+        .ac-actions {
+            display: flex; gap: 6px;
+            padding: 10px var(--space-4);
+            border-top: 1px solid var(--border);
+            justify-content: flex-end;
+        }
+
+        .ac-spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: ac-spin .8s linear infinite;
+        }
+        @keyframes ac-spin { to { transform: rotate(360deg); } }
+
+        /* Section divider */
+        .ac-section + .ac-section { border-top: 1px solid var(--border); }
+
+        /* Cell: status + reason combo */
+        .ac-cell {
+            display: inline-flex; flex-direction: column; gap: 2px;
+            line-height: 1.3;
+        }
+        .ac-cell__sub {
+            font-size: 10px;
+            color: var(--text-3);
+            font-weight: var(--weight-medium);
+            font-family: var(--font-mono);
+        }
+
+        /* Modal credentials */
+        .ac-creds-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sbmsNav"></div>
+
+    <div class="ac-wrap">
+        <header style="margin-bottom:var(--space-4);">
+            <h1 style="margin:0 0 4px;font-size:var(--text-2xl);font-weight:var(--weight-bold);color:var(--text-1);">
+                Проверка доступности пакетов и услуг
+            </h1>
+            <p style="margin:0;color:var(--text-2);font-size:var(--text-sm);max-width:880px;line-height:1.5;">
+                Bulk-проверка списка пакетов и услуг на тестовом номере под несколькими ролями.
+                Подключений <b>не делается</b> — только READ и сравнение с реальной API.
+                Парсит данные из приказов: paste из Word/Excel, PDF, DOCX, XLSX, CSV, JSON.
+            </p>
+        </header>
+
+        <div class="ac-grid">
+
+            <!-- ============== LEFT: Inputs ============== -->
+            <div class="ac-card">
+                <div class="ac-card__head">
+                    <span class="ac-card__title">Что и где проверяем</span>
+                    <span class="ac-card__hint">шаги 1 → 2 → 3</span>
+                </div>
+
+                <!-- Step 1: target -->
+                <div class="ac-card__body ac-section">
+                    <div class="ac-toolbar" style="grid-template-columns: 1fr;">
+                        <div class="ac-field">
+                            <label class="ac-field__label">1. Тестовый MSISDN (с целевым тарифом)</label>
+                            <input type="text" id="msisdn" class="ac-field__input"
+                                   placeholder="998500173054" inputmode="numeric" autocomplete="off">
+                        </div>
+                        <div class="ac-field">
+                            <label class="ac-field__label">2. Под какими ролями проверять</label>
+                            <div class="ac-roles" id="rolesPicker"></div>
+                            <div style="font-size:11px;color:var(--text-3);margin-top:4px;">
+                                <i>Admin</i> = ваша текущая сессия. Для остальных требуются предустановленные креды (зашиты в модуле).
+                                Кнопка «⚙ Креды» — поменять для конкретной роли.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3a: Packs -->
+                <div class="ac-card__body ac-section">
+                    <div class="ac-field" style="margin-bottom:var(--space-2);">
+                        <label class="ac-field__label">3. Список пакетов
+                            <span style="float:right;color:var(--text-3);font-weight:normal;text-transform:none;letter-spacing:0;">
+                                <span id="packsCount">0</span> распознано
+                            </span>
+                        </label>
+                        <textarea id="packsText" class="ac-field__textarea" spellcheck="false"
+                                  placeholder="Вставьте данные из приказа: ID и название.&#10;&#10;Поддерживаются:&#10;• 12345 Foydali 45&#10;• Foydali 45 (ID 12345)&#10;• Excel-таблица (Ctrl-C из Excel)&#10;• Markdown / CSV / JSON&#10;&#10;Для PDF/DOCX/XLSX — drag & drop файла ниже"></textarea>
+                    </div>
+                    <label class="ac-drop" id="packsDrop">
+                        <input type="file" id="packsFile" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.tsv,.json,.txt,.md">
+                        <div><span class="ac-drop__hint">Перетащите файл</span> или кликните для выбора</div>
+                        <div style="margin-top:4px;">PDF · DOCX · XLSX · CSV · TXT · JSON</div>
+                    </label>
+                    <div class="ac-preview" id="packsPreview"></div>
+                </div>
+
+                <!-- Step 3b: Services -->
+                <div class="ac-card__body ac-section">
+                    <div class="ac-field" style="margin-bottom:var(--space-2);">
+                        <label class="ac-field__label">3. Список услуг
+                            <span style="float:right;color:var(--text-3);font-weight:normal;text-transform:none;letter-spacing:0;">
+                                <span id="servicesCount">0</span> распознано
+                            </span>
+                        </label>
+                        <textarea id="servicesText" class="ac-field__textarea" spellcheck="false"
+                                  placeholder="Аналогично пакетам — ID и название услуги.&#10;Excel-paste и table-форматы поддерживаются."></textarea>
+                    </div>
+                    <label class="ac-drop" id="servicesDrop">
+                        <input type="file" id="servicesFile" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.tsv,.json,.txt,.md">
+                        <div><span class="ac-drop__hint">Перетащите файл</span> или кликните</div>
+                        <div style="margin-top:4px;">PDF · DOCX · XLSX · CSV · TXT · JSON</div>
+                    </label>
+                    <div class="ac-preview" id="servicesPreview"></div>
+                </div>
+
+                <div class="ac-actions">
+                    <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="clearBtn">Очистить</button>
+                    <button type="button" class="ac-run" id="runBtn">
+                        <span id="runIcon">▶</span>
+                        <span id="runLabel">Проверить</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============== RIGHT: Results ============== -->
+            <div class="ac-card">
+                <div class="ac-card__head">
+                    <span class="ac-card__title">Результат</span>
+                    <span class="ac-card__hint" id="resultMeta">—</span>
+                </div>
+
+                <div class="ac-summary" id="summaryStats" style="display:none;"></div>
+                <div id="warningsBox"></div>
+
+                <div class="ac-result-toolbar" id="resultToolbar" style="display:none;">
+                    <input type="search" id="resultSearch" placeholder="Поиск по имени или ID…">
+                    <select id="resultStatusFilter">
+                        <option value="">Все статусы</option>
+                        <option value="active">Активно</option>
+                        <option value="available">Доступно</option>
+                        <option value="hidden">Скрыто</option>
+                        <option value="restricted">Ограничено</option>
+                        <option value="conflict">Конфликт</option>
+                        <option value="notfound">Не найдено</option>
+                    </select>
+                    <select id="resultKindFilter">
+                        <option value="">Пакеты + Услуги</option>
+                        <option value="pack">Только пакеты</option>
+                        <option value="service">Только услуги</option>
+                    </select>
+                    <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="onlyDiff">Только различия</button>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="exportCsv">CSV</button>
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="exportJson">JSON</button>
+                    </div>
+                </div>
+
+                <div class="ac-rtable-wrap">
+                    <div id="resultBody">
+                        <div class="ac-empty">
+                            <div class="ac-empty__title">Готово к проверке</div>
+                            <div>Заполните MSISDN, выберите роли, вставьте списки и нажмите «Проверить».</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Credentials modal -->
+    <div class="sb-modal-bg" id="credsModal" style="display:none;">
+        <div class="sb-modal" role="dialog" aria-modal="true" aria-label="Креды роли">
+            <h2 style="margin:0 0 var(--space-2);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-1);" id="credsTitle">Креды</h2>
+            <p style="color:var(--text-2);font-size:var(--text-sm);line-height:1.5;margin-bottom:var(--space-3);">
+                Этот пароль не сохраняется на сервере и используется только для одного запроса.
+                Хранится в памяти страницы — после закрытия вкладки очистится.
+            </p>
+            <div class="ac-creds-grid">
+                <div class="ac-field">
+                    <label class="ac-field__label">Login</label>
+                    <input type="text" id="credsLogin" class="ac-field__input" autocomplete="off">
+                </div>
+                <div class="ac-field">
+                    <label class="ac-field__label">Password</label>
+                    <input type="password" id="credsPwd" class="ac-field__input" autocomplete="off">
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:var(--space-3);">
+                <button type="button" class="sb-btn sb-btn--ghost" id="credsCancel">Отмена</button>
+                <button type="button" class="sb-btn sb-btn--primary" id="credsSave">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
+    <script src="/static/sbms-toast.js" defer></script>
+    <script src="/static/sbms-orderparse.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        SbmsNav.mount('#sbmsNav', { active: 'avail-check' });
+
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+        /* ---------- Roles catalog (zerokopirovat sbms-viewas.js без зависимостей) ---------- */
+        const ROLES = [
+            { id: 'admin',  label: 'Admin · текущая сессия', isAdmin: true },
+            { id: 'B2B_OP', label: 'B2B · Оператор',         login: 'DBS_CC_OPERATORS_PSO',          password: 'Ucell2026$$'    },
+            { id: 'B2B_FO', label: 'B2B · Фронт-офис',       login: 'DBS_REG_FO_PSO',                password: 'September2025+' },
+            { id: 'B2C_FO', label: 'B2C · Фронт-офис',       login: 'DMS_FO_REGION_SPEC_PSO',        password: 'April042026+++' },
+            { id: 'B2C_OP', label: 'B2C · Оператор',         login: 'DCC_CALL_CENTER_OPERATORT_PSO', password: 'Ucell+pso+2023+' },
+        ];
+        // module-private overrides — введённые в модалке пароли (не в localStorage)
+        const _credsOverride = {};
+
+        const state = {
+            selectedRoles: new Set(['admin', 'B2B_FO']),
+            packs: [],
+            services: [],
+            result: null,
+            resultFilter: { search: '', status: '', kind: '', onlyDiff: false },
+            running: false,
+            credsTargetRole: null,
+        };
+
+        /* ============================================================
+           ROLES PICKER
+           ============================================================ */
+        function renderRoles() {
+            const html = ROLES.map(r => {
+                const isOn = state.selectedRoles.has(r.id);
+                const credsHint = !r.isAdmin && _credsOverride[r.id] ? '✎' : '';
+                return `<button type="button" class="ac-role ${isOn ? 'is-on' : ''}" data-role="${r.id}">
+                    <span class="ac-role__bullet"></span>
+                    <span>${esc(r.label)}</span>
+                    ${r.isAdmin ? '' : `<span style="font-size:9px;color:var(--text-3);margin-left:4px;cursor:pointer;" data-creds="${r.id}" title="Изменить креды">${credsHint || '⚙'}</span>`}
+                </button>`;
+            }).join('');
+            $('rolesPicker').innerHTML = html;
+        }
+        $('rolesPicker').addEventListener('click', (ev) => {
+            const credsBtn = ev.target.closest('[data-creds]');
+            if (credsBtn) { ev.stopPropagation(); openCredsModal(credsBtn.dataset.creds); return; }
+            const btn = ev.target.closest('[data-role]');
+            if (!btn) return;
+            const id = btn.dataset.role;
+            if (state.selectedRoles.has(id)) state.selectedRoles.delete(id);
+            else state.selectedRoles.add(id);
+            renderRoles();
+        });
+
+        function openCredsModal(roleId) {
+            state.credsTargetRole = roleId;
+            const r = ROLES.find(x => x.id === roleId);
+            $('credsTitle').textContent = 'Креды для: ' + (r ? r.label : roleId);
+            $('credsLogin').value = (_credsOverride[roleId] && _credsOverride[roleId].login) || (r && r.login) || '';
+            $('credsPwd').value = (_credsOverride[roleId] && _credsOverride[roleId].password) || '';
+            $('credsModal').style.display = 'flex';
+        }
+        function closeCredsModal() { $('credsModal').style.display = 'none'; state.credsTargetRole = null; }
+        $('credsCancel').addEventListener('click', closeCredsModal);
+        $('credsModal').addEventListener('click', (e) => { if (e.target.id === 'credsModal') closeCredsModal(); });
+        $('credsSave').addEventListener('click', () => {
+            if (!state.credsTargetRole) return;
+            const login = $('credsLogin').value.trim();
+            const pwd = $('credsPwd').value;
+            if (!login || !pwd) { toast('warn', 'Login и password обязательны'); return; }
+            _credsOverride[state.credsTargetRole] = { login, password: pwd };
+            $('credsLogin').value = ''; $('credsPwd').value = '';
+            closeCredsModal();
+            renderRoles();
+            toast('success', 'Креды обновлены для ' + state.credsTargetRole);
+        });
+
+        /* ============================================================
+           PARSING — packs/services
+           ============================================================ */
+        function reparse(kind) {
+            const text = $(kind + 'Text').value;
+            const res = window.SbmsOrderParse.parseText(text);
+            state[kind] = res.items || [];
+            renderPreview(kind);
+            $(kind + 'Count').textContent = state[kind].length;
+        }
+
+        function renderPreview(kind) {
+            const el = $(kind + 'Preview');
+            const items = state[kind] || [];
+            if (!items.length) { el.innerHTML = '<div class="ac-preview-empty">Распознанные записи появятся здесь</div>'; return; }
+            const rows = items.slice(0, 200).map(it => `<tr>
+                <td class="${it.id == null ? 'no-id' : ''}">${it.id == null ? '— нет ID —' : esc(it.id)}</td>
+                <td>${esc(it.name || '')}</td>
+            </tr>`).join('');
+            const more = items.length > 200 ? `<div style="padding:6px 8px;color:var(--text-3);font-size:11px;">Показано 200 из ${items.length}</div>` : '';
+            el.innerHTML = `<table>
+                <thead><tr><th>ID</th><th>Название</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>${more}`;
+        }
+
+        ['packs', 'services'].forEach(kind => {
+            $(kind + 'Text').addEventListener('input', debounce(() => reparse(kind), 180));
+            const drop = $(kind + 'Drop');
+            const file = $(kind + 'File');
+            drop.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') file.click(); });
+            file.addEventListener('change', () => {
+                if (file.files && file.files[0]) handleFile(kind, file.files[0]);
+            });
+            ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('is-active'); }));
+            ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('is-active'); }));
+            drop.addEventListener('drop', (e) => {
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(kind, e.dataTransfer.files[0]);
+            });
+        });
+
+        async function handleFile(kind, file) {
+            try {
+                toast('info', 'Парсим ' + file.name + '…');
+                const res = await window.SbmsOrderParse.parseFile(file);
+                if (!res.items || !res.items.length) {
+                    toast('warn', 'В файле не нашли записей с ID/названием');
+                    return;
+                }
+                // Заменяем содержимое textarea + перепарсиваем
+                const lines = res.items.map(it => `${it.id == null ? '' : it.id}\t${it.name || ''}`).join('\n');
+                $(kind + 'Text').value = lines;
+                state[kind] = res.items;
+                renderPreview(kind);
+                $(kind + 'Count').textContent = res.items.length;
+                toast('success', `Распознано ${res.items.length} записей из ${esc(res.filename || file.name)}`);
+            } catch (e) {
+                toast('error', 'Не удалось распарсить файл: ' + (e.message || e));
+            }
+        }
+
+        /* ============================================================
+           RUN — bulk check
+           ============================================================ */
+        async function run() {
+            if (state.running) return;
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) { toast('warn', 'Введите MSISDN'); $('msisdn').focus(); return; }
+            if (!state.selectedRoles.size) { toast('warn', 'Выберите хотя бы одну роль'); return; }
+            if (!state.packs.length && !state.services.length) { toast('warn', 'Заполните хотя бы один список'); return; }
+
+            const includeAdmin = state.selectedRoles.has('admin');
+            const otherRoles = [...state.selectedRoles].filter(id => id !== 'admin').map(id => {
+                const r = ROLES.find(x => x.id === id) || {};
+                const ovr = _credsOverride[id] || {};
+                return { id, label: r.label || id, login: ovr.login || r.login, password: ovr.password || r.password };
+            });
+
+            // Проверим что у не-админ ролей есть креды
+            for (const r of otherRoles) {
+                if (!r.login || !r.password) {
+                    toast('warn', `У роли ${r.label} нет login/password — кликните по ⚙`);
+                    return;
+                }
+            }
+
+            const adminToken = (window.SbmsAuth && SbmsAuth.token) || '';
+            if ((includeAdmin || otherRoles.length) && !adminToken) {
+                toast('error', 'Нет admin-сессии — войдите по бейджу справа сверху');
+                return;
+            }
+
+            state.running = true;
+            $('runBtn').disabled = true;
+            $('runIcon').innerHTML = '<span class="ac-spinner"></span>';
+            $('runLabel').textContent = 'Идёт проверка…';
+            $('resultBody').innerHTML = '<div class="ac-empty"><div class="ac-spinner" style="margin-bottom:8px;color:var(--brand);"></div><div>Параллельная проверка под ' + state.selectedRoles.size + ' ролями…</div></div>';
+
+            const t0 = performance.now();
+            try {
+                const resp = await fetch('/api/availability/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        msisdn,
+                        adminToken,
+                        includeAdmin,
+                        roles: otherRoles,
+                        packs: state.packs.map(it => ({ id: it.id, name: it.name })),
+                        services: state.services.map(it => ({ id: it.id, name: it.name })),
+                    }),
+                });
+                if (!resp.ok) {
+                    const txt = await resp.text();
+                    throw new Error(`HTTP ${resp.status}: ${txt.slice(0, 200)}`);
+                }
+                state.result = await resp.json();
+                renderResults(performance.now() - t0);
+            } catch (e) {
+                $('resultBody').innerHTML = `<div class="ac-empty"><div class="ac-empty__title" style="color:var(--danger-text);">Ошибка</div><div>${esc(e.message || e)}</div></div>`;
+                toast('error', 'Не удалось проверить: ' + (e.message || e));
+            } finally {
+                state.running = false;
+                $('runBtn').disabled = false;
+                $('runIcon').textContent = '▶';
+                $('runLabel').textContent = 'Проверить';
+            }
+        }
+        $('runBtn').addEventListener('click', run);
+        $('clearBtn').addEventListener('click', () => {
+            $('packsText').value = ''; reparse('packs');
+            $('servicesText').value = ''; reparse('services');
+            state.result = null;
+            $('resultBody').innerHTML = '<div class="ac-empty"><div class="ac-empty__title">Готово к проверке</div><div>Заполните MSISDN, выберите роли, вставьте списки и нажмите «Проверить».</div></div>';
+            $('summaryStats').style.display = 'none';
+            $('resultToolbar').style.display = 'none';
+            $('warningsBox').innerHTML = '';
+            $('resultMeta').textContent = '—';
+        });
+
+        /* ============================================================
+           RESULTS RENDERING
+           ============================================================ */
+        const STATUS_LABEL = {
+            active: 'Активно', available: 'Доступно', hidden: 'Скрыто',
+            restricted: 'Ограничено', conflict: 'Конфликт', notfound: 'Не найдено',
+            error: 'Ошибка', idle: '—',
+        };
+        const STATUS_PRIORITY = ['active', 'available', 'restricted', 'hidden', 'conflict', 'notfound', 'error', 'idle'];
+
+        function renderResults(elapsedMs) {
+            const r = state.result || {};
+            const byRole = r.byRole || {};
+            const roleIds = Object.keys(byRole);
+
+            // Определяем aggregated status каждой записи и собираем плоский список
+            const flat = [];
+            const allItems = [
+                ...(state.packs.map((it, idx) => ({ ...it, _kind: 'pack',    _idx: idx }))),
+                ...(state.services.map((it, idx) => ({ ...it, _kind: 'service', _idx: idx }))),
+            ];
+
+            allItems.forEach(input => {
+                const row = { input, kind: input._kind, byRole: {} };
+                let foundInAny = false;
+                let consistencyOk = true;
+                const statuses = new Set();
+
+                roleIds.forEach(rid => {
+                    const dataR = byRole[rid] || {};
+                    if (dataR.error) { row.byRole[rid] = { status: 'error', reason: dataR.error }; return; }
+                    const list = (input._kind === 'pack' ? dataR.packs : dataR.services) || [];
+                    const cell = list[input._idx] || { status: 'hidden' };
+                    if (cell.status !== 'hidden') foundInAny = true;
+                    if (cell.consistencyOk === false) consistencyOk = false;
+                    row.byRole[rid] = cell;
+                    statuses.add(cell.status);
+                });
+
+                // Aggregate-level: notfound / conflict
+                row.aggregate = 'idle';
+                if (!consistencyOk) row.aggregate = 'conflict';
+                else if (!foundInAny && roleIds.length) row.aggregate = 'notfound';
+                else {
+                    // приоритет: если есть active — берём, иначе available, иначе hidden
+                    for (const s of STATUS_PRIORITY) if (statuses.has(s)) { row.aggregate = s; break; }
+                }
+                flat.push(row);
+            });
+
+            state.flat = flat;
+            renderSummary(flat, roleIds);
+            renderTable(flat, roleIds);
+            renderWarnings(r.warnings);
+
+            $('resultMeta').textContent = `MSISDN ${r.msisdn} · ${roleIds.length} ролей · ${flat.length} записей · ${(elapsedMs / 1000).toFixed(1)} с`;
+            $('summaryStats').style.display = '';
+            $('resultToolbar').style.display = '';
+        }
+
+        function renderSummary(flat, roleIds) {
+            const stats = { total: flat.length, packs: 0, services: 0,
+                            active: 0, available: 0, hidden: 0, conflict: 0, notfound: 0, error: 0 };
+            flat.forEach(r => {
+                if (r.kind === 'pack') stats.packs++; else stats.services++;
+                stats[r.aggregate] = (stats[r.aggregate] || 0) + 1;
+            });
+            const html = [
+                `<span class="ac-stat">Всего: <b>${stats.total}</b></span>`,
+                `<span class="ac-stat">Пакетов: <b>${stats.packs}</b></span>`,
+                `<span class="ac-stat">Услуг: <b>${stats.services}</b></span>`,
+                `<span class="ac-stat ac-stat--ok">Активно: <b>${stats.active || 0}</b></span>`,
+                `<span class="ac-stat ac-stat--ok">Доступно: <b>${stats.available || 0}</b></span>`,
+                `<span class="ac-stat">Скрыто: <b>${stats.hidden || 0}</b></span>`,
+                `<span class="ac-stat ac-stat--warn">Конфликт: <b>${stats.conflict || 0}</b></span>`,
+                `<span class="ac-stat ac-stat--danger">Не найдено: <b>${stats.notfound || 0}</b></span>`,
+                `<span class="ac-stat" style="margin-left:auto;">Под ролями: <b>${roleIds.length}</b></span>`,
+            ].join('');
+            $('summaryStats').innerHTML = html;
+        }
+
+        function renderTable(flat, roleIds) {
+            const filter = state.resultFilter;
+            let rows = flat;
+            if (filter.kind) rows = rows.filter(r => r.kind === filter.kind);
+            if (filter.status) rows = rows.filter(r => r.aggregate === filter.status);
+            if (filter.search) {
+                const q = filter.search;
+                rows = rows.filter(r => {
+                    const s = String(r.input.id || '') + ' ' + (r.input.name || '');
+                    return s.toLowerCase().indexOf(q) !== -1;
+                });
+            }
+            if (filter.onlyDiff && roleIds.length > 1) {
+                rows = rows.filter(r => {
+                    const seen = new Set();
+                    roleIds.forEach(rid => seen.add((r.byRole[rid] || {}).status || 'hidden'));
+                    return seen.size > 1;
+                });
+            }
+
+            if (!rows.length) {
+                $('resultBody').innerHTML = '<div class="ac-empty"><div>Нет результатов под текущими фильтрами</div></div>';
+                return;
+            }
+
+            const headerCols = roleIds.map(rid => `<th title="${esc((ROLES.find(r => r.id === rid) || {}).label || rid)}">${esc(rid)}</th>`).join('');
+            const html = `<table class="ac-rtable">
+                <thead>
+                    <tr>
+                        <th style="width:90px;">ID</th>
+                        <th>Название</th>
+                        <th style="width:60px;">Тип</th>
+                        ${headerCols}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(r => renderRow(r, roleIds)).join('')}
+                </tbody>
+            </table>`;
+            $('resultBody').innerHTML = html;
+        }
+
+        function renderRow(r, roleIds) {
+            const idTxt = r.input.id == null ? '—' : esc(r.input.id);
+            const idCls = r.input.id == null ? 'is-missing' : '';
+            const cells = roleIds.map(rid => {
+                const cell = r.byRole[rid] || { status: 'idle' };
+                return `<td>${renderStatusCell(cell, r)}</td>`;
+            }).join('');
+            return `<tr>
+                <td class="col-id ${idCls}">${idTxt}</td>
+                <td class="col-name">${esc(r.input.name || '—')}</td>
+                <td class="col-kind">${r.kind === 'pack' ? 'Пакет' : 'Услуга'}</td>
+                ${cells}
+            </tr>`;
+        }
+
+        function renderStatusCell(cell, row) {
+            if (cell.status === 'error') {
+                return `<span class="ac-badge ac-badge--error" title="${esc(cell.reason || '')}">Ошибка</span>`;
+            }
+            // если consistency проблема — добавим conflict-бейдж рядом
+            const main = `<span class="ac-badge ac-badge--${cell.status}">${esc(STATUS_LABEL[cell.status] || cell.status)}</span>`;
+            const apiName = cell.name ? `<span class="ac-cell__sub">${esc(cell.name)}</span>` : '';
+            const conflict = cell.consistencyOk === false
+                ? `<span class="ac-badge ac-badge--conflict" style="margin-top:2px;" title="ID и имя не совпадают">⚠ конфликт</span>`
+                : '';
+            return `<div class="ac-cell">${main}${apiName}${conflict}</div>`;
+        }
+
+        function renderWarnings(warnings) {
+            const box = $('warningsBox');
+            box.innerHTML = '';
+            if (!warnings || !warnings.length) return;
+            warnings.forEach(w => {
+                const el = document.createElement('div');
+                el.className = 'ac-warning';
+                el.innerHTML = '⚠ ' + esc(w);
+                box.appendChild(el);
+            });
+        }
+
+        /* ---------- Toolbar wiring ---------- */
+        $('resultSearch').addEventListener('input', debounce(() => {
+            state.resultFilter.search = ($('resultSearch').value || '').trim().toLowerCase();
+            if (state.flat) renderTable(state.flat, Object.keys((state.result || {}).byRole || {}));
+        }, 120));
+        $('resultStatusFilter').addEventListener('change', () => {
+            state.resultFilter.status = $('resultStatusFilter').value;
+            if (state.flat) renderTable(state.flat, Object.keys((state.result || {}).byRole || {}));
+        });
+        $('resultKindFilter').addEventListener('change', () => {
+            state.resultFilter.kind = $('resultKindFilter').value;
+            if (state.flat) renderTable(state.flat, Object.keys((state.result || {}).byRole || {}));
+        });
+        $('onlyDiff').addEventListener('click', () => {
+            state.resultFilter.onlyDiff = !state.resultFilter.onlyDiff;
+            $('onlyDiff').classList.toggle('is-active', state.resultFilter.onlyDiff);
+            if (state.flat) renderTable(state.flat, Object.keys((state.result || {}).byRole || {}));
+        });
+
+        /* ---------- Export ---------- */
+        $('exportCsv').addEventListener('click', () => {
+            if (!state.flat || !state.flat.length) return;
+            const roleIds = Object.keys((state.result || {}).byRole || {});
+            const headers = ['kind', 'id', 'name', ...roleIds.map(r => 'role:' + r), ...roleIds.map(r => 'reason:' + r)];
+            const rows = [headers];
+            state.flat.forEach(r => {
+                const row = [r.kind, r.input.id == null ? '' : r.input.id, r.input.name || ''];
+                roleIds.forEach(rid => row.push((r.byRole[rid] || {}).status || ''));
+                roleIds.forEach(rid => row.push((r.byRole[rid] || {}).reason || (r.byRole[rid] || {}).name || ''));
+                rows.push(row);
+            });
+            const csv = rows.map(row => row.map(v => {
+                const s = String(v == null ? '' : v);
+                return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }).join(',')).join('\r\n');
+            downloadFile('availability-' + (state.result.msisdn || 'unknown') + '.csv', csv, 'text/csv;charset=utf-8');
+        });
+        $('exportJson').addEventListener('click', () => {
+            if (!state.result) return;
+            downloadFile('availability-' + (state.result.msisdn || 'unknown') + '.json',
+                JSON.stringify(state.result, null, 2), 'application/json');
+        });
+        function downloadFile(name, content, mime) {
+            const blob = new Blob(['﻿' + content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = name;
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        }
+
+        /* ---------- Utilities ---------- */
+        function debounce(fn, ms) { let t = null; return function () { const a = arguments, c = this; clearTimeout(t); t = setTimeout(() => fn.apply(c, a), ms); }; }
+        function toast(kind, msg) {
+            if (window.SbmsToast && SbmsToast[kind]) try { return SbmsToast[kind](msg); } catch (e) {}
+            console.log('[' + kind + ']', msg);
+        }
+
+        /* ---------- Init ---------- */
+        renderRoles();
+        reparse('packs');
+        reparse('services');
+
+        // Hotkey: Cmd/Ctrl+Enter
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !state.running) {
+                e.preventDefault();
+                run();
+            }
+        });
+
+        // Initial msisdn from URL param
+        const urlMsisdn = new URLSearchParams(location.search).get('msisdn');
+        if (urlMsisdn) $('msisdn').value = urlMsisdn.replace(/[^0-9]/g, '');
+    })();
+    </script>
+</body>
+</html>

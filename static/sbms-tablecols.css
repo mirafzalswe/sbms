@@ -1,0 +1,171 @@
+/**
+ * SbmsTableCols — стили для column manager (visibility/reorder/resize popover).
+ * Подключается на любой странице, где используется window.SbmsTableCols.
+ */
+
+/* ===== Popover dropdown (на native <details>/<summary>) ===== */
+.cols-dropdown {
+    position: relative;
+}
+.cols-dropdown > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+.cols-dropdown > summary::-webkit-details-marker { display: none; }
+.cols-dropdown > summary::marker { content: ''; }
+
+.cols-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 280px;
+    max-width: 360px;
+    background: var(--bg-elevated, var(--bg-surface, #fff));
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,.12));
+    padding: 0;
+    z-index: 100;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.cols-menu__actions {
+    display: flex;
+    gap: 4px;
+    padding: 8px 8px 6px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.cols-menu__actions button {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--bg-canvas, #fff);
+    color: var(--text-2);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 11px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: all 120ms ease;
+    white-space: nowrap;
+}
+.cols-menu__actions button:hover {
+    color: var(--brand);
+    border-color: var(--brand);
+}
+.cols-menu__actions button[aria-current="true"] {
+    color: var(--brand);
+    border-color: var(--brand);
+    background: var(--bg-subtle);
+}
+.cols-menu__hint {
+    font-size: 10.5px;
+    color: var(--text-3);
+    line-height: 1.4;
+    padding: 6px 12px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+}
+
+.cols-group {
+    padding: 6px 4px 8px;
+}
+.cols-group + .cols-group {
+    border-top: 1px solid var(--border);
+}
+.cols-group__title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3);
+    font-weight: 600;
+    padding: 4px 12px;
+}
+.cols-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    color: var(--text-1);
+    border-radius: var(--radius-sm, 4px);
+    margin: 1px 4px;
+}
+.cols-item:hover {
+    background: var(--bg-subtle);
+}
+.cols-item--locked {
+    opacity: .55;
+    cursor: not-allowed;
+}
+.cols-item--locked:hover {
+    background: transparent;
+}
+.cols-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--brand);
+    cursor: pointer;
+    margin: 0;
+}
+.cols-item__name {
+    flex: 1;
+}
+.cols-item__hint {
+    font-size: 10px;
+    color: var(--text-3);
+}
+
+/* ===== Resizable + draggable TH (требует data-col-key) ===== */
+.t thead th[data-col-key] {
+    position: relative;
+}
+.t thead th[data-col-key][draggable="true"] {
+    cursor: pointer;
+}
+.t thead th[data-col-key][draggable="true"]:hover {
+    cursor: grab;
+}
+.t thead th.th--dragging {
+    opacity: .35;
+    cursor: grabbing !important;
+}
+.t thead th.th--drop-before {
+    box-shadow: inset 3px 0 0 0 var(--brand);
+}
+.t thead th.th--drop-after {
+    box-shadow: inset -3px 0 0 0 var(--brand);
+}
+.t thead th.th--resizing {
+    background: var(--bg-subtle);
+}
+.col-resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 3;
+    background: transparent;
+    transition: background 120ms ease;
+}
+.col-resize:hover,
+.th--resizing > .col-resize {
+    background: var(--brand);
+}
+
+/* На мобильных скрываем resize-handle — экран узкий, лучше горизонтальный scroll */
+@media (max-width: 700px) {
+    .col-resize { display: none; }
+    .t thead th[data-col-key][draggable="true"] {
+        cursor: pointer;
+    }
+}

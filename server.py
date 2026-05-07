@@ -16,6 +16,7 @@ import json
 import time
 import traceback
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -259,6 +260,13 @@ def matrix_test_page():
 @app.route('/tme')
 def tme_page():
     resp = _send_template('tme.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app.route('/subscriber')
+def subscriber_page():
+    resp = _send_template('subscriber.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
 
@@ -836,6 +844,207 @@ def run_test():
 @app.route('/api/test/history')
 def test_history():
     return jsonify(list_reports())
+
+
+@app.route('/api/history/all')
+def history_all():
+    """Агрегированная история всех прогонов (без фильтра по MSISDN).
+
+    Query params (опциональные):
+      - kind: tariff | matrix | product
+      - msisdn: фильтр по номеру
+      - q: подстрока для поиска по target/имени
+      - limit: max 200 (default 100)
+      - offset: для пагинации (default 0)
+    """
+    kind_filter = (request.args.get('kind') or '').strip().lower()
+    msisdn_filter = ''.join(ch for ch in (request.args.get('msisdn') or '') if ch.isdigit())
+    q = (request.args.get('q') or '').strip().lower()
+    try:
+        limit = max(1, min(200, int(request.args.get('limit') or 100)))
+    except Exception:
+        limit = 100
+    try:
+        offset = max(0, int(request.args.get('offset') or 0))
+    except Exception:
+        offset = 0
+
+    hist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_history')
+    if not os.path.isdir(hist_dir):
+        return jsonify({'items': [], 'totals': {'tariff': 0, 'matrix': 0, 'product': 0}})
+
+    items = []
+    totals = {'tariff': 0, 'matrix': 0, 'product': 0}
+
+    for fn in os.listdir(hist_dir):
+        if not fn.endswith('.json'):
+            continue
+        filepath = os.path.join(hist_dir, fn)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            continue
+
+        kind = 'tariff'
+        if fn.startswith('matrix_') or data.get('type') == 'matrix':
+            kind = 'matrix'
+        elif fn.startswith('product_avail_') or data.get('type') == 'product_availability':
+            kind = 'product'
+
+        totals[kind] = totals.get(kind, 0) + 1
+
+        if kind_filter and kind != kind_filter:
+            continue
+
+        rec_msisdn = ''.join(ch for ch in str(data.get('msisdn', '')) if ch.isdigit())
+        if msisdn_filter and rec_msisdn != msisdn_filter:
+            continue
+
+        if kind == 'tariff':
+            summary = data.get('summary', {}) or {}
+            ts = data.get('timestamp', '')
+            rec_id = data.get('testId') or fn.replace('.json', '')
+            target = data.get('targetName') or data.get('testType', '')
+            duration = data.get('duration')
+            customer_name = (data.get('customerInfo') or {}).get('name', '')
+        else:
+            counters = data.get('counters', {}) or {}
+            summary = {
+                'total':   counters.get('total', 0),
+                'passed':  counters.get('pass', counters.get('passed', 0)),
+                'failed':  counters.get('fail', counters.get('failed', 0)),
+                'skipped': counters.get('skip', counters.get('skipped', 0)),
+                'warnings': counters.get('warn', counters.get('warnings', 0)),
+            }
+            ts = data.get('started_at', '') or data.get('finished_at', '')
+            rec_id = data.get('id') or fn.replace('.json', '')
+            if kind == 'matrix':
+                target = 'Матрица переходов'
+            else:
+                pid = data.get('product_id')
+                pkind = data.get('product_kind', '')
+                target = f"Доступность {pkind}={pid}" if pid else 'Доступность продукта'
+            duration = data.get('duration')
+            customer_name = data.get('customer_name', '')
+
+        if q:
+            hay = (str(target or '') + ' ' + str(customer_name or '') + ' ' + rec_msisdn).lower()
+            if q not in hay:
+                continue
+
+        items.append({
+            'kind':      kind,
+            'id':        rec_id,
+            'ts':        ts,
+            'msisdn':    rec_msisdn,
+            'customerName': customer_name or '',
+            'target':    target,
+            'duration':  duration,
+            'status':    data.get('status', 'completed' if data.get('finished_at') else 'completed'),
+            'summary':   summary,
+            'file':      fn,
+        })
+
+    items.sort(key=lambda x: x.get('ts', ''), reverse=True)
+    total = len(items)
+    page_items = items[offset:offset + limit] if offset < total else []
+    return jsonify({
+        'items': page_items,
+        'totals': totals,
+        'count': total,
+        'offset': offset,
+        'limit': limit,
+    })
+
+
+@app.route('/test-history')
+def test_history_page():
+    resp = _send_template('test_history.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app.route('/api/subscriber/history')
+def subscriber_history():
+    """Агрегированная история всех прогонов по MSISDN.
+
+    Сканирует test_history/, фильтрует по MSISDN, определяет тип каждого отчёта
+    (tariff/QA tester | matrix | product_availability) и возвращает унифицированный
+    формат: [{kind, id, ts, msisdn, summary, status}, ...] (свежие первыми, max 80).
+    """
+    raw_msisdn = (request.args.get('msisdn') or '').strip()
+    msisdn = ''.join(ch for ch in raw_msisdn if ch.isdigit())
+    if not msisdn:
+        return jsonify({'error': 'msisdn required'}), 400
+
+    hist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_history')
+    if not os.path.isdir(hist_dir):
+        return jsonify({'msisdn': msisdn, 'items': []})
+
+    items = []
+    for fn in os.listdir(hist_dir):
+        if not fn.endswith('.json'):
+            continue
+        filepath = os.path.join(hist_dir, fn)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            continue
+
+        rec_msisdn = ''.join(ch for ch in str(data.get('msisdn', '')) if ch.isdigit())
+        if rec_msisdn != msisdn:
+            continue
+
+        # Определяем kind по типу/префиксу файла
+        kind = 'tariff'
+        if fn.startswith('matrix_') or data.get('type') == 'matrix':
+            kind = 'matrix'
+        elif fn.startswith('product_avail_') or data.get('type') == 'product_availability':
+            kind = 'product'
+
+        # Унифицированный summary
+        if kind == 'tariff':
+            summary = data.get('summary', {}) or {}
+            ts = data.get('timestamp', '')
+            rec_id = data.get('testId') or fn.replace('.json', '')
+            target = data.get('targetName') or data.get('testType', '')
+            duration = data.get('duration')
+        else:
+            counters = data.get('counters', {}) or {}
+            summary = {
+                'total':   counters.get('total', 0),
+                'passed':  counters.get('pass', counters.get('passed', 0)),
+                'failed':  counters.get('fail', counters.get('failed', 0)),
+                'skipped': counters.get('skip', counters.get('skipped', 0)),
+                'warnings': counters.get('warn', counters.get('warnings', 0)),
+            }
+            ts = data.get('started_at', '') or data.get('finished_at', '')
+            rec_id = data.get('id') or fn.replace('.json', '')
+            if kind == 'matrix':
+                target = 'Матрица переходов'
+            else:
+                pid = data.get('product_id')
+                pkind = data.get('product_kind', '')
+                target = f"Доступность {pkind}={pid}" if pid else 'Доступность продукта'
+            duration = data.get('duration')
+
+        items.append({
+            'kind':       kind,
+            'id':         rec_id,
+            'ts':         ts,
+            'msisdn':     rec_msisdn,
+            'target':     target,
+            'duration':   duration,
+            'status':     data.get('status', 'completed' if data.get('finished_at') else 'completed'),
+            'summary':    summary,
+            'file':       fn,
+        })
+
+    # Свежие первыми
+    items.sort(key=lambda x: x.get('ts', ''), reverse=True)
+    return jsonify({'msisdn': msisdn, 'items': items[:80]})
 
 
 @app.route('/api/test/history/<report_id>')
@@ -1525,6 +1734,376 @@ def api_limits_all():
 
         return jsonify({"groups": result_groups, "totalItems": len(items)})
 
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# QUOTA — все квоты/лимиты абонента (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA)
+# ============================================================
+
+# Технические название → human-readable + категория.
+# Префиксы и фрагменты, которые повторяются в названиях квот SBMS:
+#   Q_*  — quota (бонусы/счётчики)
+#   S_*  — service (привязанный сервис)
+#   Un_  — unlimited (бессрочный/безлимитный счётчик)
+#   Soc_Msg / Soc_Net — соц. сети (мессенджеры / Facebook / Instagram)
+#   Inet / GPRS / Data — интернет
+#   Voice / Min / Call — минуты
+#   Sms — SMS
+#   Bonus — бонус
+# Маппинг достаточен, чтобы не падать на новых квотах: всё, что не распознано —
+# уходит в группу `other` с raw-названием, чтобы оператор всё равно видел запись.
+# NB: в Python `_` — word-character, поэтому `\b` НЕ работает как граница
+# между `Un_` и `Soc` в имени `Q_Un_Soc_Msg`. Используем явный класс
+# разделителей `(?:^|[_\-\s])` / `(?:$|[_\-\s])` — он покрывает префиксы
+# и суффиксы вроде `Q_`, `_Msg`, `_Un_`.
+_SEP_L = r"(?:^|[_\-\s])"
+_SEP_R = r"(?:$|[_\-\s])"
+
+_QUOTA_TYPE_RULES = (
+    # (категория, regex-паттерн по technical name)
+    ("social",   rf"(?i){_SEP_L}soc(?:[_\-]?(?:msg|net|fb|ig|insta|telegram|tg|whats|wa))?{_SEP_R}"),
+    ("social",   r"(?i)(facebook|instagram|whatsapp|telegram|tiktok|imo|youtube)"),
+    ("internet", rf"(?i){_SEP_L}(inet|net|gprs|data|mb|gb|web|traffic|trf){_SEP_R}"),
+    ("voice",    rf"(?i){_SEP_L}(voice|min|call|onnet|offnet|intl|ucell|interconnect){_SEP_R}"),
+    ("sms",      rf"(?i){_SEP_L}(sms|msg){_SEP_R}"),
+    ("bonus",    r"(?i)(bonus|gift|promo|loyalty|free|extra)"),
+)
+
+# Грубое определение единицы измерения по technical name квоты, когда API
+# не отдаёт unit явно. Используется только для прогресс-баров и форматирования.
+# Порядок важен: «штуки» (соц.сообщения) проверяем ДО общего "msg"-→ sms,
+# чтобы Q_Un_Soc_Msg правильно ушёл в pcs (счётчик сообщений), а не в SMS.
+_QUOTA_UNIT_RULES = (
+    ("pcs", rf"(?i){_SEP_L}soc[_\-]?msg{_SEP_R}"),
+    ("MB",  rf"(?i){_SEP_L}(mb|gb|inet|gprs|net|traffic|data|trf){_SEP_R}"),
+    ("min", rf"(?i){_SEP_L}(min|voice|call|onnet|offnet|intl|interconnect){_SEP_R}"),
+    ("sms", rf"(?i){_SEP_L}(sms|msg){_SEP_R}"),
+    ("pcs", rf"(?i){_SEP_L}(count|cnt|piece|times){_SEP_R}"),
+)
+
+import re as _quota_re
+
+
+def _classify_quota(name):
+    if not name:
+        return "other"
+    for cat, pattern in _QUOTA_TYPE_RULES:
+        if _quota_re.search(pattern, name):
+            return cat
+    return "other"
+
+
+def _quota_unit_from_name(name):
+    if not name:
+        return ""
+    for unit, pattern in _QUOTA_UNIT_RULES:
+        if _quota_re.search(pattern, name):
+            return unit
+    return ""
+
+
+def _humanize_quota_name(name):
+    """Q_Un_Soc_Msg → 'Соц. сети (безлимит)'. Best-effort, fallback — оригинал."""
+    if not name:
+        return ""
+    raw = str(name).strip()
+    # Уберём служебный префикс Q_ / S_
+    base = _quota_re.sub(r"^[QS]_", "", raw, flags=_quota_re.IGNORECASE)
+    parts = [p for p in _quota_re.split(r"[_\-\s]+", base) if p]
+    LEX = {
+        "un":   "безлимит",
+        "soc":  "соц. сети",
+        "msg":  "сообщения",
+        "net":  "трафик",
+        "inet": "интернет",
+        "gprs": "интернет",
+        "data": "интернет",
+        "mb":   "МБ",
+        "gb":   "ГБ",
+        "min":  "минуты",
+        "voice": "голос",
+        "call": "звонки",
+        "sms":  "SMS",
+        "onnet":  "Ucell",
+        "offnet": "другие сети",
+        "intl":   "межгород",
+        "bonus":  "бонус",
+        "free":   "бесплатно",
+        "promo":  "промо",
+        "fb":     "Facebook",
+        "ig":     "Instagram",
+        "wa":     "WhatsApp",
+        "tg":     "Telegram",
+    }
+    out = []
+    for p in parts:
+        key = p.lower()
+        out.append(LEX.get(key, p))
+    return " · ".join(out) or raw
+
+
+def _norm_quota_date(value):
+    """SBMS-дата → ISO-строка либо None, если это «бессрочно».
+
+    SBMS-маркеры «нет даты обнуления / бессрочно»:
+      - 01.01.0001 [HH:MM:SS]   — старый формат
+      - 0001-01-01[T...]        — ISO-вариант
+      - -1--T::                 — формат /PSIX/ucell/ (см. реальный дамп)
+      - 9999-* / 2999-*         — бесконечно-в-будущем
+
+    Всё, что не парсится валидно, считаем `None` (UI покажет как
+    «бессрочно», если сама квота не expired).
+    """
+    if value in (None, "", "null"):
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    # Маркеры бессрочности
+    if s.startswith("-1") or s.startswith("-"):
+        return None
+    if s.startswith("01.01.0001") or s.startswith("0001-01-01"):
+        return None
+    # «Бесконечный» год (>=2999/9999)
+    if s[:4] in ("2999", "9999"):
+        return None
+    # Если в строке вообще нет цифр в году (типа "-1--T::") → бессрочно.
+    # Это страховка, если регулярное выражение из SBMS изменится.
+    import re as _re
+    head = s.split("T")[0].split(" ")[0]
+    if not _re.search(r"\d{4}", head):
+        return None
+    # Парсим в ISO
+    try:
+        from datetime import datetime
+        for fmt in (
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%d.%m.%Y %H:%M:%S",
+            "%d.%m.%Y %H:%M",
+            "%d.%m.%Y",
+        ):
+            try:
+                dt = datetime.strptime(s, fmt)
+                return dt.strftime("%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                continue
+    except Exception:
+        pass
+    return s  # отдадим как есть — фронт справится
+
+
+def _to_num(v):
+    if v in (None, "", "null"):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        try:
+            return float(str(v).replace(",", ".").strip())
+        except Exception:
+            return None
+
+
+# Соответствие «технические» поля → канонические ключи. SBMS может отдавать
+# их под разными именами (русские теги, английские, slug), нужно поддержать все.
+_QUOTA_FIELD_ALIASES = {
+    # Реальные имена полей в ответе SBMS PSIX/ucell (см. дамп):
+    #   QTANAME, QTAVALUE, QTACONSUMPTION, QTABALANCE,
+    #   QTASTARTDATETIME, QTARSTDATETIME, SRVNAME
+    # Остальные алиасы — на случай вариаций между сборками SBMS.
+    "name":     ("QTANAME", "QUOTA_NAME", "Наименование", "Name", "QuotaName", "name", "QUOTA",
+                 "P_QUOTA_NAME", "QUOTA_TYPE"),
+    "service":  ("SRVNAME", "SERVICE_NAME", "Сервис", "Service", "ServiceName", "service",
+                 "SERVICE", "P_SERVICE_NAME"),
+    "total":    ("QTAVALUE", "VOLUME", "Объем", "Объём", "Volume", "TOTAL_VOLUME", "TotalVolume",
+                 "total", "TOTAL", "P_VOLUME", "QUOTA_VOLUME"),
+    "used":     ("QTACONSUMPTION", "USED_VOLUME", "Израсходовано", "Used", "UsedVolume", "used",
+                 "SPENT", "SPENT_VOLUME", "P_USED_VOLUME", "USED"),
+    "rem":      ("QTABALANCE", "REMAINDER", "REMAINING", "Остаток", "Remaining",
+                 "REMAINING_VOLUME", "Remaining_Volume", "REMAIN", "rem", "P_REMAINDER", "REST"),
+    "act_date": ("QTASTARTDATETIME", "ACTIVATION_DATE", "ДатаАктивации", "Дата активации",
+                 "ActivationDate", "DATE_ACTIVATION", "act_date", "START_DATE", "StartDate",
+                 "P_ACTIVATION_DATE"),
+    "exp_date": ("QTARSTDATETIME", "EXPIRATION_DATE", "ДатаОбнуления", "Дата обнуления",
+                 "ExpirationDate", "RESET_DATE", "DATE_EXPIRATION", "exp_date", "END_DATE",
+                 "EndDate", "P_EXPIRATION_DATE", "RENEWAL_DATE"),
+}
+
+
+def _pick_quota_field(item, key):
+    for alias in _QUOTA_FIELD_ALIASES.get(key, ()):
+        if alias in item and item[alias] not in (None, ""):
+            return item[alias]
+    return None
+
+
+@app.route("/api/subscriber/quota", methods=["POST"])
+def api_subscriber_quota():
+    """Все квоты/бонусы/лимиты абонента (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA).
+
+    Body: { msisdn: "998...", authToken?: "..." }
+
+    Response:
+      {
+        items: [
+          {
+            name, nameHuman, service,
+            category: internet|sms|voice|social|bonus|other,
+            unit: "MB" | "min" | "sms" | "pcs" | "",
+            total, used, remaining, percent,
+            activationDate (ISO|null),
+            expirationDate (ISO|null),
+            unlimited: bool,         // expirationDate == 01.01.0001
+            status: active | expiring | exhausted | inactive | unlimited,
+            raw: {...}                // оригинал
+          },
+          ...
+        ],
+        groups: { internet:[...], sms:[...], voice:[...], social:[...], bonus:[...], other:[...] },
+        count, fetchedAt
+      }
+    """
+    try:
+        data = request.get_json() or {}
+        msisdn = (data.get("msisdn") or "").strip()
+        if not msisdn:
+            return jsonify({"error": "msisdn required"}), 400
+
+        client = _get_client(data)
+        search = client.search_customer(msisdn)
+        if not search or (search.get("listInfo") or {}).get("count", 0) == 0:
+            return jsonify({"error": "Клиент не найден"}), 404
+        sr = search["searchResults"][0]
+        sid = sr.get("subscriberId")
+        if not sid:
+            return jsonify({"error": "subscriberId не получен"}), 502
+
+        raw = client.get_subscriber_all_quota(sid, msisdn=msisdn)
+        # Если upstream вернул HTTP-ошибку или мы не смогли распарсить ответ —
+        # сразу прокидываем структурированную ошибку, а не молча отдаём пустой
+        # список. UI различает причины по полю `errorKind`:
+        #   auth_expired       — фронт обнуляет токен и просит перелогиниться
+        #   auth_or_permission — то же + подсказка про права
+        #   upstream_error     — сетевой/бэкенд-сбой, retry осмысленен
+        #   empty_body         — процедура отдала 200, но wrapper-only
+        upstream_err = raw.get("error")
+        upstream_status = raw.get("http_status")
+        error_kind = raw.get("error_kind")
+        if upstream_err and not raw.get("items"):
+            # 401/403 от upstream → 401 в UI (триггерим SbmsAuth-флоу).
+            # 404/прочее → 502 (proxy/gateway-style ошибка).
+            ui_status = 401 if error_kind in ("auth_expired",) else 502
+            # На «вероятно auth» 404 тоже отдаём 401, чтобы UI авто-обновил сессию.
+            if error_kind == "auth_or_permission":
+                ui_status = 401
+            return jsonify({
+                "error":      upstream_err,
+                "errorKind":  error_kind,
+                "upstream":   upstream_status,
+                "attempts":   [_scrub_attempt_for_ui(a) for a in (raw.get("attempts") or [])],
+                "imsi":       raw.get("imsi"),
+                "msisdn":     raw.get("msisdn"),
+                "hint":       (
+                    "Откройте модалку входа и переавторизуйтесь — токен SBMS истёк."
+                    if ui_status == 401 else
+                    "PSIX-эндпоинт не ответил. Проверьте VPN/сеть до sbms.ucell."
+                ),
+            }), ui_status
+        items_raw = raw.get("items") or []
+
+        # ── Нормализация ──────────────────────────────────────
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        soon = now + timedelta(days=3)
+
+        out_items = []
+        for it in items_raw:
+            if not isinstance(it, dict):
+                continue
+            name     = _pick_quota_field(it, "name")
+            service  = _pick_quota_field(it, "service")
+            total    = _to_num(_pick_quota_field(it, "total"))
+            used     = _to_num(_pick_quota_field(it, "used"))
+            rem      = _to_num(_pick_quota_field(it, "rem"))
+            act_iso  = _norm_quota_date(_pick_quota_field(it, "act_date"))
+            exp_raw  = _pick_quota_field(it, "exp_date")
+            exp_iso  = _norm_quota_date(exp_raw)
+            unlimited = exp_iso is None and exp_raw not in (None, "")  # дата была, но это 01.01.0001
+            # remaining derive
+            if rem is None and (total is not None and used is not None):
+                rem = round(total - used, 4)
+            if total is None and (used is not None and rem is not None):
+                total = round(used + rem, 4)
+            percent = None
+            if total and total > 0:
+                used_eff = used if used is not None else (total - (rem or 0))
+                percent = max(0.0, min(100.0, round(used_eff / total * 100.0, 2)))
+
+            # Статус
+            if total is not None and total > 0 and rem is not None and rem <= 0:
+                status = "exhausted"
+            elif unlimited:
+                status = "unlimited"
+            elif exp_iso:
+                try:
+                    exp_dt = datetime.strptime(exp_iso, "%Y-%m-%dT%H:%M:%S")
+                    if exp_dt < now:
+                        status = "inactive"
+                    elif exp_dt <= soon:
+                        status = "expiring"
+                    else:
+                        status = "active"
+                except Exception:
+                    status = "active"
+            else:
+                status = "active"
+
+            category = _classify_quota(name) if name else "other"
+            unit = _quota_unit_from_name(name)
+
+            out_items.append({
+                "name":            name,
+                "nameHuman":       _humanize_quota_name(name),
+                "service":         service,
+                "category":        category,
+                "unit":            unit,
+                "total":           total,
+                "used":            used,
+                "remaining":       rem,
+                "percent":         percent,
+                "activationDate":  act_iso,
+                "expirationDate":  exp_iso,
+                "unlimited":       unlimited,
+                "status":          status,
+                "raw":             it,
+            })
+
+        groups = defaultdict(list)
+        for it in out_items:
+            groups[it["category"]].append(it)
+
+        # Сортировка: бессрочные внизу, истёкшие в самом низу,
+        # внутри — по % использования убывающе (важнее всего «вот-вот закончится»).
+        STATUS_ORDER = {"expiring": 0, "active": 1, "exhausted": 2, "unlimited": 3, "inactive": 4}
+        out_items.sort(key=lambda it: (
+            STATUS_ORDER.get(it["status"], 9),
+            -(it["percent"] or 0),
+            it["name"] or "",
+        ))
+
+        return jsonify({
+            "items":      out_items,
+            "groups":     {k: groups[k] for k in groups},
+            "count":      len(out_items),
+            "subscriberId": sid,
+            "fetchedAt":  int(time.time()),
+            "raw":        {"http_status": raw.get("http_status"), "block": raw.get("block")},
+        })
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -2238,6 +2817,436 @@ def preview_activate():
         return jsonify({"error": "ACTIVATE_FAILED", "message": str(e)[:300]}), 500
     finally:
         pclient.token = None
+
+
+# ============================================================
+# COMPARE — параллельный side-by-side двух абонентов
+# ============================================================
+@app.route('/compare')
+def page_compare():
+    """Страница сравнения двух абонентов."""
+    try:
+        return Response(open('templates/compare.html', 'r', encoding='utf-8').read(), mimetype='text/html; charset=utf-8')
+    except FileNotFoundError:
+        return jsonify({"error": "compare.html не найден"}), 404
+
+
+@app.route("/api/compare/subscribers", methods=["POST"])
+def compare_subscribers():
+    """Параллельная загрузка двух абонентов для side-by-side сравнения.
+
+    Body: {msisdn1, msisdn2, authToken?, login?, password?}
+    Returns: {a: {customer, balance, packs, services, ratePlans, discounts, ...}, b: {...}}
+
+    Каждый абонент загружается независимо — ошибка одного не блокирует второго.
+    Запросы параллельные через ThreadPoolExecutor (max_workers=2).
+    """
+    try:
+        data = request.get_json() or {}
+        msisdn1 = (data.get("msisdn1") or "").strip()
+        msisdn2 = (data.get("msisdn2") or "").strip()
+
+        if not msisdn1 or not msisdn2:
+            return jsonify({"error": "BAD_REQUEST",
+                            "message": "msisdn1 и msisdn2 обязательны"}), 400
+        if msisdn1 == msisdn2:
+            return jsonify({"error": "SAME_MSISDN",
+                            "message": "Введите два разных номера"}), 400
+
+        # Один client — токен общий для обоих запросов под admin-сессией.
+        # Запросы READ-only, requests.Session под капотом достаточно потокобезопасна
+        # для GET/POST с разными URL.
+        client = _get_client(data)
+
+        def _safe_items(resp):
+            return (resp or {}).get("items", []) if isinstance((resp or {}), dict) else []
+
+        def _safe(fn, *args, **kw):
+            """Не падать если конкретный sub-запрос упал — возвращаем None."""
+            try:
+                return fn(*args, **kw)
+            except Exception as ex:
+                print(f"[compare] sub-call failed: {fn.__name__}: {ex}")
+                return None
+
+        def load_one(msisdn):
+            try:
+                sd = client.search_customer(msisdn)
+                if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+                    return {"msisdn": msisdn, "ok": False, "error": "NOT_FOUND",
+                            "message": f"Номер {msisdn} не найден"}
+
+                sr = sd["searchResults"][0]
+                cid = sr.get("customerId")
+                sid = sr.get("subscriberId")
+                rate_plan = (sr.get("firstSubscriber") or {}).get("ratePlan") or {}
+                customer_obj = sr.get("customer") or {}
+
+                # Параллельные sub-запросы внутри одного абонента
+                with ThreadPoolExecutor(max_workers=4) as inner:
+                    f_balance     = inner.submit(_safe, client.get_available_balance, cid) if cid else None
+                    f_active_p    = inner.submit(_safe, client.get_active_packs, sid)
+                    f_avail_p     = inner.submit(_safe, client.get_available_packs, sid)
+                    f_active_s    = inner.submit(_safe, client.get_active_services, sid)
+                    f_avail_s     = inner.submit(_safe, client.get_available_services, sid)
+                    f_avail_rp    = inner.submit(_safe, client.get_available_rateplans, sid)
+                    f_rt_disc     = inner.submit(_safe, client.get_rt_discounts, sid)
+
+                    balance_data = f_balance.result() if f_balance else None
+                    active_packs = _safe_items(f_active_p.result())
+                    avail_packs  = _safe_items(f_avail_p.result())
+                    active_svc   = _safe_items(f_active_s.result())
+                    avail_svc    = _safe_items(f_avail_s.result())
+                    avail_rp_raw = f_avail_rp.result() or {}
+                    rt_disc      = _safe_items(f_rt_disc.result())
+
+                # Уплощаем доступные тарифы (структура у SBMS вложенная)
+                flat_rps = []
+                for it in (avail_rp_raw.get("items", []) or []):
+                    if not isinstance(it, dict):
+                        continue
+                    rp = it.get("ratePlan") or {}
+                    flat_rps.append({
+                        "ratePlanId": rp.get("ratePlanId") or it.get("ratePlanId") or it.get("id"),
+                        "name": rp.get("name") or it.get("name", "N/A"),
+                        "isArchived": it.get("isArchived"),
+                        "recurringFlag": it.get("recurringFlag"),
+                    })
+
+                balance = None
+                if balance_data:
+                    balance = balance_data.get("availableBalance",
+                                               balance_data.get("availableAmount"))
+
+                return {
+                    "msisdn": msisdn,
+                    "ok": True,
+                    "customerId": cid,
+                    "subscriberId": sid,
+                    "customer": {
+                        "name": customer_obj.get("name") or sr.get("name") or "—",
+                        "categoryName": customer_obj.get("categoryName") or "",
+                        "customerType": customer_obj.get("customerType") or "",
+                    },
+                    "currentRatePlan": {
+                        "ratePlanId": rate_plan.get("ratePlanId"),
+                        "name": rate_plan.get("name"),
+                    },
+                    "balance": balance,
+                    "activePacks": active_packs,
+                    "availablePacks": avail_packs,
+                    "activeServices": active_svc,
+                    "availableServices": avail_svc,
+                    "availableRatePlans": flat_rps,
+                    "discounts": rt_disc,
+                }
+            except Exception as ex:
+                traceback.print_exc()
+                return {"msisdn": msisdn, "ok": False, "error": "LOAD_FAILED",
+                        "message": str(ex)[:300]}
+
+        # Параллельная загрузка двух абонентов
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_a = pool.submit(load_one, msisdn1)
+            f_b = pool.submit(load_one, msisdn2)
+            a = f_a.result()
+            b = f_b.result()
+
+        return jsonify({"a": a, "b": b})
+
+    except AuthRequired as e:
+        return jsonify({"error": "AUTH_REQUIRED", "message": str(e)}), 401
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "COMPARE_FAILED", "message": str(e)[:300]}), 500
+
+
+# ============================================================
+# AVAILABILITY CHECK — bulk-проверка доступности пакетов/услуг под разными ролями
+# ============================================================
+@app.route('/availability-check')
+def page_availability_check():
+    resp = _send_template('availability_check.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+def _norm_input_items(raw):
+    """Привести вход {id?, name?} к набору словарей с цельными типами.
+
+    Принимает list[dict] / list[int] / list[str]. Возвращает list[{id:int|None, name:str}].
+    """
+    out = []
+    if not isinstance(raw, list):
+        return out
+    for x in raw:
+        if x is None:
+            continue
+        if isinstance(x, (int, float)):
+            out.append({"id": int(x), "name": ""})
+            continue
+        if isinstance(x, str):
+            s = x.strip()
+            if not s:
+                continue
+            if s.isdigit():
+                out.append({"id": int(s), "name": ""})
+            else:
+                out.append({"id": None, "name": s})
+            continue
+        if isinstance(x, dict):
+            rid = x.get("id")
+            try:
+                rid = int(rid) if rid not in (None, "") else None
+            except (TypeError, ValueError):
+                rid = None
+            nm = (x.get("name") or "").strip()
+            if rid is None and not nm:
+                continue
+            out.append({"id": rid, "name": nm})
+    return out
+
+
+def _index_products(items, kind):
+    """Из ответа API сделать словари по id и lower(name).
+
+    items: list[dict] от get_active_packs / get_available_packs / etc.
+    kind: 'pack' | 'service' — определяет ключ ID (packId / serviceId).
+    """
+    by_id = {}
+    by_name = {}
+    id_key = "packId" if kind == "pack" else "serviceId"
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        pid = it.get(id_key) or it.get("id")
+        try:
+            pid = int(pid) if pid not in (None, "") else None
+        except (TypeError, ValueError):
+            pid = None
+        nm = (it.get("name") or "").strip()
+        if pid is not None:
+            by_id[pid] = it
+        if nm:
+            by_name.setdefault(nm.lower(), it)
+    return by_id, by_name
+
+
+def _check_role_for_subscriber(client, msisdn, packs_in, services_in):
+    """Под клиентом client: найти sid, собрать active+avail для packs и services,
+    вернуть для каждого input-item статус и raw.
+
+    Возвращает: {currentRatePlan, packs: [{status, id, name, raw}], services: [...], subscriberId}
+    """
+    sd = client.search_customer(msisdn)
+    if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+        return {"error": "Номер не найден под этой ролью"}
+    sr = sd["searchResults"][0]
+    sid = sr.get("subscriberId")
+    rp = (sr.get("firstSubscriber") or {}).get("ratePlan") or {}
+
+    def _items(d): return d.get("items", []) if isinstance(d, dict) else []
+
+    active_packs   = _items(client.get_active_packs(sid))
+    avail_packs    = _items(client.get_available_packs(sid))
+    active_svc     = _items(client.get_active_services(sid))
+    avail_svc      = _items(client.get_available_services(sid))
+
+    ap_by_id, ap_by_name = _index_products(active_packs,  "pack")
+    av_by_id, av_by_name = _index_products(avail_packs,   "pack")
+    as_by_id, as_by_name = _index_products(active_svc,    "service")
+    sv_by_id, sv_by_name = _index_products(avail_svc,     "service")
+
+    def _classify(item, active_id_idx, active_name_idx, avail_id_idx, avail_name_idx, kind):
+        rid = item.get("id")
+        nm = (item.get("name") or "").strip()
+        nm_l = nm.lower()
+        # 1) ACTIVE — уже подключено
+        if rid is not None and rid in active_id_idx:
+            raw = active_id_idx[rid]; api_name = (raw.get("name") or "").strip()
+            return {"status": "active", "id": rid, "name": api_name or nm,
+                    "consistencyOk": (not nm or nm.lower() == api_name.lower()),
+                    "matchedBy": "id", "raw": raw}
+        if nm and nm_l in active_name_idx:
+            raw = active_name_idx[nm_l]
+            api_id = raw.get("packId" if kind == "pack" else "serviceId")
+            return {"status": "active", "id": api_id, "name": (raw.get("name") or nm),
+                    "consistencyOk": (rid is None or rid == api_id),
+                    "matchedBy": "name", "raw": raw}
+        # 2) AVAILABLE — доступно для подключения
+        if rid is not None and rid in avail_id_idx:
+            raw = avail_id_idx[rid]; api_name = (raw.get("name") or "").strip()
+            return {"status": "available", "id": rid, "name": api_name or nm,
+                    "consistencyOk": (not nm or nm.lower() == api_name.lower()),
+                    "matchedBy": "id", "raw": raw}
+        if nm and nm_l in avail_name_idx:
+            raw = avail_name_idx[nm_l]
+            api_id = raw.get("packId" if kind == "pack" else "serviceId")
+            return {"status": "available", "id": api_id, "name": (raw.get("name") or nm),
+                    "consistencyOk": (rid is None or rid == api_id),
+                    "matchedBy": "name", "raw": raw}
+        # 3) HIDDEN — не возвращается под этой ролью
+        return {"status": "hidden", "id": rid, "name": nm, "consistencyOk": True,
+                "matchedBy": None, "raw": None}
+
+    return {
+        "subscriberId": sid,
+        "currentRatePlan": {"ratePlanId": rp.get("ratePlanId"), "name": rp.get("name")},
+        "packs":    [_classify(p, ap_by_id, ap_by_name, av_by_id, av_by_name, "pack")    for p in packs_in],
+        "services": [_classify(s, as_by_id, as_by_name, sv_by_id, sv_by_name, "service") for s in services_in],
+    }
+
+
+@app.route('/api/availability/check', methods=['POST'])
+def api_availability_check():
+    """Bulk-проверка доступности пакетов и услуг для номера под несколькими ролями.
+
+    Body:
+      {
+        "msisdn": "...",
+        "packs":    [{id?, name?}, ...],
+        "services": [{id?, name?}, ...],
+        "includeAdmin": true|false,        # запросить также под текущей админ-сессией
+        "roles": [
+          {"id": "B2B_OP", "label": "...", "login": "...", "password": "..."},
+          ...
+        ],
+        "adminToken": "..."                # обязательно если includeAdmin или есть roles
+      }
+
+    Returns:
+      {
+        msisdn, totalChecked, byRole: {
+          admin:   { currentRatePlan, results },
+          B2B_OP:  { ... },
+          ...
+        },
+        warnings
+      }
+
+    Никакие подключения/смены тарифа не выполняются — только READ.
+    Каждая роль обрабатывается в изолированном SBMSClient.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    data = request.get_json(silent=True) or {}
+    msisdn = (data.get("msisdn") or "").strip()
+    if not msisdn:
+        return jsonify({"error": "BAD_REQUEST", "message": "msisdn обязателен"}), 400
+
+    packs_in    = _norm_input_items(data.get("packs"))
+    services_in = _norm_input_items(data.get("services"))
+    if not packs_in and not services_in:
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "Список пакетов и услуг пуст — нечего проверять"}), 400
+
+    include_admin = bool(data.get("includeAdmin", True))
+    roles = data.get("roles") or []
+    admin_token = (data.get("adminToken") or "").strip()
+
+    if (include_admin or roles) and not admin_token:
+        return jsonify({"error": "ADMIN_AUTH_REQUIRED",
+                        "message": "Сначала войдите в основную (админ) учётку"}), 401
+
+    if not include_admin and not roles:
+        return jsonify({"error": "BAD_REQUEST",
+                        "message": "Выберите хотя бы одну роль для проверки"}), 400
+
+    # Маскированный лог
+    try:
+        roles_str = ",".join((r.get("id") or r.get("login") or "?") for r in roles)
+    except Exception:
+        roles_str = "?"
+    print(f"[AVAIL-CHECK] msisdn={msisdn} roles=admin={include_admin}/{roles_str} "
+          f"packs={len(packs_in)} services={len(services_in)}")
+
+    by_role = {}
+    warnings = []
+
+    def _run_admin():
+        try:
+            client = _get_client({"authToken": admin_token})
+            return ("admin", _check_role_for_subscriber(client, msisdn, packs_in, services_in))
+        except AuthRequired:
+            return ("admin", {"error": "Сессия админа истекла"})
+        except Exception as e:
+            return ("admin", {"error": str(e)[:200]})
+
+    def _run_role(role_def):
+        rid = (role_def.get("id") or "custom").strip()
+        login = (role_def.get("login") or "").strip()
+        password = role_def.get("password") or ""
+        if not login or not password:
+            return (rid, {"error": "Нет login/password"})
+        pclient = SBMSClient(BASE_URL, TIMEOUT)
+        try:
+            pclient.authenticate(login, password)
+        except Exception as e:
+            return (rid, {"error": f"AUTH_FAILED: {str(e)[:160]}"})
+        try:
+            return (rid, _check_role_for_subscriber(pclient, msisdn, packs_in, services_in))
+        except Exception as e:
+            return (rid, {"error": str(e)[:200]})
+        finally:
+            try: pclient.token = None
+            except Exception: pass
+
+    tasks = []
+    if include_admin:
+        tasks.append(_run_admin)
+    for r in roles:
+        tasks.append(lambda r=r: _run_role(r))
+
+    if tasks:
+        with ThreadPoolExecutor(max_workers=min(len(tasks), 5)) as ex:
+            for k, v in ex.map(lambda fn: fn(), tasks):
+                if isinstance(v, dict) and v.get("error"):
+                    warnings.append(f"{k}: {v['error']}")
+                by_role[k] = v
+
+    return jsonify({
+        "msisdn": msisdn,
+        "totalChecked": len(packs_in) + len(services_in),
+        "totalPacks": len(packs_in),
+        "totalServices": len(services_in),
+        "byRole": by_role,
+        "warnings": warnings or None,
+    })
+
+
+@app.route('/api/availability/parse', methods=['POST'])
+def api_availability_parse():
+    """Алиас на /api/product-availability/parse-tariffs — но в полях возвращает
+    {items:[{id,name}]} вместо {tariffs:[...]} для семантической чистоты."""
+    if 'file' in request.files:
+        f = request.files['file']
+        name = f.filename or ""
+        content = f.read()
+        if not content:
+            return jsonify({"error": "Файл пустой"}), 400
+        try:
+            items = _pa_parser.parse_file(name, content)
+        except Exception as e:
+            return jsonify({"error": str(e), "filename": name}), 400
+        return jsonify({"items": items, "count": len(items), "source": "file", "filename": name})
+
+    data = request.get_json(silent=True) or {}
+    text = data.get("text")
+    json_data = data.get("json")
+    try:
+        if text is not None:
+            items = _pa_parser.parse_text(text)
+            if not items:
+                return jsonify({"items": [], "count": 0, "source": "text",
+                                "warning": "Не распознано ни одной записи"})
+            return jsonify({"items": items, "count": len(items), "source": "text"})
+        if json_data is not None:
+            items = _pa_parser.parse(json_data=json_data)
+            return jsonify({"items": items, "count": len(items), "source": "json"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({"error": "Нужен файл (multipart 'file'), либо JSON {text} / {json}"}), 400
 
 
 # ============================================================

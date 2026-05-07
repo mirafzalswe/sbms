@@ -3,238 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TME - Авторизация</title>
+    <title>TME · Авторизация — SBMS</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
     <style>
+        /* Сброс + базовый body — чтобы старые блоки внутри страницы перешли на токены */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
+            font-family: var(--font-sans);
+            font-size: var(--text-base);
+            background: var(--bg-canvas);
+            color: var(--text-1);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        .top-bar {
-            background: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 16px 24px;
+
+        /* Page header */
+        .page-header {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: var(--space-8) var(--space-6) var(--space-4);
+        }
+        .page-header h1 {
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+            letter-spacing: var(--tracking-tight);
+            line-height: var(--leading-tight);
+        }
+        .page-header p {
+            margin-top: var(--space-2);
+            color: var(--text-2);
+            font-size: var(--text-md);
+            line-height: var(--leading-snug);
+            max-width: 640px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: var(--space-4) var(--space-6) var(--space-12);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: var(--space-4);
         }
-        .top-bar h1 { font-size: 20px; color: #38bdf8; }
-        .nav-links { display: flex; gap: 8px; align-items: center; }
-        .nav-link {
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 6px 14px;
-            border: 1px solid #33415588;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .nav-link:hover { background: #334155; color: #e2e8f0; }
-        .nav-link.active { color: #f472b6; border-color: #f472b644; background: #f472b611; }
 
-        .container { max-width: 980px; margin: 0 auto; padding: 32px 24px; }
-
+        /* Card — переопределена через токены, ID/классы JS сохранены */
         .card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-xs);
         }
         .card h2 {
-            font-size: 14px;
-            color: #94a3b8;
+            font-size: var(--text-xs);
+            font-weight: var(--weight-semibold);
+            color: var(--text-3);
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 16px;
+            letter-spacing: var(--tracking-wider);
+            margin-bottom: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
         }
 
+        /* KV row */
         .info-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            padding: 8px 0;
-            font-size: 13px;
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: var(--space-3);
+            padding: var(--space-2) 0;
+            font-size: var(--text-sm);
+            align-items: baseline;
+            border-bottom: 1px dashed var(--border);
         }
-        .info-label { color: #64748b; min-width: 120px; }
+        .info-row:last-child { border-bottom: 0; }
+        .info-label { color: var(--text-3); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); }
         .info-value {
-            color: #e2e8f0;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: var(--text-1);
+            font-family: var(--font-mono);
+            font-size: var(--text-sm);
             word-break: break-all;
         }
 
+        /* Form */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 14px;
+            gap: var(--space-4);
         }
         .field label {
             display: block;
-            font-size: 12px;
-            color: #64748b;
+            font-size: var(--text-xs);
+            font-weight: var(--weight-semibold);
+            color: var(--text-3);
             margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: var(--tracking-wide);
         }
-        .field input {
+        .field input,
+        select {
             width: 100%;
-            padding: 10px 14px;
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            color: #e2e8f0;
-            font-size: 14px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            height: var(--control-height-md);
+            padding: 0 var(--space-3);
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: var(--text-sm);
+            font-family: var(--font-mono);
+            transition: border-color var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard);
+            box-sizing: border-box;
         }
-        .field input:focus { outline: none; border-color: #f472b6; }
+        .field input::placeholder { color: var(--text-3); }
+        .field input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: var(--focus-ring);
+        }
 
+        /* Actions row */
         .actions {
             display: flex;
-            gap: 10px;
-            margin-top: 18px;
+            gap: var(--space-2);
+            margin-top: var(--space-4);
             flex-wrap: wrap;
+            align-items: center;
         }
+
+        /* Buttons (legacy class names preserved) */
         .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            height: var(--control-height-md);
+            padding: 0 var(--space-4);
+            font-family: var(--font-sans);
+            font-size: var(--text-sm);
+            font-weight: var(--weight-semibold);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            transition: all 0.2s;
+            user-select: none;
+            line-height: 1;
+            transition: background var(--motion-fast) var(--ease-standard),
+                        border-color var(--motion-fast) var(--ease-standard),
+                        color var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard),
+                        transform var(--motion-fast) var(--ease-standard);
         }
-        .btn-primary { background: #f472b6; color: #0f172a; }
-        .btn-primary:hover { background: #ec4899; color: #fff; }
-        .btn-secondary { background: #334155; color: #e2e8f0; }
-        .btn-secondary:hover { background: #475569; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+        .btn:active:not(:disabled) { transform: translateY(1px); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .btn-primary { background: var(--brand); color: var(--brand-text); border-color: var(--brand); }
+        .btn-primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
+        .btn-secondary { background: var(--bg-subtle); color: var(--text-1); border-color: var(--border); }
+        .btn-secondary:hover:not(:disabled) { background: var(--bg-elevated); border-color: var(--border-strong); }
 
+        /* Status pill */
         .status-pill {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
             padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: var(--weight-semibold);
+            line-height: 1.4;
         }
-        .status-ok { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
-        .status-err { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
-        .status-wait { background: #eab30822; color: #eab308; border: 1px solid #eab30844; }
+        .status-pill::before {
+            content: '';
+            width: 6px; height: 6px; border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 6px currentColor;
+        }
+        .status-ok   { background: var(--success-soft); color: var(--success-text); }
+        .status-err  { background: var(--danger-soft);  color: var(--danger-text); }
+        .status-wait { background: var(--warning-soft); color: var(--warning-text); }
 
-        .token-box {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 14px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 12px;
-            color: #22c55e;
+        /* Token / JSON */
+        .token-box,
+        pre.json {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-mono);
+            font-size: var(--text-xs);
+            line-height: var(--leading-snug);
             word-break: break-all;
             white-space: pre-wrap;
-            max-height: 180px;
             overflow: auto;
         }
-
+        .token-box {
+            color: var(--success-text);
+            max-height: 180px;
+        }
         pre.json {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 14px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 12px;
-            color: #cbd5e1;
-            overflow: auto;
+            color: var(--text-2);
+            white-space: pre;
             max-height: 400px;
-            line-height: 1.5;
         }
 
         .hint {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 8px;
-            line-height: 1.5;
+            font-size: var(--text-xs);
+            color: var(--text-3);
+            margin-top: var(--space-2);
+            line-height: var(--leading-snug);
+        }
+        .hint code {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--bg-subtle);
+            padding: 1px 6px;
+            border-radius: var(--radius-xs);
+            color: var(--text-2);
         }
 
+        /* Copy button */
         .copy-btn {
             padding: 4px 10px;
             font-size: 11px;
-            background: #334155;
-            color: #e2e8f0;
-            border: none;
-            border-radius: 4px;
+            font-weight: var(--weight-semibold);
+            background: var(--bg-subtle);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            margin-left: 8px;
+            margin-left: var(--space-2);
+            transition: background var(--motion-fast) var(--ease-standard),
+                        color var(--motion-fast) var(--ease-standard);
         }
-        .copy-btn:hover { background: #475569; }
+        .copy-btn:hover { background: var(--bg-elevated); color: var(--text-1); }
 
+        /* Empty state */
         .empty {
-            color: #64748b;
-            font-style: italic;
-            font-size: 13px;
+            color: var(--text-3);
+            font-size: var(--text-sm);
             text-align: center;
-            padding: 20px;
+            padding: var(--space-6) var(--space-4);
         }
 
-        select {
-            width: 100%;
-            padding: 10px 14px;
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            color: #e2e8f0;
-            font-size: 14px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+        /* Section sub-label */
+        .sub-label {
+            font-size: var(--text-xs);
+            color: var(--text-3);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            font-weight: var(--weight-semibold);
         }
-        select:focus { outline: none; border-color: #f472b6; }
 
-        .badge-host { display:inline-flex; align-items:center; gap:8px; }
+        /* Badge host (auth slot) */
+        .badge-host { display:inline-flex; align-items:center; gap: var(--space-2); }
+
+        /* Scenario badge */
         .scn-badge {
-            display:inline-block;
-            padding:3px 8px;
-            border-radius:6px;
-            font-size:11px;
-            font-weight:600;
-            background:#0ea5e922;
-            color:#38bdf8;
-            border:1px solid #0ea5e944;
-            font-family:'SF Mono','Fira Code',monospace;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: var(--weight-bold);
+            background: var(--info-soft);
+            color: var(--info-text);
+            font-family: var(--font-mono);
+            letter-spacing: var(--tracking-wide);
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .page-header { padding: var(--space-6) var(--space-4) var(--space-3); }
+            .page-header h1 { font-size: var(--text-2xl); }
+            .container { padding: var(--space-3) var(--space-4) var(--space-8); }
+            .info-row { grid-template-columns: 1fr; }
+            .card { padding: var(--space-4); }
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <h1>TME - Авторизация</h1>
-        <div class="nav-links">
-            <span id="sbmsBadge" class="badge-host"></span>
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/tester" class="nav-link">QA Tester</a>
-            <a href="/tariff-test" class="nav-link">Тест тарифа</a>
-            <a href="/matrix-test" class="nav-link">Матрица переходов</a>
-            <a href="/product-availability" class="nav-link">Доступность продукта</a>
-            <a href="/tme" class="nav-link active">TME</a>
-        </div>
-    </div>
+    <div id="sbmsNav"></div>
+
+    <header class="page-header">
+        <h1>TME · Авторизация и сценарии</h1>
+        <p>Логин в TME через Flask-прокси, получение токена и запуск сценариев — например, смена тарифного плана через <code style="font-family:var(--font-mono);font-size:13px;background:var(--bg-subtle);padding:1px 6px;border-radius:4px;">CHANGE_RTPL</code>.</p>
+    </header>
 
     <div class="container">
         <!-- Описание -->
         <div class="card">
             <h2>TME Endpoint</h2>
             <div class="info-row">
-                <span class="info-label">URL сервиса:</span>
+                <span class="info-label">URL сервиса</span>
                 <span class="info-value">https://tme.ucell/login?returnUrl=%2Fcase</span>
             </div>
             <div class="info-row">
-                <span class="info-label">API Authenticate:</span>
+                <span class="info-label">API Authenticate</span>
                 <span class="info-value">POST https://tme.billing.domain/api/v1/authenticate</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Сценарий-кейс:</span>
+                <span class="info-label">Сценарий-кейс</span>
                 <span class="info-value">https://tme.ucell/case/CHANGE_LC_STATE</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Run сценария:</span>
+                <span class="info-label">Run сценария</span>
                 <span class="info-value">POST https://tme.billing.domain/api/v1/scenarios/&lt;SCENARIO&gt;/run?page=1&amp;page_size=50</span>
             </div>
             <div class="hint">
@@ -250,44 +327,45 @@
             <div class="form-grid">
                 <div class="field">
                     <label>Username</label>
-                    <input type="text" id="username" value="Mirafzal.Bahodirov" placeholder="Mirafzal.Bahodirov">
+                    <input type="text" id="username" value="Mirafzal.Bahodirov" placeholder="Mirafzal.Bahodirov" autocomplete="username">
                 </div>
                 <div class="field">
                     <label>Password</label>
-                    <input type="password" id="password" value="Mirafzal@121212" placeholder="Password">
+                    <input type="password" id="password" value="Mirafzal@121212" placeholder="Password" autocomplete="current-password">
                 </div>
             </div>
             <div class="actions">
                 <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Войти и получить токен</button>
                 <button class="btn btn-secondary" onclick="clearResult()">Очистить</button>
-                <span id="statusPill" style="align-self:center;"></span>
+                <span id="statusPill"></span>
             </div>
         </div>
 
         <!-- Результат -->
         <div class="card">
-            <h2>Result
-                <span id="copyWrapper" style="float:right;display:none;">
+            <h2 style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                <span style="display:inline-flex;align-items:center;gap:var(--space-2);">Result</span>
+                <span id="copyWrapper" style="display:none;">
                     <button class="copy-btn" onclick="copyToken()">Скопировать токен</button>
                 </span>
             </h2>
             <div id="tokenSection">
                 <div class="empty" id="emptyState">Нет данных. Нажмите «Войти».</div>
                 <div id="tokenContent" style="display:none;">
-                    <div class="info-row" style="margin-bottom:10px;">
-                        <span class="info-label">HTTP Status:</span>
+                    <div class="info-row">
+                        <span class="info-label">HTTP Status</span>
                         <span class="info-value" id="httpStatus">—</span>
                     </div>
-                    <div class="info-row" style="margin-bottom:10px;">
-                        <span class="info-label">URL:</span>
+                    <div class="info-row">
+                        <span class="info-label">URL</span>
                         <span class="info-value" id="requestUrl">—</span>
                     </div>
-                    <div style="margin-top:14px;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:6px;">TOKEN</div>
+                    <div style="margin-top: var(--space-4);">
+                        <div class="sub-label">Token</div>
                         <div class="token-box" id="tokenBox">—</div>
                     </div>
-                    <div style="margin-top:14px;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:6px;">RESPONSE BODY</div>
+                    <div style="margin-top: var(--space-4);">
+                        <div class="sub-label">Response Body</div>
                         <pre class="json" id="responseBody">—</pre>
                     </div>
                 </div>
@@ -296,10 +374,11 @@
 
         <!-- Смена тарифа через TME: CHANGE_RTPL -->
         <div class="card">
-            <h2>Смена тарифного плана
-                <span class="scn-badge" style="margin-left:8px;">CHANGE_RTPL</span>
+            <h2>
+                Смена тарифного плана
+                <span class="scn-badge">CHANGE_RTPL</span>
             </h2>
-            <div class="hint" style="margin-bottom:16px;">
+            <div class="hint" style="margin-bottom: var(--space-4);">
                 Войдите в TME выше — токен нужен и для загрузки списка тарифов, и для запуска сценария.
                 Тарифы грузятся через <code>POST /api/v1/scenarios/get_rtpl_for_change/run</code>.
                 Смена — через <code>POST /api/v1/scenarios/CHANGE_RTPL/run</code> с телом <code>{"MSISDN":"…","RTPL":"&lt;ID&gt;"}</code>.
@@ -313,12 +392,12 @@
                 </div>
             </div>
 
-            <div class="actions" style="margin-top:14px;">
+            <div class="actions">
                 <button class="btn btn-secondary" id="loadTariffsBtn" onclick="loadTmeTariffs()">Загрузить тарифы TME</button>
-                <span id="loadStatus" style="align-self:center;"></span>
+                <span id="loadStatus"></span>
             </div>
 
-            <div style="margin-top:14px;">
+            <div style="margin-top: var(--space-4);">
                 <div class="field">
                     <label>Тарифный план (RTPL)</label>
                     <select id="tariffSelect" disabled>
@@ -327,27 +406,27 @@
                 </div>
             </div>
 
-            <div class="actions" style="margin-top:18px;">
+            <div class="actions">
                 <button class="btn btn-primary" id="runTmeBtn" onclick="runTmeChange()" disabled>Сменить тариф</button>
                 <button class="btn btn-secondary" onclick="clearTmeResult()">Очистить</button>
-                <span id="tmeRunStatus" style="align-self:center;"></span>
+                <span id="tmeRunStatus"></span>
             </div>
 
-            <div style="margin-top:18px;" id="tmeResultBlock" hidden>
+            <div style="margin-top: var(--space-4);" id="tmeResultBlock" hidden>
                 <div class="info-row">
-                    <span class="info-label">HTTP Status:</span>
+                    <span class="info-label">HTTP Status</span>
                     <span class="info-value" id="tmeRespStatus">—</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Request URL:</span>
+                    <span class="info-label">Request URL</span>
                     <span class="info-value" id="tmeRespUrl">—</span>
                 </div>
-                <div style="margin-top:14px;">
-                    <div style="font-size:12px;color:#64748b;margin-bottom:6px;">REQUEST BODY</div>
+                <div style="margin-top: var(--space-4);">
+                    <div class="sub-label">Request Body</div>
                     <pre class="json" id="tmeReqBody">—</pre>
                 </div>
-                <div style="margin-top:14px;">
-                    <div style="font-size:12px;color:#64748b;margin-bottom:6px;">RESPONSE BODY</div>
+                <div style="margin-top: var(--space-4);">
+                    <div class="sub-label">Response Body</div>
                     <pre class="json" id="tmeRespBody">—</pre>
                 </div>
             </div>
@@ -355,7 +434,11 @@
     </div>
 
     <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
     <script>
+        // Mount unified top bar
+        SbmsNav.mount('#sbmsNav', { active: 'tme' });
+
         let currentToken = null;
 
         function setStatus(text, type) {
@@ -454,9 +537,6 @@
             const cached = localStorage.getItem('tme_token');
             if (cached) currentToken = cached;
         } catch (_) {}
-
-        // SBMS Auth badge (нужен только если хотим показать сессию SBMS)
-        if (window.SbmsAuth) SbmsAuth.mountBadge('#sbmsBadge');
 
         // ====== Хелперы статусов ======
         function setLoadStatus(text, type) {
@@ -557,6 +637,12 @@
 
                 if (resp.ok && (!data.status || data.status < 400)) {
                     setRunStatus(`Тариф изменён → ${rtplName}`, 'ok');
+                    // Запоминаем абонента в глобальном Recent
+                    try {
+                        if (window.SbmsRecent && msisdn) {
+                            SbmsRecent.add(msisdn, { label: 'TME → ' + rtplName, page: 'tme' });
+                        }
+                    } catch (_) {}
                 } else {
                     setRunStatus('Ошибка ' + (data.status || resp.status), 'err');
                 }

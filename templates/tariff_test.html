@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UCELL SBMS - Тест смены тарифа</title>
+    <title>UCELL SBMS · Тест смены тарифа</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <script src="/static/sbms-diff.js" defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -20,23 +23,29 @@
             --left-w: 300px;
             --right-w: 340px;
             /* === Ucell brand palette ===
-               Главный фиолетовый — глубокий пурпур из логотипа.
-               Используется для acceleratorов: заголовок, активная навигация,
-               primary-кнопки. Тематические бейджи (тариф/пакет/услуга)
-               специально НЕ перекрашиваем — они должны оставаться
-               различимыми. */
+               На тёмном фоне используем светлый вариант для контраста (DS dark),
+               на светлой теме — официальный глубокий пурпур логотипа.
+               Тематические бейджи (тариф/пакет/услуга) НЕ перекрашиваем. */
+            --brand:        #B86CDA;
+            --brand-hover:  #C988E5;
+            --brand-soft:   rgba(184,108,218,0.14);
+            --brand-text:   #ffffff;
+            --brand-glow:   rgba(184,108,218,0.32);
+        }
+        [data-theme="light"] {
             --brand:        #6B1F8A;
             --brand-hover:  #581873;
-            --brand-soft:   #6B1F8A1F;
-            --brand-text:   #ffffff;
-            --brand-glow:   #6B1F8A55;
+            --brand-soft:   rgba(107,31,138,0.10);
+            --brand-glow:   rgba(107,31,138,0.22);
         }
         body[data-density="cozy"] {
             --pad-panel: 18px; --pad-panel-y: 18px; --gap-panel: 14px; --gap-grid: 14px;
             --radius-panel: 10px; --font-h2: 13px; --font-body: 13px; --row-h: 32px;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-               background: #0f172a; color: #e2e8f0; min-height: 100vh; font-size: var(--font-body); }
+        body { font-family: var(--font-sans);
+               background: var(--bg-canvas); color: var(--text-1);
+               min-height: 100vh; font-size: var(--font-body);
+               -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
         /* === TOPBAR (sticky, slim, neat) ===
            Структура: [brand] | [nav] | [auth-group] | [load-group] | <spacer> | [tools]
@@ -1970,6 +1979,11 @@
             <div class="info-grid info-grid-after" id="infoGridAfter"></div>
         </div>
 
+        <!-- Diff: Before / After -->
+        <div class="panel hidden" id="diffPanel" style="padding:0;background:transparent;border:0;">
+            <div id="diffContainer"></div>
+        </div>
+
         <!-- Results Table -->
         <div class="panel hidden" id="resultsPanel">
             <div class="zone-results-header">
@@ -2302,6 +2316,16 @@
 
                 // Сохраняем «admin»-снимок для последующего сравнения в View-as
                 window._lastCustomerData = customerData;
+
+                // Запоминаем абонента в глобальном Recent (доступен из ⌘K на всех страницах)
+                try {
+                    if (window.SbmsRecent && msisdn) {
+                        SbmsRecent.add(msisdn, {
+                            label: customerData.customer?.name || '',
+                            page:  'tariff'
+                        });
+                    }
+                } catch (_) {}
 
                 renderCustomerInfo(customerData.customer);
                 renderTariffTable(customerData.availableRatePlans || []);
@@ -4448,6 +4472,34 @@
                     `<div class="info-item"><div class="il">${i.l}</div><div class="iv">${esc(String(i.v))}</div></div>`
                 ).join('');
                 document.getElementById('customerAfterPanel').classList.remove('hidden');
+            }
+
+            // ===== Diff "До/После" — компактный визуальный отчёт =====
+            try {
+                const ratePlanBefore = (() => {
+                    const hit = (r.checks || []).find(c =>
+                        (c.category === 'rate_plan' || c.category === 'rateplan') &&
+                        c.expected != null && c.actual != null);
+                    return hit ? hit.expected : null;
+                })();
+                const before = {
+                    'Тариф': ratePlanBefore || (ci.ratePlanNameBefore || 'неизвестно'),
+                    'Баланс, сум': ci.balanceBefore != null ? Number(ci.balanceBefore) : null,
+                };
+                const after = {
+                    'Тариф': ci.ratePlanName || 'неизвестно',
+                    'Баланс, сум': ci.balanceAfter != null ? Number(ci.balanceAfter) : null,
+                };
+                if (window.SbmsDiff) {
+                    SbmsDiff.render(before, after, '#diffContainer', {
+                        title: 'Сводка изменений',
+                        collapseEqual: false,
+                        numberFormat: (v) => Math.round(v).toLocaleString('ru-RU'),
+                    });
+                    document.getElementById('diffPanel').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.warn('SbmsDiff render failed:', e);
             }
 
             // Results table

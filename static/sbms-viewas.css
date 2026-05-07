@@ -1,0 +1,495 @@
+/**
+ * SbmsViewAs — стили модалки «Просмотр от имени другой учётки» (preview/simulation).
+ * Все стили под префиксом .sva-* — не пересекается с другими компонентами.
+ * Использует CSS-переменные дизайн-системы (см. sbms-design.css).
+ */
+
+/* ===== Backdrop + контейнер ===== */
+.sva-bd {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, .72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 24px;
+    backdrop-filter: blur(2px);
+}
+.sva-bd.is-open { display: flex; }
+
+.sva-modal {
+    background: var(--bg-elevated, var(--bg-surface, #fff));
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: var(--radius-lg, 12px);
+    width: 100%;
+    max-width: 1120px;
+    max-height: 92vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .35);
+    position: relative;
+}
+
+/* Read-only / write бейджик в углу */
+.sva-mode-tag {
+    position: absolute;
+    top: 14px;
+    right: 56px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    background: rgba(100, 116, 139, .18);
+    color: var(--text-3, #64748b);
+    border: 1px solid var(--border);
+}
+.sva-mode-tag.is-write {
+    background: rgba(245, 158, 11, .15);
+    color: #c2410c;
+    border-color: rgba(245, 158, 11, .4);
+}
+
+/* ===== Header ===== */
+.sva-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.sva-head h3 {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-1);
+}
+.sva-head .sva-sub {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+}
+.sva-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+}
+.sva-close:hover {
+    border-color: var(--danger-border, #ef4444);
+    color: var(--danger-text, #ef4444);
+}
+
+.sva-body {
+    padding: 18px 20px;
+    overflow: auto;
+    min-height: 0;
+    flex: 1;
+}
+
+/* ===== Шаг 1: выбор роли + credentials ===== */
+.sva-step1 {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 560px;
+}
+.sva-section-label {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.sva-roles {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.sva-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .15s;
+}
+.sva-role:hover {
+    border-color: var(--brand);
+    color: var(--text-1);
+}
+.sva-role.is-active {
+    background: rgba(59, 130, 246, .15);
+    border-color: var(--brand);
+    color: var(--brand);
+}
+.sva-creds {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.sva-creds label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+.sva-creds input {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg-canvas, #fff);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    font-size: 13px;
+    font-family: inherit;
+}
+.sva-creds input:focus {
+    border-color: var(--brand);
+    outline: none;
+}
+.sva-hint {
+    font-size: 11px;
+    color: var(--text-3);
+}
+.sva-hint.is-preset {
+    color: var(--brand);
+}
+.sva-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.sva-submit {
+    padding: 9px 20px;
+    background: var(--brand);
+    border: 1px solid var(--brand);
+    color: #fff;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .15s;
+    font-family: inherit;
+}
+.sva-submit:hover:not(:disabled) {
+    filter: brightness(.92);
+}
+.sva-submit:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+.sva-error {
+    background: rgba(239, 68, 68, .08);
+    border: 1px solid rgba(239, 68, 68, .35);
+    color: var(--danger-text, #b91c1c);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: none;
+}
+.sva-error.is-show {
+    display: block;
+}
+.sva-loading {
+    color: var(--brand);
+    font-size: 12px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+}
+.sva-loading.is-show {
+    display: inline-flex;
+}
+.sva-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(59, 130, 246, .25);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: svaSpin .8s linear infinite;
+}
+@keyframes svaSpin { to { transform: rotate(360deg); } }
+
+/* ===== Шаг 2: сравнение admin vs preview ===== */
+.sva-compare-head {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.sva-tabs {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--bg-subtle);
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+.sva-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-3);
+    background: transparent;
+    border: none;
+    font-weight: 600;
+    font-family: inherit;
+}
+.sva-tab.is-active {
+    background: rgba(59, 130, 246, .15);
+    color: var(--brand);
+}
+.sva-summary {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-left: auto;
+}
+.sva-summary .sva-diff-num {
+    color: var(--warning-text, #b45309);
+    font-weight: 700;
+}
+.sva-back {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+}
+.sva-back:hover {
+    border-color: var(--brand);
+    color: var(--text-1);
+}
+
+/* ===== Легенда статусов ===== */
+.sva-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+.sva-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-2);
+}
+.sva-legend__item .sva-stat {
+    font-size: 10px;
+}
+
+/* ===== Поиск ===== */
+.sva-search-wrap {
+    position: relative;
+    margin-bottom: 10px;
+}
+.sva-search {
+    width: 100%;
+    padding: 8px 36px 8px 12px;
+    background: var(--bg-canvas, #fff);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    font-size: 13px;
+    font-family: inherit;
+}
+.sva-search:focus {
+    border-color: var(--brand);
+    outline: none;
+}
+.sva-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 0;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    line-height: 1;
+}
+.sva-search-clear:hover { color: var(--text-1); }
+.sva-search-hint {
+    position: absolute;
+    right: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10.5px;
+    color: var(--text-3);
+}
+
+/* ===== Split ===== */
+.sva-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.sva-pane {
+    background: var(--bg-canvas, #fff);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 240px;
+    overflow: hidden;
+}
+.sva-pane-hdr {
+    padding: 8px 12px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.sva-pane-hdr.is-admin {
+    color: var(--brand);
+}
+.sva-pane-hdr.is-preview {
+    color: var(--warning-text, #b45309);
+}
+.sva-pane-hdr .sva-count {
+    font-weight: 600;
+    color: var(--text-3);
+}
+.sva-pane-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 460px;
+}
+.sva-empty {
+    padding: 32px 12px;
+    color: var(--text-3);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* Строка ─ id, name, status, [activate] */
+.sva-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.sva-row:last-child { border-bottom: 0; }
+.sva-row.is-only {
+    background: rgba(245, 158, 11, .06);
+}
+.sva-row.is-both {
+    /* нейтральный — нет лишней подсветки */
+}
+.sva-row .sva-id {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: var(--text-3);
+    font-size: 11px;
+    min-width: 70px;
+    flex-shrink: 0;
+}
+.sva-row .sva-name {
+    flex: 1;
+    color: var(--text-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== Бейджи статусов (5 типов) ===== */
+.sva-stat {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    flex-shrink: 0;
+    line-height: 1.5;
+}
+.sva-stat--active {
+    background: rgba(59, 130, 246, .18);
+    color: var(--brand);
+}
+.sva-stat--available {
+    background: rgba(34, 197, 94, .18);
+    color: var(--success-text, #15803d);
+}
+.sva-stat--hidden {
+    background: rgba(100, 116, 139, .18);
+    color: var(--text-3);
+    text-decoration: line-through;
+}
+.sva-stat--exclusive {
+    background: rgba(168, 85, 247, .18);
+    color: #7c3aed;
+}
+.sva-stat--restricted {
+    background: rgba(245, 158, 11, .18);
+    color: var(--warning-text, #b45309);
+}
+
+/* Кнопка «Подключить» */
+.sva-act-btn {
+    border: 1px solid var(--brand);
+    background: rgba(59, 130, 246, .08);
+    color: var(--brand);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+.sva-act-btn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, .18);
+}
+.sva-act-btn:disabled {
+    opacity: .5;
+    cursor: wait;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 760px) {
+    .sva-bd { padding: 10px; }
+    .sva-modal { max-height: 96vh; }
+    .sva-split { grid-template-columns: 1fr; }
+    .sva-creds { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,3715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Абонент · UCELL SBMS</title>
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <link rel="stylesheet" href="/static/sbms-tablecols.css">
+    <link rel="stylesheet" href="/static/sbms-viewas.css">
+    <link rel="stylesheet" href="/static/sbms-docs.css">
+    <link rel="stylesheet" href="/static/sbms-activity.css">
+    <script src="/static/sbms-diff.js" defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-canvas);
+            color: var(--text-1);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .page-header {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6) var(--space-6) var(--space-3);
+            display: flex;
+            align-items: flex-end;
+            gap: var(--space-4);
+            flex-wrap: wrap;
+        }
+        .page-header__title h1 {
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+            letter-spacing: var(--tracking-tight);
+        }
+        .page-header__title p {
+            margin-top: 4px;
+            color: var(--text-2);
+            font-size: var(--text-sm);
+        }
+        .search-row {
+            margin-left: auto;
+            display: flex;
+            gap: var(--space-2);
+            align-items: stretch;
+        }
+        .search-row input {
+            min-width: 240px;
+            height: var(--control-height-md);
+            padding: 0 var(--space-3);
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: var(--text-sm);
+            font-family: var(--font-mono);
+            transition: border-color var(--motion-fast) var(--ease-standard),
+                        box-shadow var(--motion-fast) var(--ease-standard);
+        }
+        .search-row input:focus { outline: none; border-color: var(--brand); box-shadow: var(--focus-ring); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-6) var(--space-12);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        /* ===== Hero card — большая карточка абонента ===== */
+        .hero {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: var(--space-6);
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) repeat(4, minmax(140px, 1fr));
+            gap: var(--space-4);
+            align-items: stretch;
+        }
+        .hero__id {
+            display: flex; flex-direction: column; gap: 6px;
+            justify-content: center;
+        }
+        .hero__msisdn {
+            font-family: var(--font-mono);
+            font-size: var(--text-3xl);
+            font-weight: var(--weight-bold);
+            color: var(--text-1);
+            letter-spacing: var(--tracking-tight);
+        }
+        .hero__name {
+            font-size: var(--text-md);
+            color: var(--text-1);
+            font-weight: var(--weight-medium);
+        }
+        .hero__sub {
+            font-size: var(--text-xs);
+            color: var(--text-3);
+            display: flex; flex-wrap: wrap; gap: 6px 14px;
+        }
+        .hero__sub b { font-family: var(--font-mono); color: var(--text-2); font-weight: var(--weight-medium); }
+
+        .kpi {
+            display: flex; flex-direction: column;
+            justify-content: center;
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-canvas);
+        }
+        .kpi__label {
+            font-size: 10px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            font-weight: var(--weight-semibold);
+        }
+        .kpi__value {
+            font-size: var(--text-2xl);
+            font-weight: var(--weight-bold);
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: var(--tracking-tight);
+            margin-top: 2px;
+        }
+        .kpi__sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+        .kpi--brand .kpi__value { color: var(--brand); }
+        .kpi--success .kpi__value { color: var(--success-text); }
+
+        /* ===== Tabs ===== */
+        .tabs {
+            display: inline-flex;
+            gap: 2px;
+            padding: 4px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+        .tab-btn {
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            border: none;
+            font-size: var(--text-sm);
+            font-weight: var(--weight-medium);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: background var(--motion-fast), color var(--motion-fast);
+        }
+        .tab-btn:hover { background: var(--bg-subtle); color: var(--text-1); }
+        .tab-btn.is-active {
+            background: var(--brand-soft);
+            color: var(--brand);
+            font-weight: var(--weight-semibold);
+        }
+        .tab-btn .count {
+            display: inline-block;
+            margin-left: 4px;
+            padding: 0 6px;
+            background: var(--neutral-soft);
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.is-active { display: block; }
+
+        /* ===== Limits: KPI grid ===== */
+        .lim-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-3);
+        }
+        @media (max-width: 700px) {
+            .lim-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .lim-kpi {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3) var(--space-4);
+        }
+        .lim-kpi__head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .lim-kpi__icon { font-size: 10px; }
+        .lim-kpi__label {
+            font-size: 11px; color: var(--text-3); text-transform: uppercase;
+            letter-spacing: var(--tracking-wider); font-weight: var(--weight-semibold);
+        }
+        .lim-kpi__value {
+            font-size: var(--text-2xl);
+            font-weight: var(--weight-bold);
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
+            font-family: var(--font-mono);
+            line-height: 1.1;
+        }
+        .lim-kpi__sub {
+            font-size: 11px; color: var(--text-3);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+        }
+
+        /* ===== Limits: filters ===== */
+        .lim-filters {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+            align-items: flex-end;
+            padding-bottom: var(--space-3);
+        }
+        .lim-filter { display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
+        .lim-filter--grow { flex: 1 1 200px; min-width: 200px; }
+        .lim-filter--btn { min-width: auto; }
+        .lim-filter > label {
+            font-size: 11px; color: var(--text-3); text-transform: uppercase;
+            letter-spacing: var(--tracking-wider); font-weight: var(--weight-medium);
+        }
+        .lim-filter > .sb-input {
+            height: 32px;
+            font-size: 13px;
+            padding: 0 8px;
+        }
+
+        /* ===== Limits: badges ===== */
+        .lim-src-badge, .lim-unit-badge, .lim-status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 1px 8px; border-radius: var(--radius-full);
+            font-size: 10.5px; font-weight: var(--weight-semibold);
+            white-space: nowrap;
+        }
+        .lim-src--tariff  { background: rgba(245,158,11,0.16);  color: var(--warning-text); }
+        .lim-src--pack    { background: rgba(34,197,94,0.16);   color: var(--success-text); }
+        .lim-src--service { background: rgba(59,130,246,0.16);  color: var(--info-text); }
+        .lim-src--unknown { background: var(--neutral-soft);    color: var(--text-3); }
+        .lim-unit--minutes { background: rgba(34,197,94,0.14);  color: #22c55e; }
+        .lim-unit--sms     { background: rgba(59,130,246,0.14); color: #3b82f6; }
+        .lim-unit--mb      { background: rgba(167,139,250,0.18); color: #a78bfa; }
+        .lim-unit--money   { background: rgba(245,158,11,0.14); color: #f59e0b; }
+        .lim-unit--other   { background: var(--neutral-soft);   color: var(--text-3); }
+        .lim-status--active  { background: var(--success-soft); color: var(--success-text); }
+        .lim-status--expired { background: var(--neutral-soft); color: var(--text-3); }
+
+        /* ===== Limits: progress bar in row ===== */
+        .lim-bar {
+            display: flex; align-items: center; gap: 6px;
+            min-width: 110px;
+        }
+        .lim-bar__track {
+            flex: 1;
+            height: 5px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .lim-bar__fill {
+            height: 100%;
+            background: var(--brand);
+            transition: width var(--motion-base) var(--ease-standard);
+        }
+        .lim-bar__fill--minutes { background: #22c55e; }
+        .lim-bar__fill--sms     { background: #3b82f6; }
+        .lim-bar__fill--mb      { background: #a78bfa; }
+        .lim-bar__fill--money   { background: #f59e0b; }
+        .lim-bar__fill--depleted { background: var(--danger-text); }
+        .lim-bar__pct {
+            font-size: 10px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+            min-width: 32px; text-align: right;
+        }
+
+        /* ===== Quotas: KPI grid (по категориям) ===== */
+        .qa-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-3);
+        }
+        .qa-kpi {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+        }
+        .qa-kpi__head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .qa-kpi__label {
+            font-size: 11px; color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            font-weight: var(--weight-semibold);
+        }
+        .qa-kpi__value {
+            font-size: var(--text-2xl);
+            font-weight: var(--weight-bold);
+            color: var(--text-1);
+            font-variant-numeric: tabular-nums;
+            font-family: var(--font-mono);
+            line-height: 1.1;
+        }
+        .qa-kpi__sub {
+            font-size: 11px; color: var(--text-3);
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+
+        /* ===== Quotas: card list ===== */
+        .qa-group {
+            display: flex; flex-direction: column;
+            gap: var(--space-2);
+        }
+        .qa-group + .qa-group { margin-top: var(--space-4); }
+        .qa-group__title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 11px; color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            font-weight: var(--weight-semibold);
+            padding-bottom: 6px;
+            border-bottom: 1px dashed var(--border-subtle);
+        }
+        .qa-group__title .qa-group__count {
+            background: var(--neutral-soft);
+            color: var(--text-2);
+            border-radius: var(--radius-full);
+            padding: 1px 8px;
+            font-size: 10px;
+        }
+        .qa-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-3);
+        }
+        .qa-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--text-3);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            display: flex; flex-direction: column;
+            gap: 6px;
+            transition: box-shadow var(--motion-fast) var(--ease-standard),
+                        border-color var(--motion-fast) var(--ease-standard);
+        }
+        .qa-card:hover { box-shadow: var(--shadow-sm); }
+        .qa-card--internet { border-left-color: #a78bfa; }
+        .qa-card--sms      { border-left-color: #3b82f6; }
+        .qa-card--voice    { border-left-color: #22c55e; }
+        .qa-card--social   { border-left-color: #ec4899; }
+        .qa-card--bonus    { border-left-color: #f59e0b; }
+        .qa-card--other    { border-left-color: var(--text-3); }
+        .qa-card.is-exhausted { opacity: 0.65; }
+        .qa-card.is-inactive  { opacity: 0.45; }
+
+        .qa-card__head {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 8px;
+        }
+        .qa-card__title {
+            font-size: var(--text-sm);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+            line-height: 1.3;
+        }
+        .qa-card__sub {
+            font-size: 11px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            margin-top: 2px;
+            word-break: break-all;
+        }
+        .qa-card__bar {
+            display: flex; align-items: center; gap: 8px;
+            margin: 4px 0 2px;
+        }
+        .qa-card__track {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .qa-card__fill {
+            height: 100%;
+            background: var(--brand);
+            transition: width var(--motion-base) var(--ease-standard);
+        }
+        .qa-card__fill--internet { background: #a78bfa; }
+        .qa-card__fill--sms      { background: #3b82f6; }
+        .qa-card__fill--voice    { background: #22c55e; }
+        .qa-card__fill--social   { background: #ec4899; }
+        .qa-card__fill--bonus    { background: #f59e0b; }
+        .qa-card__fill--depleted { background: var(--danger-text); }
+        .qa-card__fill--unlimited {
+            background: repeating-linear-gradient(
+                45deg,
+                var(--success-text) 0 6px,
+                var(--success-soft) 6px 12px
+            );
+        }
+        .qa-card__pct {
+            font-size: 11px;
+            color: var(--text-2);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+            min-width: 42px; text-align: right;
+        }
+        .qa-card__row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-2);
+        }
+        .qa-card__row > div { display: flex; flex-direction: column; gap: 1px; }
+        .qa-card__row .k {
+            font-size: 10px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+        }
+        .qa-card__row .v {
+            color: var(--text-1);
+            font-weight: var(--weight-medium);
+        }
+        .qa-card__dates {
+            font-size: 10.5px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            display: flex; gap: 10px; flex-wrap: wrap;
+            margin-top: 2px;
+        }
+        .qa-card__dates b {
+            color: var(--text-2);
+            font-weight: var(--weight-medium);
+            margin-right: 4px;
+        }
+
+        /* ===== Quotas: badges ===== */
+        .qa-badge {
+            display: inline-flex; align-items: center;
+            padding: 1px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px; font-weight: var(--weight-semibold);
+            white-space: nowrap;
+        }
+        .qa-cat--internet { background: rgba(167,139,250,0.16); color: #a78bfa; }
+        .qa-cat--sms      { background: rgba(59,130,246,0.16);  color: #3b82f6; }
+        .qa-cat--voice    { background: rgba(34,197,94,0.16);   color: #22c55e; }
+        .qa-cat--social   { background: rgba(236,72,153,0.16);  color: #ec4899; }
+        .qa-cat--bonus    { background: rgba(245,158,11,0.16);  color: #f59e0b; }
+        .qa-cat--other    { background: var(--neutral-soft);    color: var(--text-3); }
+        .qa-st--active     { background: var(--success-soft); color: var(--success-text); }
+        .qa-st--expiring   { background: var(--warning-soft); color: var(--warning-text); }
+        .qa-st--exhausted  { background: var(--danger-soft);  color: var(--danger-text); }
+        .qa-st--inactive   { background: var(--neutral-soft); color: var(--text-3); }
+        .qa-st--unlimited  { background: rgba(34,197,94,0.10); color: var(--success-text); }
+
+        /* ===== Card ===== */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-xs);
+        }
+        .card__header {
+            padding: var(--space-3) var(--space-5);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+        .card__title {
+            font-size: var(--text-xs);
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wider);
+            font-weight: var(--weight-semibold);
+        }
+        .card__body { padding: var(--space-4) var(--space-5); }
+        .card__body--flush { padding: 0; }
+
+        .row-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: var(--space-3) var(--space-4);
+        }
+        .field-line {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: var(--space-2);
+            align-items: baseline;
+            padding: 6px 0;
+            border-bottom: 1px dashed var(--border-subtle);
+        }
+        .field-line:last-child { border-bottom: 0; }
+        .field-line__k {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            font-weight: var(--weight-semibold);
+        }
+        .field-line__v {
+            font-family: var(--font-mono);
+            font-size: var(--text-sm);
+            color: var(--text-1);
+            word-break: break-all;
+        }
+
+        /* ===== Tables ===== */
+        .table-wrap { overflow-x: auto; }
+        table.t {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: var(--text-sm);
+        }
+        table.t th, table.t td {
+            padding: 8px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        table.t thead th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-subtle);
+            z-index: 1;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-wide);
+            font-weight: var(--weight-semibold);
+            color: var(--text-3);
+            border-bottom: 1px solid var(--border-strong);
+        }
+        table.t tbody tr:hover td { background: var(--bg-subtle); }
+        table.t tbody tr:last-child td { border-bottom: 0; }
+        table.t td.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+        table.t .id-col { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+        table.t .name-col { font-weight: var(--weight-medium); }
+        table.t .current-row td {
+            background: var(--brand-soft) !important;
+            border-left: 3px solid var(--brand);
+        }
+        table.t .archived-row td { opacity: 0.55; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: var(--weight-semibold);
+            background: var(--neutral-soft);
+            color: var(--text-2);
+        }
+        .badge--ok      { background: var(--success-soft); color: var(--success-text); }
+        .badge--warn    { background: var(--warning-soft); color: var(--warning-text); }
+        .badge--danger  { background: var(--danger-soft);  color: var(--danger-text); }
+        .badge--brand   { background: var(--brand-soft);   color: var(--brand); }
+
+        /* ===== Empty / loading ===== */
+        .empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-12) var(--space-4);
+            color: var(--text-2);
+            text-align: center;
+        }
+        .empty__icon {
+            width: 56px; height: 56px;
+            border-radius: var(--radius-full);
+            background: var(--bg-subtle);
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--text-3);
+        }
+        .empty__title { font-size: var(--text-lg); color: var(--text-1); font-weight: var(--weight-semibold); }
+        .empty__desc  { color: var(--text-2); font-size: var(--text-sm); max-width: 420px; line-height: 1.4; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid var(--border-strong);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, var(--bg-subtle) 0%, var(--bg-elevated) 50%, var(--bg-subtle) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.6s linear infinite;
+            border-radius: var(--radius-xs);
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        /* ===== Filter input ===== */
+        .filter-input {
+            width: 240px;
+            height: 28px;
+            padding: 0 var(--space-3);
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-1);
+            font-size: var(--text-xs);
+            font-family: var(--font-mono);
+        }
+        .filter-input:focus { outline: none; border-color: var(--brand); box-shadow: var(--focus-ring); }
+
+        /* ===== Mobile ===== */
+        @media (max-width: 1100px) {
+            .hero { grid-template-columns: 1fr 1fr; }
+            .hero__id { grid-column: 1 / -1; }
+        }
+        @media (max-width: 700px) {
+            .hero { grid-template-columns: 1fr; }
+            .page-header { padding: var(--space-4); }
+            .page-header__title h1 { font-size: var(--text-2xl); }
+            .search-row { width: 100%; }
+            .search-row input { flex: 1 1 auto; min-width: 0; }
+            .container { padding: 0 var(--space-3) var(--space-8); }
+            .field-line { grid-template-columns: 1fr; gap: 2px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="sbmsNav"></div>
+
+    <header class="page-header">
+        <div class="page-header__title">
+            <h1>Карточка абонента</h1>
+            <p>Профиль · тариф · пакеты · услуги · жизненный цикл — в одном окне</p>
+        </div>
+        <form class="search-row" onsubmit="event.preventDefault(); doLoad();">
+            <input type="text" id="msisdn" placeholder="MSISDN, например 998500173054"
+                   inputmode="numeric" autocomplete="off" autofocus>
+            <button type="submit" class="sb-btn sb-btn--primary" id="loadBtn">Загрузить</button>
+        </form>
+    </header>
+
+    <div class="container">
+        <!-- Empty state — пока абонент не выбран -->
+        <div class="card" id="emptyPanel">
+            <div class="card__body">
+                <div class="empty">
+                    <div class="empty__icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </div>
+                    <div class="empty__title">Выберите абонента</div>
+                    <div class="empty__desc">
+                        Введите MSISDN в поле выше или откройте командное меню
+                        (<kbd class="sb-cmdk-btn__kbd" id="kbdHint">⌘K</kbd>)
+                        и выберите номер из недавних.
+                    </div>
+                    <div id="recentChips" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:var(--space-2);"></div>
+                    <div style="margin-top:var(--space-3);font-size:11px;color:var(--text-3);">
+                        Хоткеи: <kbd class="sb-cmdk-btn__kbd">1–8</kbd> — табы ·
+                        <kbd class="sb-cmdk-btn__kbd">e</kbd> — поиск ·
+                        <kbd class="sb-cmdk-btn__kbd">r</kbd> — обновить ·
+                        <kbd class="sb-cmdk-btn__kbd">a</kbd> — авто ·
+                        <kbd class="sb-cmdk-btn__kbd">p</kbd> — закрепить ·
+                        <kbd class="sb-cmdk-btn__kbd">?</kbd> — все
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading skeleton -->
+        <div id="loadingPanel" style="display:none;" class="card">
+            <div class="card__body">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--space-4);">
+                    <div class="skeleton-line" style="height:60px;"></div>
+                    <div class="skeleton-line" style="height:60px;"></div>
+                    <div class="skeleton-line" style="height:60px;"></div>
+                    <div class="skeleton-line" style="height:60px;"></div>
+                </div>
+                <div style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:8px;">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line" style="width:60%;"></div>
+                    <div class="skeleton-line" style="width:80%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero -->
+        <div class="hero" id="heroPanel" style="display:none;">
+            <div class="hero__id">
+                <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex-wrap:wrap;">
+                    <div class="hero__msisdn" id="hMsisdn">—</div>
+                    <button type="button" id="pinBtn" class="sb-btn sb-btn--ghost sb-btn--sm"
+                            title="Закрепить (p)" onclick="togglePinCurrent()"
+                            style="padding:4px 8px;align-self:center;">
+                        <svg id="pinIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                            <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5"/>
+                        </svg>
+                    </button>
+                    <div id="autoRefreshWrap" title="Автообновление карточки"
+                         style="display:flex;align-items:center;gap:6px;align-self:center;font-size:12px;color:var(--text-3);background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);padding:3px 8px;">
+                        <span id="arDot" style="width:8px;height:8px;border-radius:50%;background:var(--text-3);transition:background .2s;"></span>
+                        <span>Авто</span>
+                        <select id="arSelect" style="border:none;background:transparent;color:var(--text-1);font-size:12px;padding:0;cursor:pointer;outline:none;">
+                            <option value="0">выкл</option>
+                            <option value="15">15с</option>
+                            <option value="30">30с</option>
+                            <option value="60">60с</option>
+                            <option value="120">2м</option>
+                        </select>
+                        <span id="arCountdown" style="font-family:var(--font-mono);font-variant-numeric:tabular-nums;min-width:24px;text-align:right;color:var(--text-3);"></span>
+                    </div>
+                    <button type="button" id="viewAsBtn" class="sb-btn sb-btn--ghost sb-btn--sm"
+                            onclick="openViewAs()" title="Посмотреть пакеты/услуги/тарифы от имени другой роли"
+                            style="align-self:center;display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span>Посмотреть как…</span>
+                    </button>
+                    <button type="button" id="compareBtn" class="sb-btn sb-btn--ghost sb-btn--sm"
+                            onclick="openCompare()" title="Сравнить с другим абонентом side-by-side"
+                            style="align-self:center;display:inline-flex;align-items:center;gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 16V4M7 4 3 8M7 4l4 4M17 8v12M17 20l-4-4M17 20l4-4"/>
+                        </svg>
+                        <span>Сравнить с…</span>
+                    </button>
+                </div>
+                <div class="hero__name" id="hName">—</div>
+                <div class="hero__sub">
+                    <span>Customer ID: <b id="hCid">—</b></span>
+                    <span>Subscriber ID: <b id="hSid">—</b></span>
+                </div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__label">Тариф</div>
+                <div class="kpi__value" id="hRatePlan" style="font-size:var(--text-lg);line-height:1.2;">—</div>
+                <div class="kpi__sub" id="hRatePlanId">—</div>
+            </div>
+            <div class="kpi kpi--success">
+                <div class="kpi__label">Баланс, сум</div>
+                <div class="kpi__value" id="hBalance">—</div>
+                <div class="kpi__sub" id="hCurrentFee">—</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__label">Статус</div>
+                <div class="kpi__value" id="hStatus" style="font-size:var(--text-lg);line-height:1.2;">—</div>
+                <div class="kpi__sub" id="hLifecycle">—</div>
+            </div>
+            <div class="kpi kpi--brand">
+                <div class="kpi__label">След. списание</div>
+                <div class="kpi__value" id="hNextCharge" style="font-size:var(--text-lg);line-height:1.2;">—</div>
+                <div class="kpi__sub" id="hNextChargeRel">—</div>
+            </div>
+        </div>
+
+        <!-- Diff: что изменилось с прошлого открытия -->
+        <div id="diffPanel" style="display:none;"></div>
+
+        <!-- Tabs -->
+        <div id="tabsPanel" style="display:none;">
+            <div class="tabs" role="tablist">
+                <button class="tab-btn is-active" data-tab="overview"  role="tab">Обзор</button>
+                <button class="tab-btn"           data-tab="tariff"    role="tab">Тариф <span class="count" id="cntTariff">0</span></button>
+                <button class="tab-btn"           data-tab="packs"     role="tab">Пакеты <span class="count" id="cntPacks">0</span></button>
+                <button class="tab-btn"           data-tab="services"  role="tab">Услуги <span class="count" id="cntServices">0</span></button>
+                <button class="tab-btn"           data-tab="limits"    role="tab">Лимиты <span class="count" id="cntLimits">—</span></button>
+                <button class="tab-btn"           data-tab="quotas"    role="tab">Квоты <span class="count" id="cntQuotas">—</span></button>
+                <button class="tab-btn"           data-tab="calls"     role="tab">Вызовы <span class="count" id="cntCalls">—</span></button>
+                <button class="tab-btn"           data-tab="lifecycle" role="tab">Жизн. цикл</button>
+                <button class="tab-btn"           data-tab="activity"  role="tab">Активность <span class="count" id="cntActivity">—</span></button>
+                <button class="tab-btn"           data-tab="history"   role="tab">Прогоны <span class="count" id="cntHistory">0</span></button>
+            </div>
+        </div>
+
+        <!-- Tab content -->
+        <div id="tabBody" style="display:none;">
+            <!-- Overview -->
+            <div class="tab-pane is-active" data-tab-pane="overview">
+                <div class="row-grid">
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Объёмы пакетов</span>
+                        </div>
+                        <div class="card__body" id="volumesBody">
+                            <div class="field-line"><span class="field-line__k">Минуты</span><span class="field-line__v" id="vMinutes">—</span></div>
+                            <div class="field-line"><span class="field-line__k">SMS</span><span class="field-line__v" id="vSms">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Интернет, MB</span><span class="field-line__v" id="vMb">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Бонусы, сум</span><span class="field-line__v" id="vMoney">—</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Идентификаторы</span>
+                        </div>
+                        <div class="card__body">
+                            <div class="field-line"><span class="field-line__k">MSISDN</span><span class="field-line__v" id="oMsisdn">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Customer ID</span><span class="field-line__v" id="oCid">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Subscriber ID</span><span class="field-line__v" id="oSid">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Product ID</span><span class="field-line__v" id="oProductId">—</span></div>
+                            <div class="field-line"><span class="field-line__k">Rate Plan ID</span><span class="field-line__v" id="oRpId">—</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tariff -->
+            <div class="tab-pane" data-tab-pane="tariff">
+                <div class="card">
+                    <div class="card__header">
+                        <span class="card__title">Доступные тарифные планы</span>
+                        <input type="search" class="filter-input" id="tariffFilter" placeholder="Поиск по названию или ID…">
+                    </div>
+                    <div class="card__body card__body--flush">
+                        <div class="table-wrap" style="max-height: 560px;">
+                            <table class="t" id="tariffTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:80px;">ID</th>
+                                        <th>Название</th>
+                                        <th class="num">АП, сум</th>
+                                        <th class="num">Активация, сум</th>
+                                        <th style="width:120px;">Период</th>
+                                        <th style="width:90px;">Статус</th>
+                                        <th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th>
+                                        <th style="width:110px;text-align:right;">Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tariffBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packs -->
+            <div class="tab-pane" data-tab-pane="packs">
+                <div class="row-grid">
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Активные пакеты</span>
+                        </div>
+                        <div class="card__body card__body--flush">
+                            <div class="table-wrap" style="max-height: 420px;">
+                                <table class="t" id="activePacksTable">
+                                    <thead><tr><th style="width:80px;">ID</th><th>Название</th><th style="width:100px;">Статус</th><th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th><th style="width:120px;text-align:right;">Действие</th></tr></thead>
+                                    <tbody id="activePacksBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Доступные пакеты</span>
+                            <input type="search" class="filter-input" id="availPacksFilter" placeholder="Поиск…">
+                        </div>
+                        <div class="card__body card__body--flush">
+                            <div class="table-wrap" style="max-height: 420px;">
+                                <table class="t" id="availPacksTable">
+                                    <thead><tr><th style="width:80px;">ID</th><th>Название</th><th class="num">Цена</th><th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th><th style="width:120px;text-align:right;">Действие</th></tr></thead>
+                                    <tbody id="availPacksBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services -->
+            <div class="tab-pane" data-tab-pane="services">
+                <div class="row-grid">
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Активные услуги</span>
+                        </div>
+                        <div class="card__body card__body--flush">
+                            <div class="table-wrap" style="max-height: 420px;">
+                                <table class="t" id="activeSvcTable">
+                                    <thead><tr><th style="width:80px;">ID</th><th>Название</th><th style="width:100px;">Статус</th><th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th><th style="width:120px;text-align:right;">Действие</th></tr></thead>
+                                    <tbody id="activeSvcBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card__header">
+                            <span class="card__title">Доступные услуги</span>
+                            <input type="search" class="filter-input" id="availSvcFilter" placeholder="Поиск…">
+                        </div>
+                        <div class="card__body card__body--flush">
+                            <div class="table-wrap" style="max-height: 420px;">
+                                <table class="t" id="availSvcTable">
+                                    <thead><tr><th style="width:80px;">ID</th><th>Название</th><th class="num">Цена</th><th style="width:62px;text-align:center;" title="Документация и приказы">Док.</th><th style="width:120px;text-align:right;">Действие</th></tr></thead>
+                                    <tbody id="availSvcBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Limits -->
+            <div class="tab-pane" data-tab-pane="limits">
+                <!-- Общие лимиты — KPI-сводка по типам -->
+                <div class="card">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">Общие лимиты</span>
+                        <span style="color:var(--text-3);font-size:12px;" id="limitsMeta">не загружены</span>
+                        <span style="flex:1;"></span>
+                        <details class="cols-dropdown" id="limitsColsDropdown">
+                            <summary class="sb-btn sb-btn--ghost sb-btn--sm" title="Настроить колонки таблицы скидок">⚙ <span id="limitsColsCount">—</span></summary>
+                            <div class="cols-menu" id="limitsColsMenu" role="menu"></div>
+                        </details>
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="limitsExportBtn" disabled title="Экспорт CSV">⤓ CSV</button>
+                        <button type="button" class="sb-btn sb-btn--secondary sb-btn--sm" id="limitsReloadBtn" title="Загрузить / обновить">↻ Обновить</button>
+                    </div>
+                    <div class="card__body">
+                        <div class="lim-kpi-grid" id="limitsKpiGrid">
+                            <div class="lim-kpi" data-unit="1">
+                                <div class="lim-kpi__head">
+                                    <span class="lim-kpi__icon" style="color:#22c55e;">●</span>
+                                    <span class="lim-kpi__label">Минуты</span>
+                                </div>
+                                <div class="lim-kpi__value" id="lkMinRem">—</div>
+                                <div class="lim-kpi__sub" id="lkMinMax">из —</div>
+                            </div>
+                            <div class="lim-kpi" data-unit="7">
+                                <div class="lim-kpi__head">
+                                    <span class="lim-kpi__icon" style="color:#3b82f6;">●</span>
+                                    <span class="lim-kpi__label">SMS</span>
+                                </div>
+                                <div class="lim-kpi__value" id="lkSmsRem">—</div>
+                                <div class="lim-kpi__sub" id="lkSmsMax">из —</div>
+                            </div>
+                            <div class="lim-kpi" data-unit="14">
+                                <div class="lim-kpi__head">
+                                    <span class="lim-kpi__icon" style="color:#a78bfa;">●</span>
+                                    <span class="lim-kpi__label">Интернет</span>
+                                </div>
+                                <div class="lim-kpi__value" id="lkMbRem">—</div>
+                                <div class="lim-kpi__sub" id="lkMbMax">из —</div>
+                            </div>
+                            <div class="lim-kpi" data-unit="0">
+                                <div class="lim-kpi__head">
+                                    <span class="lim-kpi__icon" style="color:#f59e0b;">●</span>
+                                    <span class="lim-kpi__label">Деньги</span>
+                                </div>
+                                <div class="lim-kpi__value" id="lkMoneyRem">—</div>
+                                <div class="lim-kpi__sub" id="lkMoneyMax">из —</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Скидки по источникам — фильтры + таблица -->
+                <div class="card" style="margin-top:var(--space-4);">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">Скидки по источникам</span>
+                        <span style="color:var(--text-3);font-size:12px;">тариф · пакеты · услуги</span>
+                        <span style="flex:1;"></span>
+                        <span style="color:var(--text-3);font-size:12px;" id="limitsSummary">—</span>
+                    </div>
+                    <div class="card__body" style="padding-bottom:0;">
+                        <div class="lim-filters">
+                            <div class="lim-filter">
+                                <label>Источник</label>
+                                <select id="limfSource" class="sb-input">
+                                    <option value="all">Все</option>
+                                    <option value="tariff">Тариф</option>
+                                    <option value="pack">Пакеты</option>
+                                    <option value="service">Услуги</option>
+                                    <option value="unknown">Прочее</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Статус</label>
+                                <select id="limfStatus" class="sb-input">
+                                    <option value="all">Все</option>
+                                    <option value="active">Действует</option>
+                                    <option value="expired">Истёк</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Тип</label>
+                                <select id="limfUnit" class="sb-input">
+                                    <option value="all">Все</option>
+                                    <option value="1">Минуты</option>
+                                    <option value="7">SMS</option>
+                                    <option value="14">Интернет</option>
+                                    <option value="0">Деньги</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Действует с</label>
+                                <input type="date" id="limfDateFrom" class="sb-input">
+                            </div>
+                            <div class="lim-filter">
+                                <label>Действует по</label>
+                                <input type="date" id="limfDateTo" class="sb-input">
+                            </div>
+                            <div class="lim-filter lim-filter--grow">
+                                <label>Поиск</label>
+                                <input type="search" id="limfSearch" class="sb-input" placeholder="название · ID · источник">
+                            </div>
+                            <div class="lim-filter lim-filter--btn">
+                                <label>&nbsp;</label>
+                                <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="limfReset">Сбросить</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card__body card__body--flush">
+                        <div class="table-wrap" style="max-height: 600px;">
+                            <table class="t" id="limitsTbl" style="font-size:12px;">
+                                <colgroup id="limitsColg"></colgroup>
+                                <thead>
+                                    <tr id="limitsHead"></tr>
+                                </thead>
+                                <tbody id="limitsBody">
+                                    <tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Нажмите «↻ Обновить», чтобы загрузить скидки.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quotas (UCELL_GET_SUBSCRIBER_ALL_QUOTA) -->
+            <div class="tab-pane" data-tab-pane="quotas">
+                <!-- KPI по категориям квот -->
+                <div class="card">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">Квоты · бонусы · подключенные лимиты</span>
+                        <span style="color:var(--text-3);font-size:12px;" id="quotasMeta">не загружены</span>
+                        <span style="flex:1;"></span>
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="quotasExportBtn" disabled title="Экспорт CSV">⤓ CSV</button>
+                        <button type="button" class="sb-btn sb-btn--secondary sb-btn--sm" id="quotasReloadBtn" title="Загрузить / обновить">↻ Обновить</button>
+                    </div>
+                    <div class="card__body">
+                        <div class="qa-kpi-grid" id="quotasKpiGrid">
+                            <div class="qa-kpi" data-cat="internet">
+                                <div class="qa-kpi__head"><span style="color:#a78bfa;">●</span><span class="qa-kpi__label">Интернет</span></div>
+                                <div class="qa-kpi__value" id="qkInternet">—</div>
+                                <div class="qa-kpi__sub" id="qkInternetSub">—</div>
+                            </div>
+                            <div class="qa-kpi" data-cat="sms">
+                                <div class="qa-kpi__head"><span style="color:#3b82f6;">●</span><span class="qa-kpi__label">SMS</span></div>
+                                <div class="qa-kpi__value" id="qkSms">—</div>
+                                <div class="qa-kpi__sub" id="qkSmsSub">—</div>
+                            </div>
+                            <div class="qa-kpi" data-cat="voice">
+                                <div class="qa-kpi__head"><span style="color:#22c55e;">●</span><span class="qa-kpi__label">Минуты</span></div>
+                                <div class="qa-kpi__value" id="qkVoice">—</div>
+                                <div class="qa-kpi__sub" id="qkVoiceSub">—</div>
+                            </div>
+                            <div class="qa-kpi" data-cat="social">
+                                <div class="qa-kpi__head"><span style="color:#ec4899;">●</span><span class="qa-kpi__label">Соц. сети</span></div>
+                                <div class="qa-kpi__value" id="qkSocial">—</div>
+                                <div class="qa-kpi__sub" id="qkSocialSub">—</div>
+                            </div>
+                            <div class="qa-kpi" data-cat="bonus">
+                                <div class="qa-kpi__head"><span style="color:#f59e0b;">●</span><span class="qa-kpi__label">Бонусы</span></div>
+                                <div class="qa-kpi__value" id="qkBonus">—</div>
+                                <div class="qa-kpi__sub" id="qkBonusSub">—</div>
+                            </div>
+                            <div class="qa-kpi" data-cat="other">
+                                <div class="qa-kpi__head"><span style="color:var(--text-3);">●</span><span class="qa-kpi__label">Прочее</span></div>
+                                <div class="qa-kpi__value" id="qkOther">—</div>
+                                <div class="qa-kpi__sub" id="qkOtherSub">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Фильтры -->
+                <div class="card" style="margin-top:var(--space-4);">
+                    <div class="card__header">
+                        <span class="card__title">Список квот</span>
+                        <span style="color:var(--text-3);font-size:12px;" id="quotasSummary">—</span>
+                    </div>
+                    <div class="card__body" style="padding-bottom:0;">
+                        <div class="lim-filters">
+                            <div class="lim-filter">
+                                <label>Категория</label>
+                                <select id="qfCategory" class="sb-input">
+                                    <option value="all">Все</option>
+                                    <option value="internet">Интернет</option>
+                                    <option value="sms">SMS</option>
+                                    <option value="voice">Минуты</option>
+                                    <option value="social">Соц. сети</option>
+                                    <option value="bonus">Бонусы</option>
+                                    <option value="other">Прочее</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Статус</label>
+                                <select id="qfStatus" class="sb-input">
+                                    <option value="all">Все</option>
+                                    <option value="active">Активные</option>
+                                    <option value="expiring">Скоро закончится</option>
+                                    <option value="exhausted">Исчерпаны</option>
+                                    <option value="inactive">Неактивные</option>
+                                    <option value="unlimited">Бессрочные</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Сортировка</label>
+                                <select id="qfSort" class="sb-input">
+                                    <option value="status">По статусу</option>
+                                    <option value="pct-desc">Использование ↓</option>
+                                    <option value="pct-asc">Использование ↑</option>
+                                    <option value="rem-desc">Остаток ↓</option>
+                                    <option value="name">По названию</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter">
+                                <label>Группировка</label>
+                                <select id="qfGroup" class="sb-input">
+                                    <option value="category">По категории</option>
+                                    <option value="status">По статусу</option>
+                                    <option value="none">Без группировки</option>
+                                </select>
+                            </div>
+                            <div class="lim-filter lim-filter--grow">
+                                <label>Поиск</label>
+                                <input type="search" id="qfSearch" class="sb-input" placeholder="название · сервис">
+                            </div>
+                            <div class="lim-filter lim-filter--btn">
+                                <label>&nbsp;</label>
+                                <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="qfReset">Сбросить</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        <div id="quotasList">
+                            <div style="text-align:center;color:var(--text-3);padding:24px;font-size:13px;">
+                                Нажмите «↻ Обновить», чтобы загрузить квоты.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calls -->
+            <div class="tab-pane" data-tab-pane="calls">
+                <div class="card">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">Вызовы абонента</span>
+                        <span style="color:var(--text-3);font-size:12px;" id="callsMeta">не загружены</span>
+                        <span style="flex:1;"></span>
+                        <select id="callsPeriod" class="sb-input" style="height:32px;padding:0 8px;font-size:13px;width:auto;">
+                            <option value="7">7 дней</option>
+                            <option value="30">30 дней</option>
+                            <option value="60" selected>60 дней</option>
+                            <option value="180">180 дней</option>
+                        </select>
+                        <input type="search" id="callsSearch" class="sb-input" placeholder="Поиск по событиям…"
+                               style="height:32px;padding:0 10px;font-size:13px;width:200px;">
+                        <details class="cols-dropdown" id="callsColsDropdown">
+                            <summary class="sb-btn sb-btn--ghost sb-btn--sm" title="Настроить видимость колонок">⚙ <span id="callsColsCount">—</span></summary>
+                            <div class="cols-menu" id="callsColsMenu" role="menu"></div>
+                        </details>
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="callsExportBtn" disabled>⤓ CSV</button>
+                        <button type="button" class="sb-btn sb-btn--primary sb-btn--sm" id="callsLoadBtn">Загрузить</button>
+                    </div>
+                    <div class="card__body card__body--flush">
+                        <div class="table-wrap" style="max-height: 600px;">
+                            <table class="t" id="callsTbl" style="font-size:12px;table-layout:fixed;">
+                                <colgroup id="callsColg"></colgroup>
+                                <thead><tr id="callsHead"></tr></thead>
+                                <tbody id="callsBody">
+                                    <tr><td style="text-align:center;color:var(--text-3);padding:24px;">Нажмите «Загрузить», чтобы получить вызовы за выбранный период.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="callsTotals" style="display:none;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-subtle);font-size:12px;color:var(--text-2);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lifecycle -->
+            <div class="tab-pane" data-tab-pane="lifecycle">
+                <div class="card">
+                    <div class="card__header">
+                        <span class="card__title">Текущее состояние</span>
+                    </div>
+                    <div class="card__body" id="lifecycleSummary">
+                        <div class="field-line"><span class="field-line__k">Состояние</span><span class="field-line__v" id="lcState">—</span></div>
+                        <div class="field-line"><span class="field-line__k">Дата активации</span><span class="field-line__v" id="lcActivation">—</span></div>
+                        <div class="field-line"><span class="field-line__k">Начало состояния</span><span class="field-line__v" id="lcBegin">—</span></div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:var(--space-4);">
+                    <div class="card__header">
+                        <span class="card__title">История состояний</span>
+                    </div>
+                    <div class="card__body card__body--flush">
+                        <div class="table-wrap" style="max-height: 360px;">
+                            <table class="t" id="lcHistTable">
+                                <thead><tr><th>Состояние</th><th>Начало</th><th>Конец</th></tr></thead>
+                                <tbody id="lcHistBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity (real events on subscriber) -->
+            <div class="tab-pane" data-tab-pane="activity">
+                <div class="card">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">Активность по номеру</span>
+                        <span style="font-size:var(--text-xs);color:var(--text-3);">смены тарифа · пакеты · услуги · платежи · АП · жизн. цикл</span>
+                    </div>
+                    <div class="card__body" id="activityRoot" style="padding:var(--space-3);">
+                        <div class="sa-status sa-status--empty">
+                            <div class="sa-status__text">Откройте таб — события подгрузятся</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="tab-pane" data-tab-pane="history">
+                <div class="card">
+                    <div class="card__header">
+                        <span class="card__title">История прогонов по этому MSISDN</span>
+                        <div style="display:flex;gap:var(--space-2);align-items:center;">
+                            <select class="filter-input" id="histKindFilter" style="width:auto;">
+                                <option value="">Все типы</option>
+                                <option value="tariff">Тариф / QA</option>
+                                <option value="matrix">Матрица</option>
+                                <option value="product">Доступность</option>
+                            </select>
+                            <button class="sb-btn sb-btn--ghost sb-btn--sm" id="histReloadBtn" type="button" title="Перезагрузить">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card__body card__body--flush">
+                        <div class="table-wrap" style="max-height: 580px;">
+                            <table class="t" id="historyTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width:90px;">Тип</th>
+                                        <th style="width:170px;">Время</th>
+                                        <th>Что прогоняли</th>
+                                        <th class="num" style="width:70px;">Total</th>
+                                        <th class="num" style="width:70px;">Pass</th>
+                                        <th class="num" style="width:70px;">Fail</th>
+                                        <th style="width:90px;">Длит.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyBody">
+                                    <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">Нажмите вкладку «История» — данные подгружаются по клику</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
+    <script src="/static/sbms-tablecols.js"></script>
+    <script src="/static/sbms-viewas.js"></script>
+    <script src="/static/sbms-docs.js"></script>
+    <script src="/static/sbms-activity.js"></script>
+    <script>
+        SbmsNav.mount('#sbmsNav', { active: 'subscriber' });
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let _data = null;
+        const $ = (id) => document.getElementById(id);
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function fmtN(v) {
+            if (v == null || v === '') return '—';
+            const n = Number(v);
+            if (Number.isFinite(n)) return Math.round(n).toLocaleString('ru-RU');
+            return String(v);
+        }
+        function fmtDate(v) {
+            if (!v) return '—';
+            // Поддержка ISO и DD.MM.YYYY
+            const d = new Date(v);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+            }
+            return String(v);
+        }
+        function relDate(v) {
+            if (!v) return '';
+            const d = new Date(v);
+            if (isNaN(d.getTime())) return '';
+            const days = Math.round((d - new Date()) / 86400000);
+            if (days === 0) return 'сегодня';
+            if (days === 1) return 'завтра';
+            if (days === -1) return 'вчера';
+            if (days > 0) return 'через ' + days + ' дн.';
+            return Math.abs(days) + ' дн. назад';
+        }
+
+        // ============================================================
+        // RECENT CHIPS (на пустой странице)
+        // ============================================================
+        function renderRecentChips() {
+            const host = $('recentChips');
+            if (!host) return;
+            const list = (window.SbmsRecent && SbmsRecent.list()) || [];
+            if (!list.length) { host.innerHTML = ''; return; }
+            host.innerHTML = list.slice(0, 6).map(r => `
+                <button type="button" class="sb-btn sb-btn--secondary sb-btn--sm"
+                        onclick="loadMsisdn('${esc(r.msisdn)}')"
+                        style="font-family:var(--font-mono);">
+                    ${esc(r.msisdn)}${r.label ? ' · ' + esc(r.label) : ''}
+                </button>
+            `).join('');
+        }
+
+        // Подписка на изменения Recent
+        function tryHookRecent() {
+            if (window.SbmsRecent && SbmsRecent.on) {
+                SbmsRecent.on(() => renderRecentChips());
+                renderRecentChips();
+            } else {
+                setTimeout(tryHookRecent, 200);
+            }
+        }
+        tryHookRecent();
+
+        // ============================================================
+        // LOAD
+        // ============================================================
+        function loadMsisdn(m) {
+            $('msisdn').value = m;
+            doLoad();
+        }
+
+        async function doLoad() {
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) {
+                if (window.SbmsToast) SbmsToast.warn('Введите MSISDN');
+                return;
+            }
+
+            $('emptyPanel').style.display = 'none';
+            $('heroPanel').style.display = 'none';
+            $('diffPanel').style.display = 'none';
+            $('tabsPanel').style.display = 'none';
+            $('tabBody').style.display = 'none';
+            $('loadingPanel').style.display = '';
+
+            const btn = $('loadBtn');
+            btn.disabled = true;
+            const origText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span>&nbsp;Загрузка…';
+
+            try {
+                if (!window.SbmsAuth || !SbmsAuth.isValid()) {
+                    await SbmsAuth.require();
+                }
+                const resp = await SbmsAuth.apiPost('/api/tariff/load-customer', { msisdn });
+                if (!resp.ok) {
+                    const e = await resp.json().catch(() => ({}));
+                    throw new Error(e.error || ('HTTP ' + resp.status));
+                }
+                const data = await resp.json();
+                _data = data;
+                renderAll(data, msisdn);
+
+                // Recent
+                try {
+                    if (window.SbmsRecent) {
+                        SbmsRecent.add(msisdn, {
+                            label: data.customer?.name || '',
+                            page: 'subscriber'
+                        });
+                    }
+                } catch (_) {}
+
+                // Update URL ?msisdn=...
+                try {
+                    const u = new URL(window.location.href);
+                    u.searchParams.set('msisdn', msisdn);
+                    window.history.replaceState({}, '', u.toString());
+                } catch (_) {}
+
+                if (window.SbmsToast) SbmsToast.success('Абонент загружен: ' + (data.customer?.name || msisdn));
+                if (typeof window.__arRescheduleAfterLoad === 'function') window.__arRescheduleAfterLoad();
+                // Сброс CDR при смене MSISDN, ре-load для того же MSISDN не сбрасывает.
+                if (typeof window.__doLoadCallsHook === 'function' && window.__lastCallsMsisdn !== msisdn) {
+                    window.__doLoadCallsHook();
+                    window.__lastCallsMsisdn = msisdn;
+                }
+                // Сброс лимитов при смене MSISDN
+                if (typeof window.__doLoadLimitsHook === 'function' && window.__lastLimitsMsisdn !== msisdn) {
+                    window.__doLoadLimitsHook();
+                    window.__lastLimitsMsisdn = msisdn;
+                }
+                // Сброс квот при смене MSISDN
+                if (typeof window.__doLoadQuotasHook === 'function' && window.__lastQuotasMsisdn !== msisdn) {
+                    window.__doLoadQuotasHook();
+                    window.__lastQuotasMsisdn = msisdn;
+                }
+                return true;
+            } catch (e) {
+                console.error(e);
+                if (window.SbmsToast) SbmsToast.error('Ошибка: ' + e.message);
+                $('loadingPanel').style.display = 'none';
+                $('emptyPanel').style.display = '';
+                return false;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
+        }
+
+        // ============================================================
+        // PIN current subscriber
+        // ============================================================
+        function refreshPinUi() {
+            const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            const btn = $('pinBtn');
+            const icon = $('pinIcon');
+            if (!btn || !icon) return;
+            const pinned = window.SbmsRecent && SbmsRecent.isPinned && SbmsRecent.isPinned(m);
+            if (pinned) {
+                icon.setAttribute('fill', 'currentColor');
+                btn.style.color = 'var(--warning-text)';
+                btn.title = 'Открепить';
+            } else {
+                icon.setAttribute('fill', 'none');
+                btn.style.color = '';
+                btn.title = 'Закрепить';
+            }
+        }
+        function togglePinCurrent() {
+            const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!m) return;
+            const c = (_data && _data.customer) || {};
+            if (window.SbmsRecent) {
+                SbmsRecent.togglePin(m, { label: c.name || '', page: 'subscriber' });
+                refreshPinUi();
+                if (window.SbmsToast) {
+                    if (SbmsRecent.isPinned(m)) SbmsToast.success('Закреплён ' + m);
+                    else SbmsToast.info('Откреплён ' + m);
+                }
+            }
+        }
+        window.togglePinCurrent = togglePinCurrent;
+
+        // ============================================================
+        // View-as: открыть модалку preview под другой ролью
+        // ============================================================
+        function openViewAs() {
+            if (!window.SbmsViewAs) {
+                if (window.SbmsToast) SbmsToast.error('Модуль SbmsViewAs не загружен');
+                return;
+            }
+            const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!m || !_data) {
+                if (window.SbmsToast) SbmsToast.warn('Сначала загрузите абонента');
+                return;
+            }
+            const c = (_data && _data.customer) || {};
+            SbmsViewAs.open({
+                msisdn: m,
+                adminSubscriberId: c.subscriberId || null,
+                adminLabel: 'Admin · текущая сессия',
+                onActivated: ({ side, kind, itemId, itemName }) => {
+                    // После активации обновляем главную карточку (если активация через admin)
+                    if (side === 'left' && typeof window.doLoad === 'function') {
+                        // мягкое обновление — не заставляя пользователя кликать
+                        setTimeout(() => { try { window.doLoad(); } catch {} }, 400);
+                    }
+                },
+            });
+        }
+        window.openViewAs = openViewAs;
+
+        // ============================================================
+        // Compare: открыть страницу /compare с текущим MSISDN как «A»
+        // ============================================================
+        function openCompare() {
+            const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!m) {
+                if (window.SbmsToast) SbmsToast.warn('Сначала загрузите абонента');
+                return;
+            }
+            // Открываем в новой вкладке — чтобы текущая карточка осталась на месте
+            window.open('/compare?a=' + encodeURIComponent(m), '_blank', 'noopener');
+        }
+        window.openCompare = openCompare;
+
+        // ============================================================
+        // SNAPSHOTS — для diff между загрузками
+        // ============================================================
+        const SNAP_PREFIX = 'sbms-snapshot-';
+        function snapshotKey(msisdn) { return SNAP_PREFIX + msisdn; }
+        function buildSnapshot(d, msisdn) {
+            const c = d.customer || {};
+            const v = c.volumesByTariff || c.volumes || {};
+            return {
+                msisdn,
+                ts: Date.now(),
+                'Тариф':         c.ratePlanName || '',
+                'Rate Plan ID':  c.ratePlanId,
+                'Баланс, сум':   c.balance != null ? Number(c.balance) : null,
+                'Абонплата, сум': c.currentFee != null ? Number(c.currentFee) : null,
+                'Статус':        c.status || '',
+                'Жизн. цикл':    c.lifecycleState || '',
+                'След. списание': c.nextChargeDate || '',
+                'Минуты':        v.minutes != null ? Number(v.minutes) : null,
+                'SMS':           v.sms != null ? Number(v.sms) : null,
+                'Интернет, MB':  v.mb != null ? Number(v.mb) : null,
+                'Бонусы, сум':   v.money != null ? Number(v.money) : null,
+                'Активных пакетов':  (d.activePacks || []).length,
+                'Активных услуг':    (d.activeServices || []).length,
+            };
+        }
+        function loadPrevSnapshot(msisdn) {
+            try {
+                const raw = localStorage.getItem(snapshotKey(msisdn));
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (_) { return null; }
+        }
+        function savePrevSnapshot(snap) {
+            try { localStorage.setItem(snapshotKey(snap.msisdn), JSON.stringify(snap)); } catch (_) {}
+        }
+        function fmtAge(ts) {
+            const sec = Math.max(1, Math.round((Date.now() - ts) / 1000));
+            if (sec < 60) return sec + ' сек назад';
+            if (sec < 3600) return Math.round(sec / 60) + ' мин назад';
+            if (sec < 86400) return Math.round(sec / 3600) + ' ч назад';
+            return Math.round(sec / 86400) + ' дн. назад';
+        }
+
+        // ============================================================
+        // RENDER
+        // ============================================================
+        function renderAll(d, msisdn) {
+            const c = d.customer || {};
+
+            // Сбрасываем кеш истории — для нового MSISDN подгрузим заново
+            _historyLoadedFor = null;
+            _historyItems = [];
+            $('cntHistory').textContent = '0';
+            $('historyBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:24px;">Откройте вкладку «История», чтобы загрузить</td></tr>';
+
+            // Активность по номеру — обновляем msisdn в существующем инстансе (если уже смонтирован)
+            if (_activityInst) {
+                _activityInst.setMsisdn(msisdn);
+                $('cntActivity').textContent = '—';
+                // Если таб активен — сразу подгружаем; иначе подгрузится по hook
+                const activeTab = document.querySelector('.tab-btn.is-active');
+                if (activeTab && activeTab.dataset.tab === 'activity') _activityInst.load(true);
+            }
+
+            // ----- Diff vs предыдущий snapshot (если есть) -----
+            try {
+                const prev = loadPrevSnapshot(msisdn);
+                const curr = buildSnapshot(d, msisdn);
+                const dp = $('diffPanel');
+                if (prev && window.SbmsDiff) {
+                    // не сравниваем служебные поля msisdn/ts
+                    const cmpA = Object.assign({}, prev); delete cmpA.msisdn; delete cmpA.ts;
+                    const cmpB = Object.assign({}, curr); delete cmpB.msisdn; delete cmpB.ts;
+                    const res = SbmsDiff.render(cmpA, cmpB, dp, {
+                        title: 'Что изменилось с прошлого открытия (' + fmtAge(prev.ts) + ')',
+                        collapseEqual: true,
+                        numberFormat: (v) => Math.round(v).toLocaleString('ru-RU'),
+                    });
+                    const has = res && res.stats && (res.stats.added + res.stats.changed + res.stats.removed) > 0;
+                    dp.style.display = has ? '' : 'none';
+                } else {
+                    dp.innerHTML = '';
+                    dp.style.display = 'none';
+                }
+                savePrevSnapshot(curr);
+            } catch (e) {
+                console.warn('snapshot diff failed:', e);
+            }
+
+            // Hero
+            $('hMsisdn').textContent = msisdn;
+            $('hName').textContent = c.name || 'Без имени';
+            $('hCid').textContent = c.customerId ?? '—';
+            $('hSid').textContent = c.subscriberId ?? '—';
+            $('hRatePlan').textContent = c.ratePlanName || '—';
+            $('hRatePlanId').textContent = c.ratePlanId ? 'ID ' + c.ratePlanId : '';
+            $('hBalance').textContent = c.balance != null ? fmtN(c.balance) : '—';
+            $('hCurrentFee').textContent = c.currentFee != null ? 'АП: ' + fmtN(c.currentFee) + ' сум' : '';
+            $('hStatus').textContent = c.status || '—';
+            $('hLifecycle').textContent = c.lifecycleState || '';
+            $('hNextCharge').textContent = c.nextChargeDate ? fmtDate(c.nextChargeDate) : '—';
+            $('hNextChargeRel').textContent = c.nextChargeDate ? relDate(c.nextChargeDate) : '';
+
+            // Overview
+            const v = c.volumesByTariff || c.volumes || {};
+            $('vMinutes').textContent = v.minutes != null ? fmtN(v.minutes) : '—';
+            $('vSms').textContent = v.sms != null ? fmtN(v.sms) : '—';
+            $('vMb').textContent = v.mb != null ? fmtN(v.mb) : '—';
+            $('vMoney').textContent = v.money != null ? fmtN(v.money) : '—';
+
+            $('oMsisdn').textContent = msisdn;
+            $('oCid').textContent = c.customerId ?? '—';
+            $('oSid').textContent = c.subscriberId ?? '—';
+            $('oProductId').textContent = c.currentProductId ?? '—';
+            $('oRpId').textContent = c.ratePlanId ?? '—';
+
+            // Tariff list
+            renderTariffs(d.availableRatePlans || [], c.ratePlanId);
+
+            // Packs
+            renderActiveTable($('activePacksBody'), 'pack', (d.activePacks || []).map(p => ({
+                id: p.packId,
+                instanceId: p.packInstanceId,
+                name: p.name,
+                status: p.status,
+            })));
+            renderAvailTable($('availPacksBody'), 'pack', (d.availablePacks || []).map(p => ({
+                id: p.packId, name: p.name, fee: p.fee
+            })));
+            $('cntPacks').textContent = (d.activePacks || []).length;
+
+            // Services
+            renderActiveTable($('activeSvcBody'), 'service', (d.activeServices || []).map(s => ({
+                id: s.serviceId,
+                instanceId: s.serviceInstanceId,
+                name: s.name,
+                status: s.status,
+            })));
+            renderAvailTable($('availSvcBody'), 'service', (d.availableServices || []).map(s => ({
+                id: s.serviceId, name: s.name, fee: s.fee
+            })));
+            $('cntServices').textContent = (d.activeServices || []).length;
+
+            // Counts
+            $('cntTariff').textContent = (d.availableRatePlans || []).length;
+
+            // Lifecycle
+            const lc = c.lifecycleDetails || {};
+            $('lcState').textContent = c.lifecycleState || '—';
+            $('lcActivation').textContent = lc.activationDate || lc.activatedDate || lc.beginDate || lc.startDate || '—';
+            $('lcBegin').textContent = lc.stateBeginDate || lc.stateStartDate || '—';
+
+            const histBody = $('lcHistBody');
+            const hist = c.lifecycleHistory || [];
+            if (!hist.length) {
+                histBody.innerHTML = '<tr><td colspan="3" style="color:var(--text-3);text-align:center;padding:24px;">Нет данных истории</td></tr>';
+            } else {
+                histBody.innerHTML = hist.map(h => `
+                    <tr>
+                        <td>${esc(h.state || '—')}</td>
+                        <td>${esc(h.startDate || h.stateDate || '—')}</td>
+                        <td>${esc(h.endDate || '—')}</td>
+                    </tr>`).join('');
+            }
+
+            // Show
+            $('loadingPanel').style.display = 'none';
+            $('heroPanel').style.display = '';
+            $('tabsPanel').style.display = '';
+            $('tabBody').style.display = '';
+            refreshPinUi();
+        }
+
+        function renderTariffs(items, currentRpId) {
+            const body = $('tariffBody');
+            if (!items.length) {
+                body.innerHTML = '<tr><td colspan="8" style="color:var(--text-3);text-align:center;padding:24px;">Нет доступных тарифов</td></tr>';
+                return;
+            }
+            const sorted = items.slice().sort((a, b) => {
+                if (Number(a.ratePlanId) === Number(currentRpId)) return -1;
+                if (Number(b.ratePlanId) === Number(currentRpId)) return 1;
+                return (a.name || '').localeCompare(b.name || '', 'ru');
+            });
+            body.innerHTML = sorted.map(t => {
+                const isCur = Number(t.ratePlanId) === Number(currentRpId);
+                const isArchived = !!t.isArchived;
+                const cls = (isCur ? 'current-row ' : '') + (isArchived ? 'archived-row ' : '');
+                let action = '';
+                if (isCur) {
+                    action = '<span style="color:var(--brand);font-size:11px;font-weight:600;">текущий</span>';
+                } else if (isArchived) {
+                    action = '<span style="color:var(--text-3);font-size:11px;">недоступен</span>';
+                } else {
+                    const rid = Number(t.ratePlanId);
+                    const rname = (t.name || '').replace(/'/g, "&#39;");
+                    action = `<button type="button" class="sb-btn sb-btn--secondary sb-btn--sm"
+                        onclick="confirmTariffChange(${rid}, '${rname}', ${t.recurringFee != null ? Number(t.recurringFee) : 'null'})">Сменить</button>`;
+                }
+                const docs = (window.SbmsDocs ? SbmsDocs.cell(t.name) : '');
+                return `<tr class="${cls.trim()}" data-name="${esc((t.name||'').toLowerCase())}" data-id="${esc(String(t.ratePlanId||''))}">
+                    <td class="id-col">${esc(t.ratePlanId)}</td>
+                    <td class="name-col">${esc(t.name || '—')} ${isCur ? '<span class="badge badge--brand" style="margin-left:6px;">текущий</span>' : ''}</td>
+                    <td class="num">${t.recurringFee != null ? fmtN(t.recurringFee) : '—'}</td>
+                    <td class="num">${t.activationCost != null ? fmtN(t.activationCost) : '—'}</td>
+                    <td>${esc(t.feePeriod || '—')}</td>
+                    <td>${isArchived ? '<span class="badge badge--warn">архив</span>' : '<span class="badge badge--ok">активен</span>'}</td>
+                    <td class="sd-td">${docs}</td>
+                    <td style="text-align:right;">${action}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderActiveTable(tbody, kind, items) {
+            if (!items || !items.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:24px;">Нет активных</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(it => {
+                const nm = (it.name || '').replace(/'/g, "&#39;");
+                const action = (it.instanceId != null)
+                    ? `<button type="button" class="sb-btn sb-btn--ghost sb-btn--sm"
+                           style="color:var(--danger-text);"
+                           onclick="confirmProductAction('${kind}','deactivate', ${Number(it.instanceId)}, '${nm}')">Отключить</button>`
+                    : '<span style="color:var(--text-3);font-size:11px;">нет instanceId</span>';
+                const docs = (window.SbmsDocs ? SbmsDocs.cell(it.name) : '');
+                return `<tr data-name="${esc((it.name||'').toLowerCase())}" data-id="${esc(String(it.id||''))}">
+                    <td class="id-col">${esc(it.id ?? '—')}</td>
+                    <td class="name-col">${esc(it.name || '—')}</td>
+                    <td><span class="badge badge--ok">${esc(it.status || 'OK')}</span></td>
+                    <td class="sd-td">${docs}</td>
+                    <td style="text-align:right;width:120px;">${action}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderAvailTable(tbody, kind, items) {
+            if (!items || !items.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-3);text-align:center;padding:24px;">Список пуст</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(it => {
+                const nm = (it.name || '').replace(/'/g, "&#39;");
+                const fee = it.fee != null ? Number(it.fee) : null;
+                const action = (it.id != null)
+                    ? `<button type="button" class="sb-btn sb-btn--secondary sb-btn--sm"
+                           onclick="confirmProductAction('${kind}','activate', ${Number(it.id)}, '${nm}', ${fee == null ? 'null' : fee})">Подключить</button>`
+                    : '';
+                const docs = (window.SbmsDocs ? SbmsDocs.cell(it.name) : '');
+                return `<tr data-name="${esc((it.name||'').toLowerCase())}" data-id="${esc(String(it.id||''))}">
+                    <td class="id-col">${esc(it.id ?? '—')}</td>
+                    <td class="name-col">${esc(it.name || '—')}</td>
+                    <td class="num">${it.fee != null ? fmtN(it.fee) : '—'}</td>
+                    <td class="sd-td">${docs}</td>
+                    <td style="text-align:right;width:120px;">${action}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ============================================================
+        // INLINE TARIFF CHANGE
+        // ============================================================
+        let _changing = false;
+
+        function confirmTariffChange(ratePlanId, newName, recurringFee) {
+            if (_changing) return;
+            const c = (_data && _data.customer) || {};
+            const sid = c.subscriberId;
+            const oldName = c.ratePlanName || '—';
+            if (!sid) {
+                if (window.SbmsToast) SbmsToast.error('Subscriber ID не найден — перезагрузите абонента');
+                return;
+            }
+
+            // Remove existing modal if any
+            const old = document.getElementById('tariffChangeModal');
+            if (old) old.remove();
+
+            const feeStr = (recurringFee != null && Number.isFinite(Number(recurringFee)))
+                ? Math.round(recurringFee).toLocaleString('ru-RU') + ' сум'
+                : '—';
+
+            const bg = document.createElement('div');
+            bg.className = 'sb-modal-bg';
+            bg.id = 'tariffChangeModal';
+            bg.innerHTML = `
+                <div class="sb-modal" role="dialog" aria-modal="true" aria-label="Смена тарифа">
+                    <h2 style="margin:0 0 var(--space-2);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-1);">
+                        Сменить тариф?
+                    </h2>
+                    <p style="color:var(--text-2);font-size:var(--text-sm);line-height:1.5;margin-bottom:var(--space-4);">
+                        Будет изменён тарифный план абонента
+                        <b style="color:var(--text-1);font-family:var(--font-mono);">${esc(c.name || '')}</b>
+                        (MSISDN ${esc($('msisdn').value)}).
+                    </p>
+                    <div style="background:var(--bg-canvas);border:1px solid var(--border);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--text-sm);">
+                        <div style="display:grid;grid-template-columns:90px 1fr;gap:6px var(--space-3);align-items:baseline;">
+                            <span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Сейчас</span>
+                            <span style="font-family:var(--font-mono);color:var(--danger-text);">${esc(oldName)} (ID ${c.ratePlanId ?? '—'})</span>
+                            <span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Станет</span>
+                            <span style="font-family:var(--font-mono);color:var(--success-text);">${esc(newName)} (ID ${ratePlanId})</span>
+                            <span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">АП</span>
+                            <span style="font-family:var(--font-mono);color:var(--text-1);">${feeStr}</span>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-3);font-size:var(--text-xs);margin-top:var(--space-3);line-height:1.4;">
+                        Операция асинхронная: SBMS вернёт <code style="font-family:var(--font-mono);">ratePlanOrderId</code>,
+                        фактическая смена произойдёт в течение нескольких секунд.
+                        Карточка перезагрузится автоматически — посмотри блок <b>diff</b> сверху.
+                    </p>
+                    <div style="display:flex;gap:var(--space-2);margin-top:var(--space-4);justify-content:flex-end;">
+                        <button type="button" class="sb-btn sb-btn--ghost"   id="tcCancel">Отмена</button>
+                        <button type="button" class="sb-btn sb-btn--primary" id="tcConfirm">Сменить тариф</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(bg);
+
+            const cleanup = () => bg.remove();
+            bg.querySelector('#tcCancel').onclick = cleanup;
+            bg.addEventListener('click', (ev) => { if (ev.target === bg) cleanup(); });
+            // Esc
+            const onEsc = (ev) => { if (ev.key === 'Escape') { cleanup(); document.removeEventListener('keydown', onEsc); } };
+            document.addEventListener('keydown', onEsc);
+
+            bg.querySelector('#tcConfirm').onclick = async () => {
+                _changing = true;
+                const okBtn = bg.querySelector('#tcConfirm');
+                okBtn.disabled = true;
+                okBtn.innerHTML = '<span class="spinner"></span>&nbsp;Отправка…';
+                try {
+                    const resp = await SbmsAuth.apiPost('/api/tariff/change', {
+                        subscriberId: sid,
+                        ratePlanId,
+                    });
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok || data.error) {
+                        throw new Error(data.error || ('HTTP ' + resp.status));
+                    }
+                    if (window.SbmsToast) {
+                        SbmsToast.success(
+                            'Заявка принята: ratePlanOrderId=' + (data.ratePlanOrderId || '?'),
+                            { duration: 6000 }
+                        );
+                    }
+                    cleanup();
+                    document.removeEventListener('keydown', onEsc);
+
+                    // Через ~3.5 сек перезагружаем абонента
+                    if (window.SbmsToast) SbmsToast.info('Через 4 секунды перезагрузим карточку…', { duration: 4000 });
+                    setTimeout(() => doLoad(), 4000);
+
+                } catch (e) {
+                    okBtn.disabled = false;
+                    okBtn.textContent = 'Сменить тариф';
+                    if (window.SbmsToast) SbmsToast.error('Ошибка: ' + e.message);
+                } finally {
+                    _changing = false;
+                }
+            };
+        }
+        // Делаем доступной из onclick атрибутов
+        window.confirmTariffChange = confirmTariffChange;
+
+        // ============================================================
+        // INLINE PACK / SERVICE ACTIONS (activate / deactivate)
+        // ============================================================
+        let _productActing = false;
+
+        function confirmProductAction(kind, mode, id, name, fee) {
+            if (_productActing) return;
+            const c = (_data && _data.customer) || {};
+            const sid = c.subscriberId;
+            if (!sid) {
+                if (window.SbmsToast) SbmsToast.error('Subscriber ID не найден — перезагрузите абонента');
+                return;
+            }
+
+            const isActivate   = mode === 'activate';
+            const isPack       = kind === 'pack';
+            const productLabel = isPack ? 'Пакет' : 'Услугу';
+            const verb         = isActivate ? 'Подключить' : 'Отключить';
+            const verbTitle    = isActivate ? 'Подключить' : 'Отключить';
+            const accent       = isActivate ? 'var(--success-text)' : 'var(--danger-text)';
+            const btnClass     = isActivate ? 'sb-btn--primary' : 'sb-btn--danger';
+
+            // Endpoint + body для каждого случая
+            const endpoint = `/api/${kind}s/${mode}`;
+            const body = { subscriberId: sid };
+            if (isPack && isActivate)        body.packId = id;
+            if (isPack && !isActivate)       body.packInstanceId = id;
+            if (!isPack && isActivate)       body.serviceId = id;
+            if (!isPack && !isActivate)      body.serviceInstanceId = id;
+
+            const old = document.getElementById('productActionModal');
+            if (old) old.remove();
+
+            const feeStr = (fee != null && Number.isFinite(Number(fee)))
+                ? Math.round(fee).toLocaleString('ru-RU') + ' сум'
+                : null;
+
+            const bg = document.createElement('div');
+            bg.className = 'sb-modal-bg';
+            bg.id = 'productActionModal';
+            bg.innerHTML = `
+                <div class="sb-modal" role="dialog" aria-modal="true" aria-label="${verb} ${productLabel.toLowerCase()}">
+                    <h2 style="margin:0 0 var(--space-2);font-size:var(--text-xl);font-weight:var(--weight-semibold);color:var(--text-1);">
+                        ${verb} ${productLabel.toLowerCase()}?
+                    </h2>
+                    <p style="color:var(--text-2);font-size:var(--text-sm);line-height:1.5;margin-bottom:var(--space-4);">
+                        Абонент <b style="color:var(--text-1);">${esc(c.name || '')}</b>
+                        (MSISDN ${esc($('msisdn').value)}, sid <span style="font-family:var(--font-mono);">${sid}</span>).
+                    </p>
+                    <div style="background:var(--bg-canvas);border:1px solid var(--border);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--text-sm);">
+                        <div style="display:grid;grid-template-columns:90px 1fr;gap:6px var(--space-3);align-items:baseline;">
+                            <span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">${productLabel}</span>
+                            <span style="font-family:var(--font-mono);color:${accent};">${esc(name)} (ID ${id})</span>
+                            <span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Действие</span>
+                            <span style="color:${accent};font-weight:600;">${verbTitle}</span>
+                            ${feeStr ? `<span style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Цена</span>
+                                        <span style="font-family:var(--font-mono);color:var(--text-1);">${feeStr}</span>` : ''}
+                        </div>
+                    </div>
+                    <p style="color:var(--text-3);font-size:var(--text-xs);margin-top:var(--space-3);line-height:1.4;">
+                        Карточка перезагрузится автоматически — посмотри блок <b>diff</b> сверху.
+                    </p>
+                    <div style="display:flex;gap:var(--space-2);margin-top:var(--space-4);justify-content:flex-end;">
+                        <button type="button" class="sb-btn sb-btn--ghost"   id="paCancel">Отмена</button>
+                        <button type="button" class="sb-btn ${btnClass}" id="paConfirm">${verbTitle}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(bg);
+
+            const cleanup = () => bg.remove();
+            bg.querySelector('#paCancel').onclick = cleanup;
+            bg.addEventListener('click', (ev) => { if (ev.target === bg) cleanup(); });
+            const onEsc = (ev) => { if (ev.key === 'Escape') { cleanup(); document.removeEventListener('keydown', onEsc); } };
+            document.addEventListener('keydown', onEsc);
+
+            bg.querySelector('#paConfirm').onclick = async () => {
+                _productActing = true;
+                const okBtn = bg.querySelector('#paConfirm');
+                okBtn.disabled = true;
+                okBtn.innerHTML = '<span class="spinner"></span>&nbsp;Отправка…';
+                try {
+                    const resp = await SbmsAuth.apiPost(endpoint, body);
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok || data.error) {
+                        throw new Error(data.error || ('HTTP ' + resp.status));
+                    }
+                    if (window.SbmsToast) {
+                        SbmsToast.success(verbTitle + ' выполнено: ' + name, { duration: 5000 });
+                    }
+                    cleanup();
+                    document.removeEventListener('keydown', onEsc);
+
+                    // Через 3 сек перезагрузим карточку
+                    if (window.SbmsToast) SbmsToast.info('Через 3 секунды перезагрузим карточку…', { duration: 3000 });
+                    setTimeout(() => doLoad(), 3000);
+                } catch (e) {
+                    okBtn.disabled = false;
+                    okBtn.textContent = verbTitle;
+                    if (window.SbmsToast) SbmsToast.error('Ошибка: ' + e.message);
+                } finally {
+                    _productActing = false;
+                }
+            };
+        }
+        window.confirmProductAction = confirmProductAction;
+
+        // ============================================================
+        // FILTERING (per-table search)
+        // ============================================================
+        function bindFilter(inputId, tbodyId) {
+            const inp = $(inputId), tb = $(tbodyId);
+            if (!inp || !tb) return;
+            inp.addEventListener('input', () => {
+                const q = inp.value.trim().toLowerCase();
+                Array.from(tb.children).forEach(tr => {
+                    if (!tr.dataset || !tr.dataset.name) return;
+                    const hit = !q || tr.dataset.name.includes(q) || tr.dataset.id.includes(q);
+                    tr.style.display = hit ? '' : 'none';
+                });
+            });
+        }
+        bindFilter('tariffFilter', 'tariffBody');
+        bindFilter('availPacksFilter', 'availPacksBody');
+        bindFilter('availSvcFilter',  'availSvcBody');
+
+        // ============================================================
+        // HISTORY (тaб «История»)
+        // ============================================================
+        let _historyLoadedFor = null; // MSISDN, для которого уже подгружено
+        let _historyItems = [];
+
+        function fmtHistTs(s) {
+            if (!s) return '—';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return s;
+            return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+        }
+        function fmtHistDur(sec) {
+            if (sec == null) return '—';
+            const n = Number(sec);
+            if (!Number.isFinite(n)) return '—';
+            if (n < 60) return n.toFixed(1) + 's';
+            const m = Math.floor(n / 60), s = Math.round(n - m*60);
+            return m + 'm ' + s + 's';
+        }
+        const KIND_BADGE = {
+            tariff:  { label: 'Тариф',     cls: 'badge--brand' },
+            matrix:  { label: 'Матрица',   cls: 'badge--info' },
+            product: { label: 'Прод. дост.', cls: 'badge--ok' },
+        };
+        // Добавляем info стиль (если в css только ok/warn/danger/brand)
+        if (!document.getElementById('badge-info-fix')) {
+            const s = document.createElement('style');
+            s.id = 'badge-info-fix';
+            s.textContent = '.badge--info { background: var(--info-soft); color: var(--info-text); }';
+            document.head.appendChild(s);
+        }
+
+        async function loadHistory(force) {
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) return;
+            if (!force && _historyLoadedFor === msisdn) {
+                renderHistory();
+                return;
+            }
+            const tbody = $('historyBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-3);"><span class="spinner"></span>&nbsp;Загрузка истории…</td></tr>';
+            try {
+                const resp = await fetch('/api/subscriber/history?msisdn=' + encodeURIComponent(msisdn));
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                _historyItems = data.items || [];
+                _historyLoadedFor = msisdn;
+                $('cntHistory').textContent = _historyItems.length;
+                renderHistory();
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--danger-text);">Ошибка: ${esc(e.message)}</td></tr>`;
+            }
+        }
+
+        function renderHistory() {
+            const tbody = $('historyBody');
+            const filter = ($('histKindFilter').value || '').trim();
+            const items = filter ? _historyItems.filter(x => x.kind === filter) : _historyItems;
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-3);">Нет прогонов по этому MSISDN</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(it => {
+                const k = KIND_BADGE[it.kind] || { label: it.kind, cls: '' };
+                const s = it.summary || {};
+                const total = s.total != null ? s.total : '—';
+                const pass = s.passed != null ? s.passed : (s.pass != null ? s.pass : '—');
+                const fail = s.failed != null ? s.failed : (s.fail != null ? s.fail : '—');
+                return `
+                    <tr>
+                        <td><span class="badge ${k.cls}">${esc(k.label)}</span></td>
+                        <td class="id-col">${esc(fmtHistTs(it.ts))}</td>
+                        <td>${esc(it.target || '—')}</td>
+                        <td class="num">${total}</td>
+                        <td class="num" style="color:var(--success-text);font-weight:600;">${pass}</td>
+                        <td class="num" style="color:${(Number(fail)||0)>0?'var(--danger-text)':'var(--text-3)'};font-weight:600;">${fail}</td>
+                        <td class="num">${esc(fmtHistDur(it.duration))}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        $('histKindFilter').addEventListener('change', renderHistory);
+        $('histReloadBtn').addEventListener('click', () => loadHistory(true));
+
+        // ============================================================
+        // TABS
+        // ============================================================
+        function activateTab(tab) {
+            const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+            if (!btn) return false;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+            document.querySelectorAll('[data-tab-pane]').forEach(p =>
+                p.classList.toggle('is-active', p.dataset.tabPane === tab));
+            if (tab === 'history') loadHistory(false);
+            // Расширяемая система хуков для табов с lazy-load
+            const hook = window.__activateTabHook && window.__activateTabHook[tab];
+            if (typeof hook === 'function') {
+                try { hook(); } catch (e) { console.error('activateTab hook for ' + tab + ' failed', e); }
+            }
+            return true;
+        }
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+        });
+
+        // ============================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================
+        // 1-8: switch tab; e: focus MSISDN input; r: reload current; ?: help
+        const TAB_ORDER = ['overview', 'tariff', 'packs', 'services', 'limits', 'quotas', 'calls', 'lifecycle', 'history'];
+        function isTypingInField(el) {
+            if (!el) return false;
+            const tag = el.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+            if (el.isContentEditable) return true;
+            return false;
+        }
+        function showHotkeyHelp() {
+            if (!window.SbmsToast) return;
+            const isMac = /Mac|iPhone|iPad/i.test(navigator.platform);
+            const k = isMac ? '⌘K' : 'Ctrl+K';
+            SbmsToast.info(
+                '1–8 — табы · e — поиск · r — обновить · a — авто · p — закрепить · ' + k + ' — палитра',
+                { duration: 6000 }
+            );
+        }
+        document.addEventListener('keydown', (ev) => {
+            // Ignore when modifier present (let ⌘K, copy/paste etc. through)
+            if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+            if (isTypingInField(document.activeElement)) return;
+            // Ignore if a modal is open (best-effort: any visible .sb-modal)
+            const modal = document.querySelector('.sb-modal.is-open, .sb-modal[aria-hidden="false"]');
+            if (modal) return;
+
+            const k = ev.key;
+            if (k >= '1' && k <= '8') {
+                const idx = Number(k) - 1;
+                if (TAB_ORDER[idx] && activateTab(TAB_ORDER[idx])) ev.preventDefault();
+            } else if (k === 'e' || k === 'E' || k === 'у' || k === 'У') {
+                const inp = $('msisdn');
+                if (inp) { inp.focus(); inp.select(); ev.preventDefault(); }
+            } else if (k === 'r' || k === 'R' || k === 'к' || k === 'К') {
+                const cur = ($('msisdn') && $('msisdn').value || '').replace(/[^0-9]/g, '');
+                if (cur) {
+                    doLoad();
+                    ev.preventDefault();
+                }
+            } else if (k === 'p' || k === 'P' || k === 'з' || k === 'З') {
+                if (typeof window.togglePinCurrent === 'function') {
+                    window.togglePinCurrent();
+                    ev.preventDefault();
+                }
+            } else if (k === 'a' || k === 'A' || k === 'ф' || k === 'Ф') {
+                // Toggle auto-refresh: off → 30s → off
+                arSetInterval(arInterval ? 0 : 30);
+                ev.preventDefault();
+            } else if (k === '?') {
+                showHotkeyHelp();
+                ev.preventDefault();
+            }
+        });
+
+        // ============================================================
+        // AUTO-REFRESH
+        // ============================================================
+        const AR_KEY = 'sbms-subscriber-autorefresh';
+        let arInterval = 0;       // секунды (0 = off)
+        let arTimerId = null;     // setTimeout id для следующего тика
+        let arTickId = null;      // setInterval id для countdown
+        let arRemaining = 0;
+        let arFailCount = 0;
+
+        try {
+            const stored = Number(sessionStorage.getItem(AR_KEY));
+            if ([0, 15, 30, 60, 120].includes(stored)) arInterval = stored;
+        } catch {}
+        $('arSelect').value = String(arInterval);
+
+        function arUpdateDot() {
+            const dot = $('arDot');
+            if (!dot) return;
+            if (!arInterval) {
+                dot.style.background = 'var(--text-3)';
+            } else if (document.hidden) {
+                dot.style.background = 'var(--warning, #d97706)';
+            } else {
+                dot.style.background = 'var(--success-text, #16a34a)';
+            }
+        }
+        function arUpdateCountdown() {
+            const el = $('arCountdown');
+            if (!el) return;
+            if (!arInterval || arRemaining <= 0) { el.textContent = ''; return; }
+            el.textContent = arRemaining + 's';
+        }
+        function arStop() {
+            if (arTimerId) { clearTimeout(arTimerId); arTimerId = null; }
+            if (arTickId)  { clearInterval(arTickId);  arTickId  = null; }
+            arRemaining = 0;
+            arUpdateCountdown();
+            arUpdateDot();
+        }
+        function arSchedule() {
+            arStop();
+            if (!arInterval) return;
+            // Не тикаем в фоне — браузер всё равно throttle'ит, и нет смысла дёргать API
+            if (document.hidden) { arUpdateDot(); return; }
+            // Не запускаем если ещё нет загруженного абонента
+            if ($('heroPanel').style.display === 'none') return;
+            arRemaining = arInterval;
+            arUpdateCountdown();
+            arUpdateDot();
+            arTickId = setInterval(() => {
+                arRemaining--;
+                if (arRemaining < 0) arRemaining = 0;
+                arUpdateCountdown();
+            }, 1000);
+            arTimerId = setTimeout(arFire, arInterval * 1000);
+        }
+        async function arFire() {
+            // Не дёргаем если открыта модалка (например, confirm смены тарифа)
+            const modal = document.querySelector('.sb-modal.is-open, .sb-modal[aria-hidden="false"]');
+            if (modal) { arSchedule(); return; }
+            // Не дёргаем если кнопка Загрузить уже в процессе
+            const btn = $('loadBtn');
+            if (btn && btn.disabled) { arSchedule(); return; }
+            const ok = await doLoad();
+            if (ok) {
+                arFailCount = 0;
+            } else {
+                arFailCount++;
+                if (arFailCount >= 3) {
+                    if (window.SbmsToast) SbmsToast.warn('Авто-обновление приостановлено: 3 ошибки подряд');
+                    arSetInterval(0);
+                    return;
+                }
+            }
+            arSchedule();
+        }
+        function arSetInterval(sec) {
+            arInterval = sec;
+            try { sessionStorage.setItem(AR_KEY, String(sec)); } catch {}
+            $('arSelect').value = String(sec);
+            arSchedule();
+            if (window.SbmsToast) {
+                if (sec) SbmsToast.success('Авто-обновление: каждые ' + sec + 'с');
+                else SbmsToast.info('Авто-обновление выключено');
+            }
+        }
+        $('arSelect').addEventListener('change', () => {
+            const v = Number($('arSelect').value);
+            if ([0, 15, 30, 60, 120].includes(v)) arSetInterval(v);
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (arTimerId) { clearTimeout(arTimerId); arTimerId = null; }
+                if (arTickId)  { clearInterval(arTickId);  arTickId  = null; }
+                arUpdateDot();
+            } else {
+                arSchedule();
+            }
+        });
+        // Перезапуск таймера после успешной загрузки абонента
+        window.__arRescheduleAfterLoad = () => arSchedule();
+        arUpdateDot();
+
+        // ============================================================
+        // LIMITS / DISCOUNTS — общие лимиты и скидки по источникам
+        // ============================================================
+        // Источник правды: POST /api/limits/all → { groups: [{sourceType, sourceName, discounts: [...]}] }
+        // sourceType: 'tariff' | 'pack' | 'service' | 'unknown'
+        // discount.measureUnitId: 0=деньги, 1=минуты, 7=SMS, 14=Интернет
+        const _LIM_SRC = {
+            tariff:  { label: 'Тариф',  cls: 'lim-src--tariff' },
+            pack:    { label: 'Пакет',  cls: 'lim-src--pack' },
+            service: { label: 'Услуга', cls: 'lim-src--service' },
+            unknown: { label: 'Прочее', cls: 'lim-src--unknown' },
+        };
+        const _LIM_UNIT = {
+            0:  { label: 'Деньги',   cls: 'lim-unit--money',   bar: 'lim-bar__fill--money',   fmt: v => Math.round(v).toLocaleString('ru-RU') + ' сум' },
+            1:  { label: 'Минуты',   cls: 'lim-unit--minutes', bar: 'lim-bar__fill--minutes', fmt: v => Math.round(v).toLocaleString('ru-RU') + ' мин' },
+            7:  { label: 'SMS',      cls: 'lim-unit--sms',     bar: 'lim-bar__fill--sms',     fmt: v => Math.round(v).toLocaleString('ru-RU') + ' SMS' },
+            14: { label: 'Интернет', cls: 'lim-unit--mb',      bar: 'lim-bar__fill--mb',      fmt: v => _fmtMb(v) },
+        };
+        function _fmtMb(v) {
+            const n = Number(v) || 0;
+            if (n >= 1024) return (n / 1024).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ГБ';
+            return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' МБ';
+        }
+
+        // Колонки таблицы скидок (sort = тип сортировки, group = семантика для UI настройки)
+        const LIMITS_COLUMNS = [
+            // ───── ОСНОВНОЕ ─────
+            { key: 'unit',   label: 'Тип',         group: 'main',   default: true,  sort: 'string', width: '110px' },
+            { key: 'src',    label: 'Источник',    group: 'main',   default: true,  sort: 'string', width: '170px' },
+            { key: 'name',   label: 'Название',    group: 'main',   default: true,  sort: 'string' },
+            // ───── ОБЪЁМЫ ─────
+            { key: 'max',    label: 'Выдано',      group: 'volume', default: true,  sort: 'number', align: 'right', width: '110px' },
+            { key: 'spent',  label: 'Использовано',group: 'volume', default: true,  sort: 'number', align: 'right', width: '120px' },
+            { key: 'rem',    label: 'Остаток',     group: 'volume', default: true,  sort: 'number', align: 'right', width: '110px' },
+            { key: 'pct',    label: 'Прогресс',    group: 'volume', default: true,  sort: 'number', width: '140px' },
+            // ───── СРОКИ ─────
+            { key: 'period', label: 'Период',      group: 'time',   default: true,  sort: 'date',   width: '160px' },
+            { key: 'status', label: 'Статус',      group: 'time',   default: true,  sort: 'string', width: '90px' },
+        ];
+
+        const _LIMITS_COL_GROUPS = [
+            { id: 'main',   label: 'Основное' },
+            { id: 'volume', label: 'Объёмы' },
+            { id: 'time',   label: 'Сроки' },
+        ];
+
+        const _LIMITS_PRESETS = {
+            standard: LIMITS_COLUMNS.map(c => c.key),                    // все 9
+            compact:  ['unit', 'name', 'rem', 'pct', 'status'],          // только самое важное
+            full:     LIMITS_COLUMNS.map(c => c.key),                    // все 9 (то же что standard)
+        };
+
+        // Состояние
+        let _limitsRows  = null;     // плоский массив строк (после flatten)
+        let _limitsRaw   = null;     // оригинальный ответ /api/limits/all
+        let _limitsSort  = { key: 'unit', dir: 'asc' };
+        let _limitsLoading = false;
+        let _limitsLoadedFor = null; // MSISDN для которого данные актуальны
+
+        function _limitsRowFromDiscount(g, d) {
+            const sm = _LIM_SRC[g.sourceType] || _LIM_SRC.unknown;
+            const ui = _LIM_UNIT[d.measureUnitId] || { label: 'unit_' + d.measureUnitId, cls: 'lim-unit--other', bar: '', fmt: v => String(v) };
+            const max = Number(d.maxVolume) || 0;
+            const spent = Number(d.spentVolume) || 0;
+            const rem = Number(d.remaining != null ? d.remaining : (max - spent)) || 0;
+            const pct = max > 0 ? Math.max(0, Math.min(100, (spent / max) * 100)) : 0;
+            const startTs = d.startDate ? new Date(d.startDate).getTime() : null;
+            const endTs   = d.endDate   ? new Date(d.endDate).getTime()   : null;
+            const isActive = (endTs == null) || (endTs >= Date.now());
+            const name = d.discountName || (d.discountPlanId ? 'Plan ' + d.discountPlanId : '—');
+            return {
+                sourceType: g.sourceType,
+                sourceName: g.sourceName || sm.label,
+                sourceId: g.sourceId,
+                productId: g.productId,
+                unitId: d.measureUnitId,
+                unitLabel: ui.label,
+                unitCls: ui.cls,
+                barCls: ui.bar,
+                discountPlanId: d.discountPlanId,
+                discountName: name,
+                discountType: d.discountType,
+                max, spent, rem, pct,
+                startDate: d.startDate || '',
+                endDate:   d.endDate   || '',
+                startTs, endTs, isActive,
+                _search: ((name || '') + ' ' + (d.discountPlanId || '') + ' ' + (g.sourceName || '') + ' ' + sm.label).toLowerCase(),
+            };
+        }
+
+        function _flattenLimits(groups) {
+            const rows = [];
+            (groups || []).forEach(g => {
+                (g.discounts || []).forEach(d => rows.push(_limitsRowFromDiscount(g, d)));
+            });
+            return rows;
+        }
+
+        function _renderLimitsKpi(rows) {
+            const totals = { 1: { rem: 0, max: 0, n: 0 }, 7: { rem: 0, max: 0, n: 0 }, 14: { rem: 0, max: 0, n: 0 }, 0: { rem: 0, max: 0, n: 0 } };
+            (rows || []).forEach(r => {
+                if (!r.isActive) return;
+                if (totals[r.unitId]) {
+                    totals[r.unitId].rem += r.rem;
+                    totals[r.unitId].max += r.max;
+                    totals[r.unitId].n++;
+                }
+            });
+            const setKpi = (unit, remId, maxId) => {
+                const t = totals[unit];
+                const ui = _LIM_UNIT[unit];
+                if (!t || t.n === 0) {
+                    $(remId).textContent = '—';
+                    $(maxId).textContent = '—';
+                    return;
+                }
+                $(remId).textContent = ui.fmt(t.rem);
+                $(maxId).textContent = 'из ' + ui.fmt(t.max) + ' · ' + t.n + (t.n > 1 ? ' скидок' : ' скидка');
+            };
+            setKpi(1,  'lkMinRem',   'lkMinMax');
+            setKpi(7,  'lkSmsRem',   'lkSmsMax');
+            setKpi(14, 'lkMbRem',    'lkMbMax');
+            setKpi(0,  'lkMoneyRem', 'lkMoneyMax');
+        }
+
+        function _getActiveLimitsCols() {
+            const map = new Map(LIMITS_COLUMNS.map(c => [c.key, c]));
+            return _limitsCols.getActive().map(lc => map.get(lc.key)).filter(Boolean);
+        }
+        function _renderLimitsHead() {
+            const cg = $('limitsColg');
+            const tr = $('limitsHead');
+            const cols = _getActiveLimitsCols();
+            cg.innerHTML = cols.map(c => {
+                const persisted = _limitsCols.getWidth(c.key);
+                const w = persisted ? (persisted + 'px') : (c.width || '');
+                return `<col data-col-key="${esc(c.key)}"${w ? ' style="width:' + w + '"' : ''}>`;
+            }).join('');
+            tr.innerHTML = cols.map(c => {
+                const align = c.align === 'right' ? 'text-align:right;' : '';
+                const isCur = _limitsSort && _limitsSort.key === c.key;
+                const arrow = isCur ? (_limitsSort.dir === 'asc' ? '▲' : '▼') : (c.sort ? '↕' : '');
+                const arrowColor = isCur ? 'var(--brand)' : 'var(--text-3)';
+                // ширина: persisted (resize) → c.width
+                const persisted = _limitsCols.getWidth(c.key);
+                const wstr = persisted ? `width:${persisted}px;` : (c.width ? `width:${c.width};` : '');
+                const cursor = c.sort ? 'cursor:pointer;user-select:none;' : '';
+                const onclick = c.sort ? `onclick="_onLimitsHeadClick('${esc(c.key)}')"` : '';
+                return `<th data-col-key="${esc(c.key)}" style="${align}${wstr}${cursor}" ${onclick}
+                          title="${c.sort ? 'Сортировать · перетащите для смены порядка · потяните за правый край для ширины' : ''}">
+                            ${esc(c.label)} ${arrow ? `<span style="color:${arrowColor};font-size:10px;margin-left:2px;">${arrow}</span>` : ''}
+                        </th>`;
+            }).join('');
+            _limitsCols.bindHead();
+        }
+        function _onLimitsHeadClick(key) {
+            const col = LIMITS_COLUMNS.find(c => c.key === key);
+            if (!col || !col.sort) return;
+            if (_limitsSort && _limitsSort.key === key) {
+                _limitsSort.dir = _limitsSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                _limitsSort = { key, dir: 'asc' };
+            }
+            _renderLimitsTable();
+        }
+        window._onLimitsHeadClick = _onLimitsHeadClick;
+
+        function _sortLimitsRows(rows) {
+            if (!_limitsSort || !rows.length) return rows;
+            const dir = _limitsSort.dir === 'desc' ? -1 : 1;
+            const key = _limitsSort.key;
+            const getter = (r) => {
+                switch (key) {
+                    case 'unit':   return r.unitLabel;
+                    case 'src':    return (r.sourceType + ' ' + r.sourceName).toLowerCase();
+                    case 'name':   return (r.discountName || '').toLowerCase();
+                    case 'max':    return r.max;
+                    case 'spent':  return r.spent;
+                    case 'rem':    return r.rem;
+                    case 'pct':    return r.pct;
+                    case 'period': return r.endTs == null ? Infinity : r.endTs;
+                    case 'status': return r.isActive ? 0 : 1;
+                    default:       return 0;
+                }
+            };
+            return rows.slice().sort((a, b) => {
+                const va = getter(a), vb = getter(b);
+                if (va == null && vb == null) return 0;
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (va < vb) return -1 * dir;
+                if (va > vb) return  1 * dir;
+                return 0;
+            });
+        }
+
+        function _filterLimitsRows(rows) {
+            const fSrc    = $('limfSource').value;
+            const fStatus = $('limfStatus').value;
+            const fUnit   = $('limfUnit').value;
+            const fFrom   = $('limfDateFrom').value;
+            const fTo     = $('limfDateTo').value;
+            const fSrch   = ($('limfSearch').value || '').trim().toLowerCase();
+            const fromTs = fFrom ? new Date(fFrom + 'T00:00:00').getTime() : null;
+            const toTs   = fTo   ? new Date(fTo   + 'T23:59:59').getTime() : null;
+            return rows.filter(r => {
+                if (fSrc !== 'all' && r.sourceType !== fSrc) return false;
+                if (fUnit !== 'all' && String(r.unitId) !== fUnit) return false;
+                if (fStatus === 'active'  && !r.isActive) return false;
+                if (fStatus === 'expired' &&  r.isActive) return false;
+                if (fromTs != null && r.endTs   != null && r.endTs   < fromTs) return false;
+                if (toTs   != null && r.startTs != null && r.startTs > toTs)   return false;
+                if (fSrch && r._search.indexOf(fSrch) === -1) return false;
+                return true;
+            });
+        }
+
+        function _fmtRuDate(s) {
+            if (!s) return '—';
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return s;
+            return d.toLocaleDateString('ru-RU');
+        }
+
+        function _renderLimitsCell(r, key) {
+            const ui = _LIM_UNIT[r.unitId] || { fmt: v => String(v) };
+            const sm = _LIM_SRC[r.sourceType] || _LIM_SRC.unknown;
+            switch (key) {
+                case 'unit':
+                    return `<td><span class="lim-unit-badge ${r.unitCls}">${esc(r.unitLabel)}</span></td>`;
+                case 'src':
+                    return `<td><span class="lim-src-badge ${sm.cls}" title="${esc(r.sourceName)}">${esc(sm.label)}</span> <span style="color:var(--text-3);font-size:11px;margin-left:4px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:120px;vertical-align:middle;">${esc(r.sourceName)}</span></td>`;
+                case 'name': {
+                    const idLabel = r.discountPlanId ? ` <span style="color:var(--text-3);font-size:11px;">(ID: ${esc(String(r.discountPlanId))})</span>` : '';
+                    return `<td style="color:var(--text-2);">${esc(r.discountName)}${idLabel}</td>`;
+                }
+                case 'max':
+                    return `<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text-2);">${esc(ui.fmt(r.max))}</td>`;
+                case 'spent':
+                    return `<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--warning-text);">${esc(ui.fmt(r.spent))}</td>`;
+                case 'rem':
+                    return `<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--success-text);font-weight:600;">${esc(ui.fmt(r.rem))}</td>`;
+                case 'pct': {
+                    const barFill = r.pct >= 95 ? 'lim-bar__fill--depleted' : r.barCls;
+                    return `<td>
+                        <div class="lim-bar">
+                            <div class="lim-bar__track"><div class="lim-bar__fill ${barFill}" style="width:${r.pct.toFixed(1)}%"></div></div>
+                            <span class="lim-bar__pct">${r.pct.toFixed(0)}%</span>
+                        </div>
+                    </td>`;
+                }
+                case 'period': {
+                    const startDate = r.startDate ? _fmtRuDate(r.startDate) : '—';
+                    const endDate   = r.endDate   ? _fmtRuDate(r.endDate)   : '∞';
+                    const periodTip = r.startDate && r.endDate ? `c ${esc(_fmtRuDate(r.startDate))} по ${esc(_fmtRuDate(r.endDate))}` : '';
+                    return `<td style="color:var(--text-3);font-size:11.5px;font-family:var(--font-mono);" title="${periodTip}">${esc(startDate)} → ${esc(endDate)}</td>`;
+                }
+                case 'status':
+                    return `<td><span class="lim-status-badge ${r.isActive ? 'lim-status--active' : 'lim-status--expired'}">${r.isActive ? 'Действует' : 'Истёк'}</span></td>`;
+                default:
+                    return '<td></td>';
+            }
+        }
+
+        function _renderLimitsTable() {
+            _renderLimitsHead();
+            const cols = _getActiveLimitsCols();
+            const span = Math.max(1, cols.length);
+            const tbody = $('limitsBody');
+            const exp = $('limitsExportBtn');
+            const summary = $('limitsSummary');
+            if (_limitsRows === null) {
+                tbody.innerHTML = `<tr><td colspan="${span}" style="text-align:center;color:var(--text-3);padding:24px;">Нажмите «↻ Обновить», чтобы загрузить скидки.</td></tr>`;
+                summary.textContent = '—';
+                exp.disabled = true;
+                return;
+            }
+            let rows = _filterLimitsRows(_limitsRows);
+            rows = _sortLimitsRows(rows);
+            const activeShown = rows.filter(r => r.isActive).length;
+            summary.textContent = `${rows.length} из ${_limitsRows.length} · действует ${activeShown}`;
+            exp.disabled = !rows.length;
+
+            if (!rows.length) {
+                tbody.innerHTML = `<tr><td colspan="${span}" style="text-align:center;color:var(--text-3);padding:24px;">Под фильтр ничего не подходит</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map(r =>
+                `<tr>${cols.map(c => _renderLimitsCell(r, c.key)).join('')}</tr>`
+            ).join('');
+        }
+
+        async function loadLimits(force) {
+            if (_limitsLoading) return;
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) {
+                if (window.SbmsToast) SbmsToast.warn('Сначала загрузите абонента');
+                return;
+            }
+            // Кеш по MSISDN — повторная загрузка без force не дёргает API
+            if (!force && _limitsLoadedFor === msisdn && _limitsRows !== null) {
+                return;
+            }
+            if (!window.SbmsAuth || !SbmsAuth.token) {
+                try { await SbmsAuth.require(); } catch { return; }
+            }
+            _limitsLoading = true;
+            const btn = $('limitsReloadBtn');
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>&nbsp;Загрузка…';
+            $('limitsBody').innerHTML = `<tr><td colspan="${_getActiveLimitsCols().length}" style="text-align:center;color:var(--text-3);padding:24px;"><span class="spinner"></span>&nbsp;Загружаем скидки…</td></tr>`;
+            $('limitsMeta').textContent = 'загружается…';
+
+            try {
+                const resp = await fetch('/api/limits/all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn, authToken: SbmsAuth.token }),
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok) throw new Error(json.error || ('HTTP ' + resp.status));
+                _limitsRaw = json;
+                _limitsRows = _flattenLimits(json.groups || []);
+                _limitsLoadedFor = msisdn;
+                $('cntLimits').textContent = String(_limitsRows.length);
+                const groupsCount = (json.groups || []).length;
+                $('limitsMeta').textContent = `${_limitsRows.length} скидок · ${groupsCount} ${groupsCount === 1 ? 'источник' : 'источника'}`;
+                _renderLimitsKpi(_limitsRows);
+                _renderLimitsTable();
+                if (window.SbmsToast) {
+                    if (_limitsRows.length) SbmsToast.success('Загружено скидок: ' + _limitsRows.length);
+                    else SbmsToast.info('Активных скидок нет');
+                }
+            } catch (e) {
+                console.error(e);
+                $('limitsBody').innerHTML = `<tr><td colspan="${_getActiveLimitsCols().length}" style="text-align:center;color:var(--danger-text);padding:24px;">Ошибка: ${esc(e.message)}</td></tr>`;
+                $('limitsMeta').textContent = 'ошибка';
+                if (window.SbmsToast) SbmsToast.error('Не удалось загрузить лимиты: ' + e.message);
+            } finally {
+                _limitsLoading = false;
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
+        }
+
+        function resetLimitsFilters() {
+            ['limfSource', 'limfStatus', 'limfUnit'].forEach(id => { $(id).value = 'all'; });
+            ['limfDateFrom', 'limfDateTo', 'limfSearch'].forEach(id => { $(id).value = ''; });
+            _renderLimitsTable();
+        }
+
+        function exportLimitsCsv() {
+            if (!Array.isArray(_limitsRows) || !_limitsRows.length) {
+                if (window.SbmsToast) SbmsToast.warn('Нечего экспортировать');
+                return;
+            }
+            let rows = _filterLimitsRows(_limitsRows);
+            rows = _sortLimitsRows(rows);
+            function esv(v) {
+                if (v == null) return '';
+                const s = String(v);
+                return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }
+            // Экспорт строго по активным колонкам (видимым) и в их порядке
+            const cols = _getActiveLimitsCols();
+            const cellRaw = (r, key) => {
+                switch (key) {
+                    case 'unit':   return r.unitLabel;
+                    case 'src':    return (_LIM_SRC[r.sourceType] ? _LIM_SRC[r.sourceType].label : r.sourceType) + (r.sourceName ? ' / ' + r.sourceName : '');
+                    case 'name':   return r.discountName + (r.discountPlanId ? ' (ID: ' + r.discountPlanId + ')' : '');
+                    case 'max':    return r.max;
+                    case 'spent':  return r.spent;
+                    case 'rem':    return r.rem;
+                    case 'pct':    return r.pct.toFixed(1);
+                    case 'period': return (r.startDate ? _fmtRuDate(r.startDate) : '') + ' → ' + (r.endDate ? _fmtRuDate(r.endDate) : '∞');
+                    case 'status': return r.isActive ? 'Действует' : 'Истёк';
+                    default:       return '';
+                }
+            };
+            const headers = cols.map(c => c.label);
+            const lines = rows.map(r => cols.map(c => esv(cellRaw(r, c.key))).join(','));
+            const csv = '﻿' + headers.map(esv).join(',') + '\r\n' + lines.join('\r\n') + '\r\n';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '') || 'unknown';
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `limits-${msisdn}-${stamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+            if (window.SbmsToast) SbmsToast.success('Экспортировано: ' + rows.length + ' строк');
+        }
+
+        // Инстанс менеджера колонок — должен быть создан ДО первого _renderLimitsHead
+        const _limitsCols = SbmsTableCols.create({
+            tableId: 'limitsTbl',
+            storageKey: 'sbms-limits-cols-v1',
+            columns: LIMITS_COLUMNS.map(c => ({
+                key: c.key,
+                label: c.label,
+                group: c.group,
+                default: c.default,
+                minWidth: 70,
+                maxWidth: 500,
+            })),
+            groups: _LIMITS_COL_GROUPS,
+            presets: _LIMITS_PRESETS,
+            defaultPreset: 'standard',
+            pickerEl: '#limitsColsMenu',
+            countEl:  '#limitsColsCount',
+            onChange: () => _renderLimitsTable(),
+        });
+
+        // Bindings
+        $('limitsReloadBtn').addEventListener('click', () => loadLimits(true));
+        $('limitsExportBtn').addEventListener('click', exportLimitsCsv);
+        $('limfReset').addEventListener('click', resetLimitsFilters);
+        ['limfSource', 'limfStatus', 'limfUnit', 'limfDateFrom', 'limfDateTo'].forEach(id => {
+            $(id).addEventListener('change', _renderLimitsTable);
+        });
+        $('limfSearch').addEventListener('input', _renderLimitsTable);
+        _renderLimitsHead();
+
+        // Сброс при смене абонента
+        window.__doLoadLimitsHook = () => {
+            _limitsRows = null;
+            _limitsRaw = null;
+            _limitsLoadedFor = null;
+            _limitsSort = { key: 'unit', dir: 'asc' };
+            $('cntLimits').textContent = '—';
+            $('limitsMeta').textContent = 'не загружены';
+            ['lkMinRem', 'lkSmsRem', 'lkMbRem', 'lkMoneyRem'].forEach(id => { $(id).textContent = '—'; });
+            ['lkMinMax', 'lkSmsMax', 'lkMbMax', 'lkMoneyMax'].forEach(id => { $(id).textContent = 'из —'; });
+            resetLimitsFilters();
+            _renderLimitsTable();
+        };
+
+        // Lazy-load: при первом открытии таба «Лимиты»
+        window.__activateTabHook = window.__activateTabHook || {};
+        window.__activateTabHook.limits = () => {
+            if (_limitsRows === null && !_limitsLoading) loadLimits(false);
+        };
+
+        // ============================================================
+        // QUOTAS (UCELL_GET_SUBSCRIBER_ALL_QUOTA) — lazy load
+        // ============================================================
+        // Состояние таба
+        let _quotasItems = null;          // массив или null = не загружено
+        let _quotasLoadedFor = null;      // MSISDN, для которого мы кешировали
+        let _quotasLoading = false;
+        let _quotasFetchedAt = null;
+
+        const QUOTA_CAT = {
+            internet: { label: 'Интернет',  color: '#a78bfa' },
+            sms:      { label: 'SMS',       color: '#3b82f6' },
+            voice:    { label: 'Минуты',    color: '#22c55e' },
+            social:   { label: 'Соц. сети', color: '#ec4899' },
+            bonus:    { label: 'Бонус',     color: '#f59e0b' },
+            other:    { label: 'Прочее',    color: 'var(--text-3)' },
+        };
+        const QUOTA_STATUS = {
+            active:    { label: 'Активна',           cls: 'qa-st--active' },
+            expiring:  { label: 'Скоро закончится',  cls: 'qa-st--expiring' },
+            exhausted: { label: 'Исчерпана',         cls: 'qa-st--exhausted' },
+            inactive:  { label: 'Неактивна',         cls: 'qa-st--inactive' },
+            unlimited: { label: 'Бессрочно',         cls: 'qa-st--unlimited' },
+        };
+
+        // Авто-конверсия объёмов: байты/КБ/МБ → человеческое представление.
+        // SBMS UCELL_GET_SUBSCRIBER_ALL_QUOTA отдаёт сырые числа без единиц —
+        // классифицируем по unit, который мы вывели из technical name.
+        function _quotaFmtVal(num, unit) {
+            if (num == null || !Number.isFinite(num)) return '—';
+            const n = Number(num);
+            if (unit === 'MB') {
+                // Поле трактуем как байты, если число большое (>1e6 → байты);
+                // иначе как МБ. Эвристика, но безопасная: SBMS отдаёт байты для
+                // интернет-квот (Q_Un_Soc_Msg = 2147483648 ≈ 2 GiB).
+                let bytes = n;
+                if (bytes < 1e6) bytes = bytes * 1024 * 1024; // считаем что в МБ
+                if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(2) + ' ГБ';
+                if (bytes >= 1024 ** 2) return (bytes / 1024 ** 2).toFixed(1) + ' МБ';
+                if (bytes >= 1024)      return (bytes / 1024).toFixed(0) + ' КБ';
+                return bytes.toFixed(0) + ' Б';
+            }
+            if (unit === 'min') return Math.round(n).toLocaleString('ru-RU') + ' мин';
+            if (unit === 'sms') return Math.round(n).toLocaleString('ru-RU') + ' SMS';
+            if (unit === 'pcs') return Math.round(n).toLocaleString('ru-RU') + ' шт';
+            // unit неизвестен — большие цифры красиво группируем
+            if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + ' млрд';
+            if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + ' млн';
+            return Math.round(n).toLocaleString('ru-RU');
+        }
+
+        function _quotaFmtDate(iso) {
+            if (!iso) return null;
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleDateString('ru-RU') + ' ' +
+                   d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function _renderQuotaCard(it) {
+            const cat = it.category || 'other';
+            const catMeta = QUOTA_CAT[cat] || QUOTA_CAT.other;
+            const stMeta  = QUOTA_STATUS[it.status] || QUOTA_STATUS.active;
+            const pct = (it.percent != null) ? it.percent : null;
+            const fillCls = it.unlimited
+                ? 'qa-card__fill--unlimited'
+                : (it.status === 'exhausted' ? 'qa-card__fill--depleted' : 'qa-card__fill--' + cat);
+            const barWidth = it.unlimited ? 100 : (pct != null ? pct : 0);
+            const totalStr = _quotaFmtVal(it.total, it.unit);
+            const usedStr  = _quotaFmtVal(it.used,  it.unit);
+            const remStr   = _quotaFmtVal(it.remaining, it.unit);
+            const actStr   = _quotaFmtDate(it.activationDate);
+            const expStr   = it.unlimited ? 'бессрочно' : _quotaFmtDate(it.expirationDate);
+            const stateCls = (it.status === 'exhausted') ? 'is-exhausted' :
+                             (it.status === 'inactive')  ? 'is-inactive'  : '';
+            const tooltip = [
+                'Технич. имя: ' + (it.name || '—'),
+                'Сервис: ' + (it.service || '—'),
+                'Категория: ' + catMeta.label,
+                'Статус: ' + stMeta.label,
+                pct != null ? ('Использовано: ' + pct.toFixed(1) + '%') : null,
+            ].filter(Boolean).join('\n');
+            return `
+            <div class="qa-card qa-card--${cat} ${stateCls}" title="${esc(tooltip)}">
+                <div class="qa-card__head">
+                    <div style="flex:1;min-width:0;">
+                        <div class="qa-card__title">${esc(it.nameHuman || it.name || '—')}</div>
+                        <div class="qa-card__sub">${esc(it.name || '')}${it.service ? ' · <span style="color:var(--text-2);">' + esc(it.service) + '</span>' : ''}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex-shrink:0;">
+                        <span class="qa-badge qa-cat--${cat}">${esc(catMeta.label)}</span>
+                        <span class="qa-badge ${stMeta.cls}">${esc(stMeta.label)}</span>
+                    </div>
+                </div>
+                <div class="qa-card__bar">
+                    <div class="qa-card__track">
+                        <div class="qa-card__fill ${fillCls}" style="width:${barWidth}%;"></div>
+                    </div>
+                    <div class="qa-card__pct">${it.unlimited ? '∞' : (pct != null ? pct.toFixed(1) + '%' : '—')}</div>
+                </div>
+                <div class="qa-card__row">
+                    <div><span class="k">Объём</span><span class="v">${esc(totalStr)}</span></div>
+                    <div><span class="k">Исп.</span><span class="v">${esc(usedStr)}</span></div>
+                    <div><span class="k">Остаток</span><span class="v">${esc(remStr)}</span></div>
+                </div>
+                <div class="qa-card__dates">
+                    ${actStr ? `<span><b>Активация:</b> ${esc(actStr)}</span>` : ''}
+                    ${expStr ? `<span><b>Обнуление:</b> ${esc(expStr)}</span>` : ''}
+                </div>
+            </div>`;
+        }
+
+        function _filterQuotaItems(items) {
+            const cat = $('qfCategory').value;
+            const st  = $('qfStatus').value;
+            const q   = ($('qfSearch').value || '').toLowerCase().trim();
+            return items.filter(it => {
+                if (cat !== 'all' && it.category !== cat) return false;
+                if (st  !== 'all' && it.status   !== st)  return false;
+                if (q) {
+                    const hay = ((it.name || '') + ' ' + (it.nameHuman || '') + ' ' + (it.service || '')).toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+        }
+
+        function _sortQuotaItems(items) {
+            const mode = $('qfSort').value;
+            const order = ['expiring', 'active', 'exhausted', 'unlimited', 'inactive'];
+            const arr = items.slice();
+            if (mode === 'pct-desc') {
+                arr.sort((a, b) => (b.percent || 0) - (a.percent || 0));
+            } else if (mode === 'pct-asc') {
+                arr.sort((a, b) => (a.percent || 0) - (b.percent || 0));
+            } else if (mode === 'rem-desc') {
+                arr.sort((a, b) => (b.remaining || 0) - (a.remaining || 0));
+            } else if (mode === 'name') {
+                arr.sort((a, b) => (a.nameHuman || a.name || '').localeCompare(b.nameHuman || b.name || '', 'ru'));
+            } else {
+                arr.sort((a, b) => {
+                    const sa = order.indexOf(a.status);
+                    const sb = order.indexOf(b.status);
+                    if (sa !== sb) return (sa < 0 ? 9 : sa) - (sb < 0 ? 9 : sb);
+                    return (b.percent || 0) - (a.percent || 0);
+                });
+            }
+            return arr;
+        }
+
+        function _renderQuotasKpi(items) {
+            // Сводка по категориям: «N квот · M активных»
+            const buckets = { internet: [], sms: [], voice: [], social: [], bonus: [], other: [] };
+            items.forEach(it => {
+                if (buckets[it.category]) buckets[it.category].push(it);
+            });
+            const set = (id, val, sub) => {
+                const el = $(id); if (el) el.textContent = val;
+                const subEl = $(id + 'Sub'); if (subEl) subEl.textContent = sub;
+            };
+            const summarize = (arr) => {
+                const total = arr.length;
+                if (!total) return ['—', 'нет квот'];
+                const active = arr.filter(x => x.status === 'active' || x.status === 'unlimited').length;
+                return [String(total), active + ' активн.'];
+            };
+            set('qkInternet', ...summarize(buckets.internet));
+            set('qkSms',      ...summarize(buckets.sms));
+            set('qkVoice',    ...summarize(buckets.voice));
+            set('qkSocial',   ...summarize(buckets.social));
+            set('qkBonus',    ...summarize(buckets.bonus));
+            set('qkOther',    ...summarize(buckets.other));
+        }
+
+        function _renderQuotasList() {
+            const root = $('quotasList');
+            if (!root) return;
+            const items = Array.isArray(_quotasItems) ? _quotasItems : [];
+            if (!items.length) {
+                root.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:24px;font-size:13px;">У абонента нет подключенных квот.</div>`;
+                $('quotasSummary').textContent = '0';
+                return;
+            }
+            const filtered = _sortQuotaItems(_filterQuotaItems(items));
+            $('quotasSummary').textContent = filtered.length === items.length
+                ? items.length + ' квот'
+                : filtered.length + ' из ' + items.length;
+            if (!filtered.length) {
+                root.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:24px;font-size:13px;">Под фильтр ничего не подходит.</div>`;
+                return;
+            }
+
+            const groupBy = $('qfGroup').value;
+            if (groupBy === 'none') {
+                root.innerHTML = `<div class="qa-cards">${filtered.map(_renderQuotaCard).join('')}</div>`;
+                return;
+            }
+
+            const buckets = new Map();
+            filtered.forEach(it => {
+                const key = (groupBy === 'status') ? it.status : it.category;
+                if (!buckets.has(key)) buckets.set(key, []);
+                buckets.get(key).push(it);
+            });
+            const order = (groupBy === 'status')
+                ? ['expiring', 'active', 'exhausted', 'unlimited', 'inactive']
+                : ['internet', 'sms', 'voice', 'social', 'bonus', 'other'];
+            const sortedKeys = order.filter(k => buckets.has(k))
+                .concat([...buckets.keys()].filter(k => !order.includes(k)));
+            const html = sortedKeys.map(key => {
+                const arr = buckets.get(key);
+                const meta = (groupBy === 'status')
+                    ? (QUOTA_STATUS[key] || { label: key })
+                    : (QUOTA_CAT[key]    || { label: key });
+                return `
+                <div class="qa-group">
+                    <div class="qa-group__title">
+                        <span>${esc(meta.label)}</span>
+                        <span class="qa-group__count">${arr.length}</span>
+                    </div>
+                    <div class="qa-cards">${arr.map(_renderQuotaCard).join('')}</div>
+                </div>`;
+            }).join('');
+            root.innerHTML = html;
+        }
+
+        async function loadQuotas(force) {
+            if (_quotasLoading) return;
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) {
+                if (window.SbmsToast) SbmsToast.warn('Сначала загрузите абонента');
+                return;
+            }
+            if (!force && _quotasLoadedFor === msisdn && Array.isArray(_quotasItems)) return;
+            if (!window.SbmsAuth || !SbmsAuth.token) {
+                try { await SbmsAuth.require(); } catch { return; }
+            }
+            _quotasLoading = true;
+            const btn = $('quotasReloadBtn');
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>&nbsp;Загрузка…';
+            $('quotasMeta').textContent = 'загружается…';
+            $('quotasList').innerHTML = `<div style="text-align:center;color:var(--text-3);padding:24px;font-size:13px;"><span class="spinner"></span>&nbsp;Запрос UCELL_GET_SUBSCRIBER_ALL_QUOTA…</div>`;
+
+            try {
+                // Через SbmsAuth.apiPost: на 401/403 он сам инвалидирует токен
+                // и открывает модалку входа. После повторного логина пользователь
+                // нажимает «↻ Обновить» и получает свежие данные.
+                const resp = await SbmsAuth.apiPost('/api/subscriber/quota', { msisdn });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok) {
+                    const msg = json.error || ('HTTP ' + resp.status);
+                    const err = new Error(msg);
+                    err._diag = json;
+                    err._status = resp.status;
+                    throw err;
+                }
+                _quotasItems = Array.isArray(json.items) ? json.items : [];
+                _quotasLoadedFor = msisdn;
+                _quotasFetchedAt = json.fetchedAt || Math.floor(Date.now() / 1000);
+                $('cntQuotas').textContent = String(_quotasItems.length);
+                $('quotasMeta').textContent = _quotasItems.length
+                    ? (_quotasItems.length + ' квот · обновлено ' + new Date(_quotasFetchedAt * 1000).toLocaleTimeString('ru-RU'))
+                    : 'квот нет';
+                $('quotasExportBtn').disabled = !_quotasItems.length;
+                _renderQuotasKpi(_quotasItems);
+                _renderQuotasList();
+                if (window.SbmsToast) {
+                    if (_quotasItems.length) SbmsToast.success('Загружено квот: ' + _quotasItems.length);
+                    else SbmsToast.info('У абонента нет квот');
+                }
+            } catch (e) {
+                console.error(e);
+                // Если SbmsAuth перехватил 401/403 — он уже открыл модалку
+                // и сам бросил «Session expired». Тогда не ругаемся —
+                // дождёмся, что юзер ре-залогинится и снова нажмёт «Обновить».
+                const isReauth = e && /Session expired/i.test(e.message || '');
+                const diag = e._diag || {};
+                const attempts = Array.isArray(diag.attempts) ? diag.attempts : [];
+                const hint = diag.hint
+                    ? `<div style="color:var(--text-2);margin-top:4px;font-size:12px;">${esc(diag.hint)}</div>`
+                    : '';
+                const attemptsHtml = attempts.length
+                    ? `<details style="margin-top:8px;text-align:left;display:inline-block;font-size:12px;">
+                         <summary style="cursor:pointer;color:var(--text-3);">Диагностика (${attempts.length} попыт${attempts.length === 1 ? 'ка' : 'ки'})</summary>
+                         <pre style="text-align:left;background:var(--bg-subtle);padding:8px;border-radius:4px;margin-top:6px;max-width:520px;overflow:auto;font-size:11px;">${esc(JSON.stringify(attempts, null, 2))}</pre>
+                       </details>`
+                    : '';
+                if (isReauth) {
+                    $('quotasList').innerHTML = `
+                        <div style="text-align:center;color:var(--text-2);padding:24px;font-size:13px;">
+                            Сессия истекла. После входа нажмите «↻ Обновить».
+                        </div>`;
+                } else {
+                    $('quotasList').innerHTML = `
+                        <div style="text-align:center;color:var(--danger-text);padding:24px;font-size:13px;">
+                            <div>Ошибка: ${esc(e.message)}</div>
+                            ${diag.upstream ? `<div style="color:var(--text-3);margin-top:4px;">upstream HTTP ${esc(String(diag.upstream))}${diag.errorKind ? ' · ' + esc(diag.errorKind) : ''}</div>` : ''}
+                            ${hint}
+                            ${attemptsHtml}
+                        </div>`;
+                    if (window.SbmsToast) SbmsToast.error('Не удалось загрузить квоты: ' + e.message);
+                }
+                $('quotasMeta').textContent = isReauth ? 'требуется вход' : 'ошибка';
+            } finally {
+                _quotasLoading = false;
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
+        }
+
+        function resetQuotaFilters() {
+            ['qfCategory', 'qfStatus'].forEach(id => { $(id).value = 'all'; });
+            $('qfSort').value = 'status';
+            $('qfGroup').value = 'category';
+            $('qfSearch').value = '';
+            _renderQuotasList();
+        }
+
+        function exportQuotasCsv() {
+            const items = Array.isArray(_quotasItems) ? _sortQuotaItems(_filterQuotaItems(_quotasItems)) : [];
+            if (!items.length) {
+                if (window.SbmsToast) SbmsToast.warn('Нечего экспортировать');
+                return;
+            }
+            function esv(v) {
+                if (v == null) return '';
+                const s = String(v);
+                return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }
+            const headers = ['Название', 'Human', 'Сервис', 'Категория', 'Статус', 'Объём', 'Использовано', 'Остаток', '%', 'Активация', 'Обнуление'];
+            const lines = items.map(it => [
+                it.name, it.nameHuman, it.service,
+                (QUOTA_CAT[it.category] || {}).label || it.category,
+                (QUOTA_STATUS[it.status] || {}).label || it.status,
+                it.total, it.used, it.remaining,
+                it.percent != null ? it.percent.toFixed(2) : '',
+                _quotaFmtDate(it.activationDate) || '',
+                it.unlimited ? 'бессрочно' : (_quotaFmtDate(it.expirationDate) || ''),
+            ].map(esv).join(','));
+            const csv = '﻿' + headers.map(esv).join(',') + '\r\n' + lines.join('\r\n') + '\r\n';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '') || 'unknown';
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quotas-${msisdn}-${stamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+            if (window.SbmsToast) SbmsToast.success('Экспортировано: ' + items.length + ' строк');
+        }
+
+        // Bindings
+        $('quotasReloadBtn').addEventListener('click', () => loadQuotas(true));
+        $('quotasExportBtn').addEventListener('click', exportQuotasCsv);
+        $('qfReset').addEventListener('click', resetQuotaFilters);
+        ['qfCategory', 'qfStatus', 'qfSort', 'qfGroup'].forEach(id => {
+            $(id).addEventListener('change', _renderQuotasList);
+        });
+        $('qfSearch').addEventListener('input', _renderQuotasList);
+
+        // Сброс при смене абонента
+        window.__doLoadQuotasHook = () => {
+            _quotasItems = null;
+            _quotasLoadedFor = null;
+            _quotasFetchedAt = null;
+            $('cntQuotas').textContent = '—';
+            $('quotasMeta').textContent = 'не загружены';
+            $('quotasSummary').textContent = '—';
+            $('quotasExportBtn').disabled = true;
+            ['qkInternet', 'qkSms', 'qkVoice', 'qkSocial', 'qkBonus', 'qkOther'].forEach(id => {
+                $(id).textContent = '—';
+                const sub = $(id + 'Sub'); if (sub) sub.textContent = '—';
+            });
+            $('quotasList').innerHTML = `<div style="text-align:center;color:var(--text-3);padding:24px;font-size:13px;">Нажмите «↻ Обновить», чтобы загрузить квоты.</div>`;
+        };
+
+        // Lazy-load: при первом открытии таба «Квоты»
+        window.__activateTabHook.quotas = () => {
+            if (_quotasItems === null && !_quotasLoading) loadQuotas(false);
+        };
+
+        // ============================================================
+        // ACTIVITY (events feed по номеру) — lazy mount
+        // ============================================================
+        let _activityInst = null;
+
+        function _initActivity() {
+            if (_activityInst || !window.SbmsActivity) return;
+            const root = $('activityRoot');
+            if (!root) return;
+            const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            _activityInst = SbmsActivity.mount({
+                rootEl:        root,
+                msisdn:        m,
+                initialDays:   90,
+                initialLimit:  200,
+                onEventClick:  null,
+            });
+            // После каждой загрузки — обновляем счётчик в табе
+            const _origLoad = _activityInst.load;
+            _activityInst.load = async function (force) {
+                await _origLoad(force);
+                try {
+                    const evs = (_activityInst._state && _activityInst._state.events) || [];
+                    $('cntActivity').textContent = evs.length;
+                } catch (e) {}
+            };
+        }
+
+        window.__activateTabHook.activity = () => {
+            if (!_activityInst) {
+                _initActivity();
+                if (_activityInst) _activityInst.load(false);
+            } else {
+                // Подхватим текущий msisdn (если поменялся между табами)
+                const m = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+                if (m && _activityInst._state && _activityInst._state.msisdn !== m) {
+                    _activityInst.setMsisdn(m);
+                    _activityInst.load(true);
+                } else if (m && (!_activityInst._state || !_activityInst._state.events.length)) {
+                    _activityInst.load(false);
+                }
+            }
+        };
+
+        // ============================================================
+        // CALLS (CDR / события абонента)
+        // ============================================================
+        const _callsPick = (obj, ...keys) => {
+            for (const k of keys) {
+                if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+            }
+            return '';
+        };
+        const _callsFmtNum = (v) => {
+            if (v == null || v === '') return '';
+            const n = Number(v);
+            if (!isFinite(n)) return esc(String(v));
+            return n.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+        };
+        function _fmtPsixDate(d) {
+            // SBMS-формат: "DD.MM.YYYY HH:MM:SS" — без времени strptime упадёт
+            // в except и сервер силой ставит base_days=60 (теряет выбор юзера).
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+        function _callsBadge(text) {
+            const t = String(text).toLowerCase();
+            let bg = 'rgba(148,163,184,0.18)', fg = 'var(--text-2)', dot = 'var(--text-3)';
+            if (/voice|call|вызов|разговор|conversation/.test(t))    { bg='rgba(59,130,246,0.16)';  fg='var(--info-text)'; dot='#3b82f6'; }
+            else if (/sms|смс|message/.test(t))                       { bg='rgba(168,85,247,0.16)'; fg='var(--brand)';     dot='#a855f7'; }
+            else if (/data|gprs|internet|интернет|трафик|traffic/.test(t)) { bg='rgba(16,185,129,0.16)'; fg='var(--success-text)'; dot='#10b981'; }
+            else if (/charge|fee|плат|abon|abonement|подпис/.test(t))  { bg='rgba(245,158,11,0.16)'; fg='var(--warning-text)'; dot='#f59e0b'; }
+            else if (/roam/.test(t))                                  { bg='rgba(244,63,94,0.16)';  fg='var(--danger-text)'; dot='#f43f5e'; }
+            return `<span style="display:inline-flex;align-items:center;gap:6px;padding:2px 8px;`
+                 + `border-radius:999px;font-size:11px;font-weight:600;background:${bg};color:${fg};`
+                 + `max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">`
+                 + `<span style="width:6px;height:6px;border-radius:50%;background:${dot};flex:none;"></span>`
+                 + `<span style="overflow:hidden;text-overflow:ellipsis;">${esc(String(text))}</span>`
+                 + `</span>`;
+        }
+
+        // 8 базовых колонок (порт из tariff_test.html — только default-visible)
+        // Полный набор колонок. group = семантическая группа для UI-настройки.
+        // default: true → колонка видима по умолчанию; остальные пользователь
+        // может включить через ⚙ Колонки.
+        const CALLS_COLUMNS = [
+            // ───── ОСНОВНОЕ ─────
+            { key: 'date', label: 'Дата', group: 'main', default: true, width: '148px', mono: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM');
+                  if (!v) return '';
+                  const m = String(v).match(/^(\S+)\s+(.+)$/);
+                  if (m) return `<span style="color:var(--text-1);">${esc(m[1])}</span> <span style="color:var(--text-3);">${esc(m[2])}</span>`;
+                  return esc(String(v));
+              },
+              search: (it) => _callsPick(it, 'CALL_DATE','START_DATE','INSERT_DATE','CHARGE_DATE','EVENT_DATE','DATE_FROM') },
+            { key: 'logic', label: 'Тип', group: 'main', default: true, width: '170px', sort: 'string',
+              raw: (it) => _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE'),
+              get: (it) => {
+                  const v = _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE');
+                  return v ? _callsBadge(String(v)) : '';
+              },
+              search: (it) => _callsPick(it, 'LOGIC_CALLS_NAME','CALL_TYPE','EVENT_TYPE','OPERATION','CHARGE_TYPE') },
+            { key: 'serv', label: 'Услуга', group: 'main', default: true, width: '', sort: 'string',
+              raw: (it) => _callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE'),
+              get: (it) => esc(_callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE')),
+              search: (it) => _callsPick(it, 'SERV_NAME','SERVICE_NAME','SERVICE') },
+            { key: 'pack', label: 'Пакет', group: 'main', default: true, width: '140px', sort: 'string',
+              raw: (it) => _callsPick(it, 'PACK_NAME','PACKAGE_NAME'),
+              get: (it) => esc(_callsPick(it, 'PACK_NAME','PACKAGE_NAME')),
+              search: (it) => _callsPick(it, 'PACK_NAME','PACKAGE_NAME') },
+            { key: 'discPlan', label: 'План скидок', group: 'main', default: true, width: '140px', sort: 'string',
+              raw: (it) => _callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN'),
+              get: (it) => esc(_callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN')),
+              search: (it) => _callsPick(it, 'CALL_CREDIT_DISCOUNT_PLAN','DISCOUNT_PLAN','DISCOUNT_PLAN_NAME','RTPL_NAME','RATE_PLAN') },
+            { key: 'volume', label: 'Объём', group: 'main', default: true, width: '90px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'MINUTS','DURATION','VOLUME','VOL','AMOUNT_VOL'),
+              unit: (it) => _callsPick(it, 'MNT_VOL_UNIT_NAME','DUR_MEAS_UNIT_NAME','VOL_UNIT_NAME','UNIT_NAME','MEAS_UNIT'),
+              get: (it) => {
+                  const v = _callsPick(it, 'MINUTS','DURATION','VOLUME','VOL','AMOUNT_VOL');
+                  const u = _callsPick(it, 'MNT_VOL_UNIT_NAME','DUR_MEAS_UNIT_NAME','VOL_UNIT_NAME','UNIT_NAME','MEAS_UNIT');
+                  if (v === '' && !u) return '';
+                  return _callsFmtNum(v) + (u ? ' <span style="color:var(--text-3);">' + esc(u) + '</span>' : '');
+              } },
+            { key: 'charges', label: 'Стоимость', group: 'main', default: true, width: '95px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'CHARGES','CHARGE','AMOUNT','SUM','PRICE','TRAFIC_PRICE'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CHARGES','CHARGE','AMOUNT','SUM','PRICE','TRAFIC_PRICE');
+                  return v === '' ? '' : _callsFmtNum(v);
+              } },
+            { key: 'dialled', label: 'Номер B', group: 'main', default: true, width: '120px', mono: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION'),
+              get: (it) => esc(_callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION')),
+              search: (it) => _callsPick(it, 'DIALLED','CALLED_NUMBER','B_NUMBER','PHONE_B','MSISDN_B','DESTINATION') },
+
+            // ───── ВРЕМЯ И ДЛИТЕЛЬНОСТЬ ─────
+            { key: 'startDate', label: 'Время начала', group: 'time', default: false, width: '138px', mono: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'START_DATE','BEGIN_DATE'),
+              get: (it) => esc(_callsPick(it, 'START_DATE','BEGIN_DATE')) },
+            { key: 'endDate', label: 'Время конца', group: 'time', default: false, width: '138px', mono: true, sort: 'date',
+              raw: (it) => _callsPick(it, 'END_DATE','FINISH_DATE'),
+              get: (it) => esc(_callsPick(it, 'END_DATE','FINISH_DATE')) },
+            { key: 'duration', label: 'Длительность', group: 'time', default: false, width: '95px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'CALL_DURATION','DURATION_SEC'),
+              get: (it) => {
+                  const v = _callsPick(it, 'CALL_DURATION','DURATION_SEC');
+                  return v === '' ? '' : _callsFmtNum(v);
+              } },
+
+            // ───── ОБЪЁМ И ВАЛЮТА ─────
+            { key: 'tarifVol', label: 'Тариф. объём', group: 'volume', default: false, width: '110px', align: 'right', sort: 'number', sum: true,
+              raw: (it) => _callsPick(it, 'TARIFICATED_VOL','TARIF_VOL'),
+              get: (it) => {
+                  const v = _callsPick(it, 'TARIFICATED_VOL','TARIF_VOL');
+                  const u = _callsPick(it, 'TARIFICATED_VOL_UNIT','TARIF_VOL_UNIT');
+                  if (v === '' && !u) return '';
+                  return _callsFmtNum(v) + (u ? ' <span style="color:var(--text-3);">' + esc(u) + '</span>' : '');
+              } },
+            { key: 'currency', label: 'Валюта', group: 'volume', default: false, width: '70px', sort: 'string',
+              raw: (it) => _callsPick(it, 'CHARGE_CURRENCY','CURRENCY'),
+              get: (it) => esc(_callsPick(it, 'CHARGE_CURRENCY','CURRENCY')) },
+
+            // ───── СЕТЬ ─────
+            { key: 'direction', label: 'Направление', group: 'network', default: false, width: '120px', sort: 'string',
+              raw: (it) => _callsPick(it, 'TRAFIC_DIRECTION','DIRECTION','CALL_DIRECTION'),
+              get: (it) => {
+                  const v = _callsPick(it, 'TRAFIC_DIRECTION','DIRECTION','CALL_DIRECTION');
+                  if (!v) return '';
+                  const s = String(v).toLowerCase();
+                  let bg = 'var(--neutral-soft)', fg = 'var(--text-2)';
+                  if (/in|вход/.test(s))   { bg = 'rgba(34,197,94,0.16)';  fg = 'var(--success-text)'; }
+                  if (/out|исход/.test(s)) { bg = 'rgba(239,68,68,0.16)';  fg = 'var(--danger-text)'; }
+                  return `<span style="padding:1px 8px;border-radius:6px;font-size:11px;font-weight:600;background:${bg};color:${fg};">${esc(String(v))}</span>`;
+              } },
+            { key: 'roaming', label: 'Роуминг', group: 'network', default: false, width: '80px', align: 'right', sort: 'string',
+              raw: (it) => _callsPick(it, 'ROAMING_FLAG','IS_ROAMING','ROAMING'),
+              get: (it) => {
+                  const v = _callsPick(it, 'ROAMING_FLAG','IS_ROAMING','ROAMING');
+                  if (v === '') return '';
+                  const s = String(v).toLowerCase();
+                  const yes = (s === '1' || s === 'y' || s === 'true');
+                  const bg = yes ? 'rgba(244,63,94,0.16)' : 'var(--neutral-soft)';
+                  const fg = yes ? 'var(--danger-text)' : 'var(--text-3)';
+                  return `<span style="padding:1px 8px;border-radius:6px;font-size:11px;font-weight:600;background:${bg};color:${fg};">${yes ? 'да' : 'нет'}</span>`;
+              } },
+            { key: 'cellId', label: 'Cell ID', group: 'network', default: false, width: '110px', mono: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'CELL_ID','CGI','LAC_CI'),
+              get: (it) => esc(_callsPick(it, 'CELL_ID','CGI','LAC_CI')) },
+
+            // ───── ИДЕНТИФИКАТОРЫ ─────
+            { key: 'subsId', label: 'Subscriber ID', group: 'ids', default: false, width: '110px', mono: true, sort: 'number',
+              raw: (it) => _callsPick(it, 'SUBS_ID','SUBSCRIBER_ID'),
+              get: (it) => esc(_callsPick(it, 'SUBS_ID','SUBSCRIBER_ID')) },
+            { key: 'clientId', label: 'Client ID', group: 'ids', default: false, width: '110px', mono: true, sort: 'number',
+              raw: (it) => _callsPick(it, 'CLIENT_ID','CLT_ID','CUSTOMER_ID'),
+              get: (it) => esc(_callsPick(it, 'CLIENT_ID','CLT_ID','CUSTOMER_ID')) },
+            { key: 'msisdnA', label: 'Номер A', group: 'ids', default: false, width: '110px', mono: true, sort: 'string',
+              raw: (it) => _callsPick(it, 'MSISDN','MSISDN_A','PHONE_A','A_NUMBER'),
+              get: (it) => esc(_callsPick(it, 'MSISDN','MSISDN_A','PHONE_A','A_NUMBER')) },
+        ];
+
+        // Метаданные групп для UI настройки
+        const _CALLS_COL_GROUPS = [
+            { id: 'main',    label: 'Основное' },
+            { id: 'time',    label: 'Время' },
+            { id: 'volume',  label: 'Объём и валюта' },
+            { id: 'network', label: 'Сеть' },
+            { id: 'ids',     label: 'Идентификаторы' },
+        ];
+
+        // ───── Управление колонками через универсальный SbmsTableCols ─────
+        // Пресеты колонок (key list, в порядке отображения)
+        const _CALLS_PRESETS = {
+            // стандартный — 8 default-видимых
+            standard: CALLS_COLUMNS.filter(c => c.default).map(c => c.key),
+            // компактный — 4 наиболее важных для быстрого скана
+            compact:  ['date', 'logic', 'volume', 'charges'],
+            // полный — все 19
+            full:     CALLS_COLUMNS.map(c => c.key),
+        };
+        // Создаём инстанс — onChange запускает полную перерисовку (вкл. шапку и тело)
+        const _callsCols = SbmsTableCols.create({
+            tableId: 'callsTbl',
+            storageKey: 'sbms-calls-cols-v2',
+            legacyStorageKey: 'sbms-calls-cols-v1',  // миграция старого формата
+            columns: CALLS_COLUMNS.map(c => ({
+                key: c.key,
+                label: c.label,
+                group: c.group,
+                default: c.default,
+                minWidth: 60,
+                maxWidth: 600,
+            })),
+            groups: _CALLS_COL_GROUPS,
+            presets: _CALLS_PRESETS,
+            defaultPreset: 'standard',
+            pickerEl: '#callsColsMenu',
+            countEl:  '#callsColsCount',
+            onChange: () => {
+                if (typeof renderCallsTable === 'function') {
+                    if (_callsItems !== null) renderCallsTable();
+                    else renderCallsHead();
+                }
+            },
+        });
+        // Обёртка для обратной совместимости с уже написанной логикой рендера
+        function _getActiveCallsCols() {
+            // SbmsTableCols возвращает «лёгкие» col-объекты {key,label,group,...}.
+            // Нам нужны исходные CALLS_COLUMNS (с raw/get/sort) — берём из карты.
+            const map = new Map(CALLS_COLUMNS.map(c => [c.key, c]));
+            return _callsCols.getActive().map(lc => map.get(lc.key)).filter(Boolean);
+        }
+
+        // Состояние: { items, sort:{key,dir}, search }
+        let _callsItems = null;
+        let _callsMeta = null;
+        let _callsSort = { key: 'date', dir: 'desc' };
+        let _callsLoading = false;
+
+        function _parseCallsSortValue(col, item) {
+            const raw = (typeof col.raw === 'function') ? col.raw(item) : '';
+            if (raw == null || raw === '') return null;
+            if (col.sort === 'number') {
+                const n = Number(String(raw).replace(/[^\d.\-eE]/g, ''));
+                return isFinite(n) ? n : null;
+            }
+            if (col.sort === 'date') {
+                const s = String(raw).trim();
+                const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?$/);
+                if (m) {
+                    return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+                }
+                const t = Date.parse(s);
+                return isFinite(t) ? t : null;
+            }
+            return String(raw).toLowerCase();
+        }
+
+        function _sortCallsItems(items) {
+            if (!_callsSort || !Array.isArray(items)) return items;
+            const col = CALLS_COLUMNS.find(c => c.key === _callsSort.key);
+            if (!col) return items;
+            const dir = _callsSort.dir === 'desc' ? -1 : 1;
+            return items.slice().sort((a, b) => {
+                const va = _parseCallsSortValue(col, a);
+                const vb = _parseCallsSortValue(col, b);
+                if (va == null && vb == null) return 0;
+                if (va == null) return 1;   // null'ы в конец
+                if (vb == null) return -1;
+                if (va < vb) return -1 * dir;
+                if (va > vb) return  1 * dir;
+                return 0;
+            });
+        }
+
+        function renderCallsHead() {
+            const cg = $('callsColg');
+            const tr = $('callsHead');
+            const cols = _getActiveCallsCols();
+            cg.innerHTML = cols.map(c => {
+                // Сохранённая ширина из SbmsTableCols имеет приоритет над c.width из определения
+                const persisted = _callsCols.getWidth(c.key);
+                const w = persisted ? (persisted + 'px') : (c.width || '');
+                return `<col data-col-key="${esc(c.key)}"${w ? ' style="width:' + w + '"' : ''}>`;
+            }).join('');
+            tr.innerHTML = cols.map(c => {
+                const align = c.align === 'right' ? 'text-align:right;' : '';
+                const isCur = _callsSort && _callsSort.key === c.key;
+                const arrow = isCur ? (_callsSort.dir === 'asc' ? '▲' : '▼') : '↕';
+                const arrowColor = isCur ? 'var(--brand)' : 'var(--text-3)';
+                return `<th data-col-key="${esc(c.key)}" style="${align}user-select:none;"
+                          onclick="_onCallsHeadClick('${esc(c.key)}')" title="Сортировать по ${esc(c.label)} · перетащите для смены порядка · потяните за правый край для ширины">
+                            <span>${esc(c.label)}</span>
+                            <span style="color:${arrowColor};font-size:10px;margin-left:4px;">${arrow}</span>
+                        </th>`;
+            }).join('');
+            // Привязываем resize-хэндлы и DnD к свежим TH-элементам
+            _callsCols.bindHead();
+        }
+
+        function _onCallsHeadClick(key) {
+            const col = CALLS_COLUMNS.find(c => c.key === key);
+            if (!col || !col.sort) return;
+            if (_callsSort && _callsSort.key === key) {
+                _callsSort.dir = _callsSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                _callsSort = { key, dir: 'asc' };
+            }
+            renderCallsTable();
+        }
+        window._onCallsHeadClick = _onCallsHeadClick;
+
+        function renderCallsTable() {
+            renderCallsHead();
+            const cols = _getActiveCallsCols();
+            const span = Math.max(1, cols.length);
+            const tbody = $('callsBody');
+            const totals = $('callsTotals');
+            const expBtn = $('callsExportBtn');
+            if (_callsItems === null) {
+                tbody.innerHTML = `<tr><td colspan="${span}" style="text-align:center;color:var(--text-3);padding:24px;">Нажмите «Загрузить», чтобы получить вызовы за выбранный период.</td></tr>`;
+                totals.style.display = 'none';
+                expBtn.disabled = true;
+                return;
+            }
+            // Filter by search — только по видимым searchable-колонкам
+            const q = ($('callsSearch').value || '').trim().toLowerCase();
+            let items = _callsItems;
+            if (q) {
+                items = items.filter(it => cols.some(c => {
+                    const s = (typeof c.search === 'function') ? c.search(it) : '';
+                    return s && String(s).toLowerCase().includes(q);
+                }));
+            }
+            items = _sortCallsItems(items);
+            if (!items.length) {
+                let hint;
+                if (q) {
+                    hint = '<div style="color:var(--text-3);">Под поиск ничего не подошло</div>';
+                } else {
+                    const procOk = _callsMeta && _callsMeta.procedureOk;
+                    const block  = _callsMeta && _callsMeta.block;
+                    if (procOk) {
+                        hint = '<div style="color:var(--text-2);font-size:13px;">'
+                             + '<div style="margin-bottom:6px;"><b style="color:var(--success-text);">✓</b> Процедура STRAFF_CALLS_R отработала, но событий за период не найдено.</div>'
+                             + '<div style="font-size:11px;color:var(--text-3);">Попробуйте увеличить период (сервер автоматически расширил до 540 дн).</div>'
+                             + '</div>';
+                    } else {
+                        hint = '<div style="color:var(--text-2);font-size:13px;">'
+                             + '<div style="margin-bottom:6px;"><b style="color:var(--danger-text);">⚠</b> Запрос вернулся, но dataset пустой.</div>'
+                             + (block ? '<div style="font-size:11px;color:var(--text-3);">Блок ответа: <code style="background:var(--bg-subtle);padding:1px 6px;border-radius:4px;">' + esc(String(block)) + '</code> — обычно проблема с правами или HTTP Basic-авторизацией.</div>' : '')
+                             + '<div style="font-size:11px;color:var(--text-3);margin-top:4px;">Перезайдите (введите пароль заново) или проверьте на странице <a href="/tariff-test" style="color:var(--brand);">Test тарифа</a>.</div>'
+                             + '</div>';
+                    }
+                }
+                tbody.innerHTML = `<tr><td colspan="${span}" style="text-align:left;padding:18px 14px;">${hint}</td></tr>`;
+                totals.style.display = 'none';
+                expBtn.disabled = !_callsItems.length;
+                return;
+            }
+            tbody.innerHTML = items.map(it => {
+                const cells = cols.map(c => {
+                    const style = [];
+                    if (c.align === 'right') {
+                        style.push('text-align:right', 'font-family:var(--font-mono)', 'font-variant-numeric:tabular-nums');
+                        if (c.key === 'charges') style.push('font-weight:600', 'color:var(--text-1)');
+                    } else if (c.mono) {
+                        style.push('font-family:var(--font-mono)', 'color:var(--text-2)', 'font-size:11.5px');
+                    }
+                    const styleAttr = style.length ? ` style="${style.join(';')}"` : '';
+                    return `<td${styleAttr}>${c.get(it)}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            // Totals — суммируем только по видимым колонкам с sum:true
+            const parts = [`<div><span style="color:var(--text-3);">Строк:</span> <b style="color:var(--text-1);font-family:var(--font-mono);">${items.length}</b>${q ? ' <span style="color:var(--text-3);">(из ' + _callsItems.length + ')</span>' : ''}</div>`];
+            cols.filter(c => c.sum).forEach(c => {
+                let total = 0, n = 0;
+                items.forEach(it => {
+                    const raw = (typeof c.raw === 'function') ? c.raw(it) : '';
+                    if (raw == null || raw === '') return;
+                    const x = Number(String(raw).replace(/[^\d.\-eE]/g, ''));
+                    if (isFinite(x)) { total += x; n++; }
+                });
+                if (n === 0) return;
+                let unit = '';
+                if (typeof c.unit === 'function') {
+                    for (const it of items) { const u = c.unit(it); if (u) { unit = u; break; } }
+                }
+                const fmt = total.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+                parts.push(`<div><span style="color:var(--text-3);">∑ ${esc(c.label)}:</span> <b style="color:var(--text-1);font-family:var(--font-mono);">${esc(fmt)}</b>${unit ? ' <span style="color:var(--text-3);">' + esc(unit) + '</span>' : ''}</div>`);
+            });
+            totals.innerHTML = parts.join('');
+            totals.style.display = 'flex';
+            expBtn.disabled = false;
+        }
+
+        async function loadCallsForSubscriber() {
+            if (_callsLoading) return;
+            const c = (_data && _data.customer) || {};
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            if (!msisdn) {
+                if (window.SbmsToast) SbmsToast.warn('Сначала загрузите абонента');
+                return;
+            }
+            if (!window.SbmsAuth || !SbmsAuth.token) {
+                try { await SbmsAuth.require(); }
+                catch { return; }
+            }
+            // STRAFF_CALLS_R требует HTTP Basic поверх SESSION_ID — нужен пароль
+            if (!SbmsAuth.password) {
+                try {
+                    SbmsAuth.clearSession('need_password');
+                    await SbmsAuth.require();
+                } catch { return; }
+            }
+            const days = Number($('callsPeriod').value) || 60;
+            const to = new Date();
+            const from = new Date(to.getTime() - days * 24 * 3600 * 1000);
+            from.setHours(0, 0, 0, 0);
+
+            _callsLoading = true;
+            const btn = $('callsLoadBtn');
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>&nbsp;Загрузка…';
+            $('callsBody').innerHTML = `<tr><td colspan="${_getActiveCallsCols().length}" style="text-align:center;color:var(--text-3);padding:24px;"><span class="spinner"></span>&nbsp;Загружаем вызовы за ${days} дн…</td></tr>`;
+
+            try {
+                const payload = {
+                    msisdn,
+                    subscriberId: c.subscriberId || null,
+                    customerId:   c.customerId   || null,
+                    startDate: _fmtPsixDate(from),
+                    endDate:   _fmtPsixDate(to),
+                    limit: 1000,
+                    debug: false,
+                    authToken: SbmsAuth.token,
+                };
+                if (SbmsAuth.login)    payload.login    = SbmsAuth.login;
+                if (SbmsAuth.password) payload.password = SbmsAuth.password;
+                const resp = await fetch('/api/calls/list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const json = await resp.json().catch(() => ({}));
+                if (!resp.ok) {
+                    if (resp.status === 401 && json && json.code === 'PASSWORD_REQUIRED') {
+                        SbmsAuth.clearSession('need_password');
+                        try { await SbmsAuth.require(); } catch { throw new Error('Отменено'); }
+                        // Retry once
+                        _callsLoading = false;
+                        btn.disabled = false;
+                        btn.textContent = origText;
+                        return loadCallsForSubscriber();
+                    }
+                    throw new Error(json.error || ('HTTP ' + resp.status));
+                }
+                _callsItems = Array.isArray(json.items) ? json.items : [];
+                _callsMeta = json;
+                $('cntCalls').textContent = String(_callsItems.length);
+                const periodInfo = json.periodDays ? ` · ${json.periodDays} дн` : '';
+                const blockInfo  = json.block && !_callsItems.length ? ` · block=${json.block}` : '';
+                $('callsMeta').textContent = `${_callsItems.length} событий${periodInfo}${blockInfo}`;
+                renderCallsTable();
+                if (window.SbmsToast) {
+                    if (_callsItems.length) SbmsToast.success('Загружено вызовов: ' + _callsItems.length);
+                    else SbmsToast.info('За выбранный период событий нет');
+                }
+            } catch (e) {
+                console.error(e);
+                $('callsBody').innerHTML = `<tr><td colspan="${_getActiveCallsCols().length}" style="text-align:center;color:var(--danger-text);padding:24px;">Ошибка: ${esc(e.message)}</td></tr>`;
+                $('callsMeta').textContent = 'ошибка';
+                if (window.SbmsToast) SbmsToast.error('Не удалось: ' + e.message);
+            } finally {
+                _callsLoading = false;
+                btn.disabled = false;
+                btn.textContent = origText;
+            }
+        }
+
+        function exportCallsCsv() {
+            if (!Array.isArray(_callsItems) || !_callsItems.length) {
+                if (window.SbmsToast) SbmsToast.warn('Нечего экспортировать — сначала загрузите вызовы');
+                return;
+            }
+            // Экспортируем то, что видно: только активные колонки + после фильтра/sort
+            const cols = _getActiveCallsCols();
+            const q = ($('callsSearch').value || '').trim().toLowerCase();
+            let items = _callsItems;
+            if (q) {
+                items = items.filter(it => cols.some(c => {
+                    const s = (typeof c.search === 'function') ? c.search(it) : '';
+                    return s && String(s).toLowerCase().includes(q);
+                }));
+            }
+            items = _sortCallsItems(items);
+
+            function csvEsc(v) {
+                if (v == null) return '';
+                const s = String(v);
+                return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }
+            const headers = cols.map(c => c.label);
+            const rows = items.map(it =>
+                cols.map(c => csvEsc((typeof c.raw === 'function') ? c.raw(it) : '')).join(',')
+            );
+            const csv = '﻿' + headers.map(csvEsc).join(',') + '\r\n' + rows.join('\r\n') + '\r\n';
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '') || 'unknown';
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+            a.href = url;
+            a.download = `calls-${msisdn}-${stamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+            if (window.SbmsToast) SbmsToast.success('Экспортировано: ' + items.length + ' строк');
+        }
+
+        // Bindings
+        $('callsLoadBtn').addEventListener('click', loadCallsForSubscriber);
+        $('callsExportBtn').addEventListener('click', exportCallsCsv);
+        $('callsSearch').addEventListener('input', () => {
+            if (_callsItems !== null) renderCallsTable();
+        });
+        $('callsPeriod').addEventListener('change', () => {
+            // Не ре-фетчим автоматически — пусть пользователь нажмёт «Загрузить»
+            const meta = $('callsMeta');
+            if (_callsItems === null) {
+                meta.textContent = 'нажмите «Загрузить»';
+            } else {
+                meta.textContent = (meta.textContent || '') + ' · период изменён, нажмите «Загрузить»';
+            }
+        });
+        // Инициализация шапки до первого фетча — чтобы стрелки сортировки были видны
+        renderCallsHead();
+
+        // Сброс данных при смене абонента
+        const _origDoLoadForCalls = window.__doLoadCallsHook = () => {
+            _callsItems = null;
+            _callsMeta = null;
+            _callsSort = { key: 'date', dir: 'desc' };
+            $('cntCalls').textContent = '—';
+            const meta = $('callsMeta');
+            if (meta) meta.textContent = 'не загружены';
+            const search = $('callsSearch');
+            if (search) search.value = '';
+            renderCallsTable();
+        };
+
+        // ============================================================
+        // ⌘K hotkey hint (Mac vs Win)
+        // ============================================================
+        if (/Mac|iPhone|iPad/i.test(navigator.platform)) {
+            const k = $('kbdHint'); if (k) k.textContent = '⌘K';
+        } else {
+            const k = $('kbdHint'); if (k) k.textContent = 'Ctrl+K';
+        }
+
+        // ============================================================
+        // ?msisdn=... — автозагрузка из URL
+        // ============================================================
+        try {
+            const u = new URL(window.location.href);
+            const m = (u.searchParams.get('msisdn') || '').replace(/[^0-9]/g, '');
+            if (m) {
+                $('msisdn').value = m;
+                // Дать SbmsAuth/SbmsNav инициализироваться
+                setTimeout(doLoad, 50);
+            }
+        } catch (_) {}
+    </script>
+</body>
+</html>
