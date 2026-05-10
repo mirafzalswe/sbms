@@ -261,7 +261,7 @@ def test_rt_discounts(token, subscriber_id):
         log_pass("Остатки пакетов", f"Найдено {len(items)} записей")
 
         # Расшифровка единиц измерения
-        units = {0: "сум", 1: "минут", 7: "SMS", 14: "МБ"}
+        units = {0: "сум", 1: "SMS", 7: "минут", 14: "МБ"}
 
         subheader("Остатки пакетов")
         for item in items:

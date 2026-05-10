@@ -691,7 +691,7 @@ class TestRunner:
         avail_svc_items_after = avail_svcs_after.get("items", []) if avail_svcs_after else []
 
         # === INFO: Скидки нового тарифа — детально (из rtDiscounts_filtered.details) ===
-        unit_names_det = {1: "Минуты", 7: "SMS", 14: "Интернет", 0: "Деньги"}
+        unit_names_det = {1: "SMS", 7: "Минуты", 14: "Интернет", 0: "Деньги"}
         filtered_details = report.raw_responses.get("rtDiscounts_filtered", {}).get("details", [])
         if filtered_details:
             report.checks.append(CheckResult(
@@ -787,7 +787,7 @@ class TestRunner:
                 message="Не указан ни packId, ни название пакета"))
             return
 
-        unit_labels = {1: "Минуты", 7: "SMS", 14: "Интернет (МБ)", 0: "Деньги"}
+        unit_labels = {1: "SMS", 7: "Минуты", 14: "Интернет (МБ)", 0: "Деньги"}
 
         # === 1. Баланс ДО ===
         balance_before_data = self.client.get_available_balance(cid)
@@ -953,8 +953,8 @@ class TestRunner:
         if pack_disc_items:
             # Надёжный метод: суммируем строки с нашим productId
             vol_mb  = round(sum(i.get("maxVolume", 0) or 0 for i in pack_disc_items if i.get("measureUnitId") == 14), 4)
-            vol_min = round(sum(i.get("maxVolume", 0) or 0 for i in pack_disc_items if i.get("measureUnitId") ==  1), 4)
-            vol_sms = round(sum(i.get("maxVolume", 0) or 0 for i in pack_disc_items if i.get("measureUnitId") ==  7), 4)
+            vol_min = round(sum(i.get("maxVolume", 0) or 0 for i in pack_disc_items if i.get("measureUnitId") ==  7), 4)
+            vol_sms = round(sum(i.get("maxVolume", 0) or 0 for i in pack_disc_items if i.get("measureUnitId") ==  1), 4)
             new_items = pack_disc_items
         else:
             # Запасной метод: diff суммарных объёмов до/после
@@ -962,8 +962,8 @@ class TestRunner:
                 return sum(i.get("maxVolume", 0) or 0 for i in items if i.get("measureUnitId") == uid)
 
             vol_mb  = round(_unit_total(after_items_list, 14) - _unit_total(before_items_list, 14), 4)
-            vol_min = round(_unit_total(after_items_list,  1) - _unit_total(before_items_list,  1), 4)
-            vol_sms = round(_unit_total(after_items_list,  7) - _unit_total(before_items_list,  7), 4)
+            vol_min = round(_unit_total(after_items_list,  7) - _unit_total(before_items_list,  7), 4)
+            vol_sms = round(_unit_total(after_items_list,  1) - _unit_total(before_items_list,  1), 4)
 
             # Новые строки (diff по callCreditId / discountPlanId)
             before_cids    = {i.get("callCreditId")   for i in before_items_list if i.get("callCreditId")}

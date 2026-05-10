@@ -922,6 +922,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- PCRF / COS — подключенные сервисы из TME (pcrf_get_subs_services) -->
+                <div class="card" id="pcrfCard" style="margin-top:var(--space-4);">
+                    <div class="card__header" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                        <span class="card__title">PCRF / COS Services</span>
+                        <span id="pcrfCount" style="color:var(--text-3);font-size:12px;">не загружено</span>
+                        <span id="pcrfMeta"  style="color:var(--text-3);font-size:11px;margin-left:auto;"></span>
+                        <input type="search" id="pcrfFilter" class="filter-input" placeholder="Поиск по имени сервиса…" style="display:none;max-width:220px;">
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm" id="pcrfRefreshBtn" disabled title="Обновить">↻</button>
+                        <a class="sb-btn sb-btn--ghost sb-btn--sm" id="pcrfTmeLink" href="https://tme.ucell/case/pcrf_get_subs_services" target="_blank" rel="noopener" title="Открыть сценарий в TME">↗ TME</a>
+                        <button type="button" class="sb-btn sb-btn--secondary sb-btn--sm" id="pcrfToggleBtn" aria-expanded="false" aria-controls="pcrfBody">Показать COS</button>
+                    </div>
+                    <div class="card__body card__body--flush" id="pcrfBody" hidden>
+                        <div id="pcrfHint" style="padding:14px 16px;color:var(--text-3);font-size:12px;">
+                            Нажмите «Показать COS», чтобы запросить подключенные PCRF-сервисы абонента из TME.
+                        </div>
+                        <div id="pcrfError" style="display:none;padding:14px 16px;font-size:13px;color:var(--danger-text,#ff6b6b);"></div>
+                        <div class="table-wrap" id="pcrfTableWrap" style="max-height:420px;display:none;">
+                            <table class="t" id="pcrfTable" style="font-size:12px;">
+                                <thead>
+                                    <tr>
+                                        <th>Сервис</th>
+                                        <th style="width:140px;">Статус</th>
+                                        <th style="width:160px;">Активация</th>
+                                        <th style="width:140px;">Старт</th>
+                                        <th style="width:140px;">Подключен</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pcrfBodyRows"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Limits -->
@@ -941,7 +974,7 @@
                     </div>
                     <div class="card__body">
                         <div class="lim-kpi-grid" id="limitsKpiGrid">
-                            <div class="lim-kpi" data-unit="1">
+                            <div class="lim-kpi" data-unit="7">
                                 <div class="lim-kpi__head">
                                     <span class="lim-kpi__icon" style="color:#22c55e;">●</span>
                                     <span class="lim-kpi__label">Минуты</span>
@@ -949,7 +982,7 @@
                                 <div class="lim-kpi__value" id="lkMinRem">—</div>
                                 <div class="lim-kpi__sub" id="lkMinMax">из —</div>
                             </div>
-                            <div class="lim-kpi" data-unit="7">
+                            <div class="lim-kpi" data-unit="1">
                                 <div class="lim-kpi__head">
                                     <span class="lim-kpi__icon" style="color:#3b82f6;">●</span>
                                     <span class="lim-kpi__label">SMS</span>
@@ -1009,8 +1042,8 @@
                                 <label>Тип</label>
                                 <select id="limfUnit" class="sb-input">
                                     <option value="all">Все</option>
-                                    <option value="1">Минуты</option>
-                                    <option value="7">SMS</option>
+                                    <option value="7">Минуты</option>
+                                    <option value="1">SMS</option>
                                     <option value="14">Интернет</option>
                                     <option value="0">Деньги</option>
                                 </select>
@@ -1292,6 +1325,8 @@
     <script src="/static/sbms-viewas.js"></script>
     <script src="/static/sbms-docs.js"></script>
     <script src="/static/sbms-activity.js"></script>
+    <script src="/static/sbms-tme.js"></script>
+    <script src="/static/sbms-tariff-test.js"></script>
     <script>
         SbmsNav.mount('#sbmsNav', { active: 'subscriber' });
 
@@ -1399,6 +1434,7 @@
                 }
                 const data = await resp.json();
                 _data = data;
+                window._data = data;
                 renderAll(data, msisdn);
 
                 // Recent
@@ -1722,8 +1758,16 @@
                 } else {
                     const rid = Number(t.ratePlanId);
                     const rname = (t.name || '').replace(/'/g, "&#39;");
-                    action = `<button type="button" class="sb-btn sb-btn--secondary sb-btn--sm"
-                        onclick="confirmTariffChange(${rid}, '${rname}', ${t.recurringFee != null ? Number(t.recurringFee) : 'null'})">Сменить</button>`;
+                    const feeArg = t.recurringFee != null ? Number(t.recurringFee) : 'null';
+                    action = `<div style="display:inline-flex;gap:6px;justify-content:flex-end;">
+                        <button type="button" class="sb-btn sb-btn--ghost sb-btn--sm"
+                            title="Тестовая смена · сравнение до/после"
+                            aria-label="Тестовая смена тарифа"
+                            style="padding:4px 8px;font-size:13px;line-height:1;"
+                            onclick="startTariffTest(${rid}, '${rname}', ${feeArg})">Тест</button>
+                        <button type="button" class="sb-btn sb-btn--secondary sb-btn--sm"
+                            onclick="confirmTariffChange(${rid}, '${rname}', ${feeArg})">Сменить</button>
+                    </div>`;
                 }
                 const docs = (window.SbmsDocs ? SbmsDocs.cell(t.name) : '');
                 return `<tr class="${cls.trim()}" data-name="${esc((t.name||'').toLowerCase())}" data-id="${esc(String(t.ratePlanId||''))}">
@@ -2287,7 +2331,7 @@
         // ============================================================
         // Источник правды: POST /api/limits/all → { groups: [{sourceType, sourceName, discounts: [...]}] }
         // sourceType: 'tariff' | 'pack' | 'service' | 'unknown'
-        // discount.measureUnitId: 0=деньги, 1=минуты, 7=SMS, 14=Интернет
+        // discount.measureUnitId: 0=деньги, 1=SMS, 7=минуты, 14=Интернет
         const _LIM_SRC = {
             tariff:  { label: 'Тариф',  cls: 'lim-src--tariff' },
             pack:    { label: 'Пакет',  cls: 'lim-src--pack' },
@@ -2296,8 +2340,8 @@
         };
         const _LIM_UNIT = {
             0:  { label: 'Деньги',   cls: 'lim-unit--money',   bar: 'lim-bar__fill--money',   fmt: v => Math.round(v).toLocaleString('ru-RU') + ' сум' },
-            1:  { label: 'Минуты',   cls: 'lim-unit--minutes', bar: 'lim-bar__fill--minutes', fmt: v => Math.round(v).toLocaleString('ru-RU') + ' мин' },
-            7:  { label: 'SMS',      cls: 'lim-unit--sms',     bar: 'lim-bar__fill--sms',     fmt: v => Math.round(v).toLocaleString('ru-RU') + ' SMS' },
+            1:  { label: 'SMS',      cls: 'lim-unit--sms',     bar: 'lim-bar__fill--sms',     fmt: v => Math.round(v).toLocaleString('ru-RU') + ' SMS' },
+            7:  { label: 'Минуты',   cls: 'lim-unit--minutes', bar: 'lim-bar__fill--minutes', fmt: v => Math.round(v).toLocaleString('ru-RU') + ' мин' },
             14: { label: 'Интернет', cls: 'lim-unit--mb',      bar: 'lim-bar__fill--mb',      fmt: v => _fmtMb(v) },
         };
         function _fmtMb(v) {
@@ -2401,8 +2445,8 @@
                 $(remId).textContent = ui.fmt(t.rem);
                 $(maxId).textContent = 'из ' + ui.fmt(t.max) + ' · ' + t.n + (t.n > 1 ? ' скидок' : ' скидка');
             };
-            setKpi(1,  'lkMinRem',   'lkMinMax');
-            setKpi(7,  'lkSmsRem',   'lkSmsMax');
+            setKpi(7,  'lkMinRem',   'lkMinMax');
+            setKpi(1,  'lkSmsRem',   'lkSmsMax');
             setKpi(14, 'lkMbRem',    'lkMbMax');
             setKpi(0,  'lkMoneyRem', 'lkMoneyMax');
         }
@@ -3486,7 +3530,7 @@
                         hint = '<div style="color:var(--text-2);font-size:13px;">'
                              + '<div style="margin-bottom:6px;"><b style="color:var(--danger-text);">⚠</b> Запрос вернулся, но dataset пустой.</div>'
                              + (block ? '<div style="font-size:11px;color:var(--text-3);">Блок ответа: <code style="background:var(--bg-subtle);padding:1px 6px;border-radius:4px;">' + esc(String(block)) + '</code> — обычно проблема с правами или HTTP Basic-авторизацией.</div>' : '')
-                             + '<div style="font-size:11px;color:var(--text-3);margin-top:4px;">Перезайдите (введите пароль заново) или проверьте на странице <a href="/tariff-test" style="color:var(--brand);">Test тарифа</a>.</div>'
+                             + '<div style="font-size:11px;color:var(--text-3);margin-top:4px;">Перезайдите (введите пароль заново) и попробуйте снова.</div>'
                              + '</div>';
                     }
                 }
@@ -3710,6 +3754,178 @@
                 setTimeout(doLoad, 50);
             }
         } catch (_) {}
+
+        // ============================================================
+        // PCRF / COS Services (TME pcrf_get_subs_services)
+        // ============================================================
+        (function () {
+            const card    = $('pcrfCard');
+            if (!card) return;
+            const body    = $('pcrfBody');
+            const toggle  = $('pcrfToggleBtn');
+            const refresh = $('pcrfRefreshBtn');
+            const filter  = $('pcrfFilter');
+            const tableW  = $('pcrfTableWrap');
+            const rows    = $('pcrfBodyRows');
+            const hint    = $('pcrfHint');
+            const errEl   = $('pcrfError');
+            const cnt     = $('pcrfCount');
+            const meta    = $('pcrfMeta');
+
+            let _items = null;       // последний нормализованный список
+            let _loadedFor = null;   // msisdn, для которого загружено
+            let _busy = false;
+
+            function getMsisdn() {
+                return ($('msisdn').value || '').replace(/[^0-9]/g, '');
+            }
+            function setExpanded(open) {
+                body.hidden = !open;
+                toggle.setAttribute('aria-expanded', String(!!open));
+                toggle.textContent = open ? 'Скрыть' : 'Показать COS';
+            }
+            function setHint(text) {
+                hint.style.display = '';
+                hint.textContent = text;
+                tableW.style.display = 'none';
+                errEl.style.display = 'none';
+                filter.style.display = 'none';
+            }
+            function setError(text) {
+                errEl.style.display = '';
+                errEl.textContent = text;
+                hint.style.display = 'none';
+                tableW.style.display = 'none';
+                filter.style.display = 'none';
+            }
+            function render() {
+                if (!_items) { setHint('Нажмите «Показать COS», чтобы запросить подключенные PCRF-сервисы.'); return; }
+                const q = (filter.value || '').toLowerCase().trim();
+                const list = q ? _items.filter(x => (x.name || '').toLowerCase().includes(q)) : _items;
+                if (!list.length) {
+                    rows.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:18px;">' +
+                                     (q ? 'Ничего не найдено' : 'У абонента нет подключенных PCRF-сервисов') + '</td></tr>';
+                } else {
+                    rows.innerHTML = list.map(it => {
+                        const status = SbmsTme.renderBadge(it.status.label, it.status.tone, it.status.raw);
+                        const act    = SbmsTme.renderBadge(it.activation.label, it.activation.tone, it.activation.raw);
+                        const start  = SbmsTme.fmtDate(it.startedAt);
+                        const sub    = SbmsTme.fmtDate(it.subscribedAt);
+                        const name   = String(it.name || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        return '<tr><td><span style="font-family:var(--font-mono);">' + name + '</span>' +
+                               ' <button type="button" class="sb-btn sb-btn--ghost sb-btn--xs" data-pcrf-copy="' + name + '"' +
+                               ' title="Скопировать имя" style="margin-left:6px;padding:1px 6px;font-size:10px;">⧉</button></td>' +
+                               '<td>' + status + '</td>' +
+                               '<td>' + act + '</td>' +
+                               '<td style="font-family:var(--font-mono);font-size:11px;">' + start + '</td>' +
+                               '<td style="font-family:var(--font-mono);font-size:11px;">' + sub + '</td>' +
+                               '</tr>';
+                    }).join('');
+                }
+                hint.style.display = 'none';
+                errEl.style.display = 'none';
+                tableW.style.display = '';
+                filter.style.display = _items.length > 3 ? '' : 'none';
+            }
+
+            async function load() {
+                const msisdn = getMsisdn();
+                if (!msisdn) { setError('Сначала загрузите абонента.'); return; }
+                if (_busy) return;
+                _busy = true;
+                refresh.disabled = true;
+                toggle.disabled = true;
+                hint.style.display = '';
+                hint.textContent = 'Загрузка PCRF-сервисов из TME…';
+                tableW.style.display = 'none';
+                errEl.style.display = 'none';
+                try {
+                    const data = await SbmsTme.fetchPcrfServices(msisdn);
+                    _items = Array.isArray(data.services) ? data.services : [];
+                    _loadedFor = msisdn;
+                    cnt.textContent = _items.length + ' сервис(ов)';
+                    const ic = data.infoCard || {};
+                    const parts = [];
+                    if (ic.subs_id) parts.push('subs_id ' + ic.subs_id);
+                    if (ic.imsi)    parts.push('IMSI ' + ic.imsi);
+                    if (ic.rtpl_id) parts.push('rtpl ' + ic.rtpl_id);
+                    if (data.fetchedAt) {
+                        const d = new Date(data.fetchedAt * 1000);
+                        parts.push('обновлено ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}));
+                    }
+                    meta.textContent = parts.join(' · ');
+                    render();
+                } catch (e) {
+                    if (e && e.code === 'TME_AUTH_CANCELLED') {
+                        setHint('Вход в TME отменён. Нажмите «Показать COS», чтобы повторить.');
+                        cnt.textContent = 'не загружено';
+                    } else {
+                        const msg = (e && e.message) || 'Не удалось загрузить PCRF-сервисы';
+                        setError('⚠ ' + msg + ' Карточка абонента продолжает работать; нажмите «↻» для повтора.');
+                        cnt.textContent = 'ошибка';
+                    }
+                } finally {
+                    _busy = false;
+                    refresh.disabled = false;
+                    toggle.disabled = false;
+                }
+            }
+
+            toggle.addEventListener('click', () => {
+                const isOpen = !body.hidden;
+                if (isOpen) {
+                    setExpanded(false);
+                    return;
+                }
+                setExpanded(true);
+                // первый раз для текущего MSISDN — запросить
+                if (_loadedFor !== getMsisdn()) load();
+            });
+            refresh.addEventListener('click', () => {
+                if (body.hidden) setExpanded(true);
+                load();
+            });
+            filter.addEventListener('input', render);
+
+            // Copy service name
+            rows.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-pcrf-copy]');
+                if (!btn) return;
+                const txt = btn.getAttribute('data-pcrf-copy') || '';
+                if (!txt) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(txt).then(() => {
+                        if (window.SbmsToast) SbmsToast.success('Скопировано: ' + txt);
+                    }).catch(() => {});
+                }
+            });
+
+            // Сброс при смене абонента — наблюдаем за обновлением hero
+            const heroEl = $('hMsisdn');
+            if (heroEl) {
+                new MutationObserver(() => {
+                    const cur = getMsisdn();
+                    if (_loadedFor && _loadedFor !== cur) {
+                        _items = null; _loadedFor = null;
+                        cnt.textContent = 'не загружено';
+                        meta.textContent = '';
+                        if (filter) filter.value = '';
+                        setExpanded(false);
+                        setHint('Нажмите «Показать COS», чтобы запросить подключенные PCRF-сервисы.');
+                    }
+                }).observe(heroEl, { childList: true, characterData: true, subtree: true });
+            }
+
+            // Включаем кнопки только когда абонент загружен
+            const enableObs = new MutationObserver(() => {
+                const has = !!getMsisdn();
+                refresh.disabled = !has;
+                toggle.disabled  = !has;
+            });
+            enableObs.observe($('hMsisdn'), { childList: true, characterData: true, subtree: true });
+            // на старте — до загрузки абонента кнопки заблокированы
+            toggle.disabled = true;
+        })();
     </script>
 </body>
 </html>

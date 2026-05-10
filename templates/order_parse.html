@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Разбор приказа — SBMS</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="/static/sbms-design.css">
+    <link rel="stylesheet" href="/static/sbms-ui.css">
+    <style>
+        .op-wrap { max-width: 1480px; margin: 0 auto; padding: var(--space-4); }
+        .op-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+            gap: var(--space-4);
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .op-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        .op-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            min-width: 0;
+            overflow: hidden;
+        }
+        .op-card__head {
+            display: flex; align-items: center; gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--border);
+        }
+        .op-card__title {
+            font-size: var(--text-md);
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+        }
+        .op-card__hint {
+            margin-left: auto;
+            font-size: var(--text-xs);
+            color: var(--text-3);
+        }
+        .op-card__body { padding: var(--space-3) var(--space-4); }
+
+        .op-drop {
+            display: block;
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 22px 16px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-2);
+            transition: border-color .15s, background .15s;
+            font-size: var(--text-sm);
+        }
+        .op-drop:hover, .op-drop.is-drag {
+            border-color: var(--brand);
+            background: var(--bg-soft);
+        }
+        .op-drop input[type="file"] { display: none; }
+        .op-drop__hint { color: var(--text-1); font-weight: var(--weight-semibold); }
+        .op-drop small { color: var(--text-3); }
+
+        .op-status {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: var(--text-xs);
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+        }
+        .op-status.is-ok    { color: var(--success-text); border-color: rgba(34,197,94,.35); background: var(--success-soft); }
+        .op-status.is-err   { color: var(--danger-text);  border-color: rgba(239,68,68,.35); background: var(--danger-soft);  }
+
+        .op-actions {
+            display: flex; gap: 6px; flex-wrap: wrap;
+            padding: 10px var(--space-4);
+            border-top: 1px solid var(--border);
+        }
+
+        .op-section { margin-bottom: var(--space-4); }
+        .op-section__head {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px var(--space-4);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+        .op-section__title {
+            font-weight: var(--weight-semibold);
+            color: var(--text-1);
+            font-size: var(--text-md);
+        }
+        .op-section__count {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+        }
+        .op-section__count.is-empty { color: var(--text-3); }
+        .op-section__caret { margin-left: auto; color: var(--text-3); transition: transform .15s; }
+        .op-section.is-collapsed .op-section__caret { transform: rotate(-90deg); }
+        .op-section.is-collapsed .op-section__body { display: none; }
+
+        .op-meta-grid {
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 6px 14px;
+            font-size: var(--text-sm);
+        }
+        .op-meta-grid dt { color: var(--text-3); }
+        .op-meta-grid dd { margin: 0; color: var(--text-1); font-weight: var(--weight-medium); }
+
+        .op-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--text-sm);
+        }
+        .op-table th, .op-table td {
+            padding: 6px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-1);
+            vertical-align: top;
+        }
+        .op-table th {
+            background: var(--bg-canvas);
+            color: var(--text-3);
+            font-size: 11px;
+            font-weight: var(--weight-semibold);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .op-table td.num, .op-table th.num { text-align: right; font-family: var(--font-mono); }
+        .op-table td.id, .op-table th.id { font-family: var(--font-mono); }
+        .op-table tr:hover td { background: var(--bg-soft); }
+
+        .op-tabs {
+            display: flex; gap: 4px;
+            padding: 8px var(--space-4) 0;
+        }
+        .op-tab {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-canvas);
+            color: var(--text-2);
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: var(--text-sm);
+        }
+        .op-tab.is-active {
+            background: var(--bg-surface);
+            color: var(--text-1);
+            border-bottom-color: var(--bg-surface);
+            font-weight: var(--weight-semibold);
+        }
+
+        .op-empty {
+            padding: 20px var(--space-4);
+            color: var(--text-3);
+            text-align: center;
+            font-size: var(--text-sm);
+        }
+
+        .op-id-list {
+            display: flex; flex-wrap: wrap; gap: 4px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .op-id-list .op-id-chip {
+            padding: 1px 6px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-1);
+        }
+
+        .op-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: var(--weight-semibold);
+        }
+        .op-badge--type-1 { background: var(--danger-soft);  color: var(--danger-text);  border: 1px solid rgba(239,68,68,.3); }
+        .op-badge--type-2 { background: var(--warning-soft); color: var(--warning-text); border: 1px solid rgba(245,158,11,.3); }
+        .op-badge--type-3 { background: var(--info-soft);    color: var(--info-text);    border: 1px solid rgba(59,130,246,.3); }
+        .op-badge--unknown { background: var(--bg-canvas); color: var(--text-3); border: 1px solid var(--border); }
+
+        .op-legend {
+            margin: 10px var(--space-4) 0;
+            padding: 8px 12px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: var(--text-xs);
+            color: var(--text-2);
+            line-height: 1.55;
+        }
+        .op-legend b { color: var(--text-1); }
+
+        .op-json {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-1);
+            overflow: auto;
+            max-height: 280px;
+            white-space: pre;
+        }
+
+        .op-multilang {
+            display: flex; flex-direction: column; gap: 2px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .op-multilang span { color: var(--text-1); }
+        .op-multilang span::before {
+            content: attr(data-lang);
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            margin-right: 6px;
+            text-transform: uppercase;
+        }
+
+        .op-pcrf-note {
+            font-size: 11px;
+            color: var(--text-3);
+            line-height: 1.4;
+            max-width: 440px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sbmsNav"></div>
+
+    <div class="op-wrap">
+        <header style="margin-bottom:var(--space-4);">
+            <h1 style="margin:0 0 4px;font-size:var(--text-2xl);font-weight:var(--weight-bold);color:var(--text-1);">
+                Разбор коммерческого приказа
+            </h1>
+            <p style="margin:0;color:var(--text-2);font-size:var(--text-sm);max-width:880px;line-height:1.5;">
+                Загрузите PDF или DOCX приказа — автоматически извлекаются 6 секций:
+                состав семейства, описание продукта, доступные тарифы, взаимоисключающие
+                пакеты/услуги и PCRF COS.
+            </p>
+        </header>
+
+        <div class="op-grid">
+
+            <!-- ============== LEFT: Upload ============== -->
+            <div class="op-card">
+                <div class="op-card__head">
+                    <span class="op-card__title">Файл приказа</span>
+                    <span class="op-card__hint">PDF · DOCX</span>
+                </div>
+                <div class="op-card__body">
+                    <label class="op-drop" id="opDrop">
+                        <input type="file" id="opFile" accept=".pdf,.docx">
+                        <div><span class="op-drop__hint">Перетащите файл</span> или кликните</div>
+                        <small>Поддерживаются PDF и DOCX (для DOCX — частичная поддержка)</small>
+                    </label>
+                    <div id="opStatus" class="op-status" style="display:none;"></div>
+                </div>
+                <div class="op-actions">
+                    <button id="btnReset" type="button" class="btn btn-ghost" disabled>Очистить</button>
+                    <button id="btnCopyJson" type="button" class="btn btn-ghost" disabled>Копировать JSON</button>
+                    <button id="btnDownloadJson" type="button" class="btn btn-primary" disabled>Скачать JSON</button>
+                </div>
+            </div>
+
+            <!-- ============== RIGHT: Results ============== -->
+            <div id="opResults">
+                <div class="op-card">
+                    <div class="op-empty">
+                        Загрузите PDF/DOCX приказа — здесь появится разбор по секциям.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/sbms-auth.js"></script>
+    <script src="/static/sbms-nav.js"></script>
+    <script>
+        SbmsNav.mount('#sbmsNav', { active: 'order-parse' });
+    </script>
+    <script>
+    (function () {
+        'use strict';
+
+        const $  = (sel, root = document) => root.querySelector(sel);
+
+        const drop      = $('#opDrop');
+        const fileInput = $('#opFile');
+        const statusEl  = $('#opStatus');
+        const resultsEl = $('#opResults');
+        const btnReset  = $('#btnReset');
+        const btnCopy   = $('#btnCopyJson');
+        const btnDl     = $('#btnDownloadJson');
+
+        let lastData = null;
+        let lastFilename = '';
+
+        /* ----------- helpers ----------- */
+        function setStatus(text, kind) {
+            statusEl.textContent = text || '';
+            statusEl.classList.remove('is-ok', 'is-err');
+            if (kind) statusEl.classList.add('is-' + kind);
+            statusEl.style.display = text ? '' : 'none';
+        }
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function buildSection(opts) {
+            const { id, title, count, body, collapsedByDefault } = opts;
+            const isEmpty = (count === 0);
+            const card = document.createElement('div');
+            card.className = 'op-card op-section' + (collapsedByDefault ? ' is-collapsed' : '');
+            card.innerHTML = `
+                <div class="op-section__head" data-toggle="${id}">
+                    <span class="op-section__title">${escapeHtml(title)}</span>
+                    <span class="op-section__count ${isEmpty ? 'is-empty' : ''}">${count}</span>
+                    <span class="op-section__caret">▾</span>
+                </div>
+                <div class="op-section__body"></div>
+            `;
+            card.querySelector('.op-section__body').appendChild(body);
+            card.querySelector('.op-section__head').addEventListener('click', () => {
+                card.classList.toggle('is-collapsed');
+            });
+            return card;
+        }
+
+        function tableEl(headers, rows) {
+            const t = document.createElement('table');
+            t.className = 'op-table';
+            const thead = document.createElement('thead');
+            const tr = document.createElement('tr');
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                if (typeof h === 'object') {
+                    th.textContent = h.text;
+                    if (h.cls) th.className = h.cls;
+                } else {
+                    th.textContent = h;
+                }
+                tr.appendChild(th);
+            });
+            thead.appendChild(tr);
+            t.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            rows.forEach(row => {
+                const r = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    if (cell && typeof cell === 'object' && 'html' in cell) {
+                        td.innerHTML = cell.html;
+                        if (cell.cls) td.className = cell.cls;
+                    } else if (cell && typeof cell === 'object' && 'text' in cell) {
+                        td.textContent = cell.text;
+                        if (cell.cls) td.className = cell.cls;
+                    } else {
+                        td.textContent = cell == null ? '' : cell;
+                    }
+                    r.appendChild(td);
+                });
+                tbody.appendChild(r);
+            });
+            t.appendChild(tbody);
+            return t;
+        }
+
+        function emptyEl(text) {
+            const d = document.createElement('div');
+            d.className = 'op-empty';
+            d.textContent = text || 'Нет данных';
+            return d;
+        }
+
+        function idChips(ids) {
+            if (!ids || !ids.length) return '<span style="color:var(--text-3);">—</span>';
+            return '<div class="op-id-list">' +
+                ids.map(id => `<span class="op-id-chip">${id}</span>`).join('') +
+                '</div>';
+        }
+
+        function exclusionBadge(item) {
+            const code = item.exclusion_code;
+            if (!code) {
+                return `<span class="op-badge op-badge--unknown">${escapeHtml(item.exclusion_type_raw || '—')}</span>`;
+            }
+            const cls = `op-badge--type-${code}`;
+            const labels = { '1': 'Запрет', '2': 'Замена', '3': 'Замена с подтв.' };
+            return `<span class="op-badge ${cls}" title="${escapeHtml(item.exclusion_text || '')}">${labels[code] || code}</span>`;
+        }
+
+        /* ----------- renderers per section ----------- */
+        function renderMeta(meta) {
+            const dl = document.createElement('dl');
+            dl.className = 'op-meta-grid';
+            const fields = [
+                ['Номер',       meta.order_no],
+                ['Дата',        meta.order_date],
+                ['Заголовок',   meta.title],
+            ];
+            fields.forEach(([k, v]) => {
+                const dt = document.createElement('dt'); dt.textContent = k;
+                const dd = document.createElement('dd'); dd.textContent = v || '—';
+                dl.appendChild(dt); dl.appendChild(dd);
+            });
+            const wrap = document.createElement('div');
+            wrap.className = 'op-card__body';
+            wrap.appendChild(dl);
+            return wrap;
+        }
+
+        function renderFamily(items) {
+            if (!items || !items.length) return emptyEl('Раздел «Состав семейства продуктов» не найден');
+            const rows = items.map(it => [
+                { text: it.product_id, cls: 'id' },
+                { html: `<div class="op-multilang">
+                            ${it.name_ru ? `<span data-lang="ru">${escapeHtml(it.name_ru)}</span>` : ''}
+                            ${it.name_en ? `<span data-lang="en">${escapeHtml(it.name_en)}</span>` : ''}
+                            ${it.name_uz ? `<span data-lang="uz">${escapeHtml(it.name_uz)}</span>` : ''}
+                         </div>` },
+                { text: it.technical_name },
+            ]);
+            return tableEl(
+                [{ text: 'Product_id', cls: 'id' }, 'Коммерческое наименование', 'Техническое наименование'],
+                rows
+            );
+        }
+
+        function renderDescription(items) {
+            if (!items || !items.length) return emptyEl('Раздел «Общее описание продукта» не найден');
+            const rows = items.map(it => [it.name, it.limit, it.price]);
+            return tableEl(['Название', 'Лимит', 'Стоимость'], rows);
+        }
+
+        function renderRatePlans(rp) {
+            const wrap = document.createElement('div');
+            const tabs = document.createElement('div');
+            tabs.className = 'op-tabs';
+            const postBtn = document.createElement('button');
+            postBtn.className = 'op-tab is-active';
+            postBtn.textContent = `Postpaid · ${(rp.postpaid || []).length}`;
+            const preBtn = document.createElement('button');
+            preBtn.className = 'op-tab';
+            preBtn.textContent = `Prepaid · ${(rp.prepaid || []).length}`;
+            tabs.appendChild(postBtn);
+            tabs.appendChild(preBtn);
+            wrap.appendChild(tabs);
+
+            const cont = document.createElement('div');
+            wrap.appendChild(cont);
+
+            function renderList(list) {
+                cont.innerHTML = '';
+                if (!list.length) {
+                    cont.appendChild(emptyEl('Список пуст'));
+                    return;
+                }
+                const rows = list.map(it => [{ text: it.id, cls: 'id' }, it.name]);
+                cont.appendChild(tableEl(
+                    [{ text: 'RATE_PLAN_ID', cls: 'id' }, 'RATE_PLAN_NAME'],
+                    rows
+                ));
+            }
+            renderList(rp.postpaid || []);
+
+            postBtn.addEventListener('click', () => {
+                postBtn.classList.add('is-active'); preBtn.classList.remove('is-active');
+                renderList(rp.postpaid || []);
+            });
+            preBtn.addEventListener('click', () => {
+                preBtn.classList.add('is-active'); postBtn.classList.remove('is-active');
+                renderList(rp.prepaid || []);
+            });
+            return wrap;
+        }
+
+        function renderExclusions(items, kindLabel) {
+            const wrap = document.createElement('div');
+            if (!items || !items.length) {
+                wrap.appendChild(emptyEl(`Раздел «${kindLabel}» не найден`));
+                return wrap;
+            }
+            const rows = items.map(it => [
+                { text: it.n || '', cls: 'num' },
+                it.name || '',
+                { html: idChips(it.ids) },
+                { html: exclusionBadge(it) },
+            ]);
+            wrap.appendChild(tableEl(
+                [{ text: '№', cls: 'num' }, 'Название', { text: 'ID', cls: 'id' }, 'Тип взаимоисключения'],
+                rows
+            ));
+            const legend = document.createElement('div');
+            legend.className = 'op-legend';
+            legend.innerHTML = `
+                <b>Типы взаимоисключения:</b><br>
+                <span class="op-badge op-badge--type-1">Запрет</span> — Не подключать пакет, если подключен пакет из таблицы<br>
+                <span class="op-badge op-badge--type-2">Замена</span> — Заменить пакет, если обнаружен пакет из таблицы без подтверждения<br>
+                <span class="op-badge op-badge--type-3">Замена с подтв.</span> — Заменить пакет, если обнаружен пакет из таблицы с подтверждением
+            `;
+            wrap.appendChild(legend);
+            return wrap;
+        }
+
+        function renderPcrf(items) {
+            if (!items || !items.length) return emptyEl('Раздел «PCRF» не найден');
+            const rows = items.map(it => [
+                it.cos || '',
+                it.activation || '',
+                it.quota || '',
+                it.priority || '',
+                it.rg_si || '',
+                { html: it.note ? `<div class="op-pcrf-note">${escapeHtml(it.note)}</div>` : '—' },
+            ]);
+            return tableEl(
+                ['COS', 'Тип активации', 'Quota', 'Priority', 'RG/SI', 'Примечание'],
+                rows
+            );
+        }
+
+        /* ----------- main render ----------- */
+        function render(data) {
+            resultsEl.innerHTML = '';
+
+            // 0. Meta
+            const metaCard = document.createElement('div');
+            metaCard.className = 'op-card';
+            metaCard.innerHTML = `
+                <div class="op-card__head">
+                    <span class="op-card__title">О приказе</span>
+                    <span class="op-card__hint">${escapeHtml(data.filename || '')}</span>
+                </div>
+            `;
+            metaCard.appendChild(renderMeta(data.meta || {}));
+            resultsEl.appendChild(metaCard);
+
+            // 1. Family
+            resultsEl.appendChild(buildSection({
+                id: 'family',
+                title: '1. Состав семейства продуктов',
+                count: (data.product_family || []).length,
+                body: renderFamily(data.product_family),
+            }));
+
+            // 2. Description
+            resultsEl.appendChild(buildSection({
+                id: 'description',
+                title: '2. Общее описание продукта (лимиты и стоимость)',
+                count: (data.description || []).length,
+                body: renderDescription(data.description),
+            }));
+
+            // 3. Rate plans
+            const rp = data.rate_plans || { postpaid: [], prepaid: [] };
+            resultsEl.appendChild(buildSection({
+                id: 'rate-plans',
+                title: '3.2 Доступность продукта на тарифных планах',
+                count: (rp.postpaid || []).length + (rp.prepaid || []).length,
+                body: renderRatePlans(rp),
+                collapsedByDefault: true,
+            }));
+
+            // 4. Excl packs
+            resultsEl.appendChild(buildSection({
+                id: 'excl-packs',
+                title: '3.3.1 Взаимоисключающие пакеты',
+                count: (data.excl_packs || []).length,
+                body: renderExclusions(data.excl_packs, 'Взаимоисключающие пакеты'),
+            }));
+
+            // 5. Excl services
+            resultsEl.appendChild(buildSection({
+                id: 'excl-services',
+                title: '3.3.2 Взаимоисключающие услуги',
+                count: (data.excl_services || []).length,
+                body: renderExclusions(data.excl_services, 'Взаимоисключающие услуги'),
+            }));
+
+            // 6. PCRF
+            resultsEl.appendChild(buildSection({
+                id: 'pcrf',
+                title: '6.1 PCRF + Приложение №4',
+                count: (data.pcrf || []).length,
+                body: renderPcrf(data.pcrf),
+            }));
+
+            // Raw JSON
+            const jsonCard = document.createElement('div');
+            jsonCard.className = 'op-card op-section is-collapsed';
+            const pre = document.createElement('pre');
+            pre.className = 'op-json';
+            pre.textContent = JSON.stringify(data, null, 2);
+            const wrap = document.createElement('div');
+            wrap.className = 'op-card__body';
+            wrap.appendChild(pre);
+            jsonCard.innerHTML = `
+                <div class="op-section__head">
+                    <span class="op-section__title">Сырой JSON</span>
+                    <span class="op-section__count">${(JSON.stringify(data).length / 1024).toFixed(1)} КБ</span>
+                    <span class="op-section__caret">▾</span>
+                </div>
+                <div class="op-section__body"></div>
+            `;
+            jsonCard.querySelector('.op-section__body').appendChild(pre);
+            jsonCard.querySelector('.op-section__head').addEventListener('click', () => {
+                jsonCard.classList.toggle('is-collapsed');
+            });
+            resultsEl.appendChild(jsonCard);
+        }
+
+        /* ----------- upload ----------- */
+        async function uploadFile(file) {
+            if (!file) return;
+            lastFilename = file.name;
+            setStatus(`Парсю «${file.name}» (${(file.size/1024).toFixed(0)} КБ)…`, '');
+            const fd = new FormData();
+            fd.append('file', file);
+            try {
+                const resp = await fetch('/api/order/parse-sections', { method: 'POST', body: fd });
+                const j = await resp.json();
+                if (!resp.ok) {
+                    setStatus('Ошибка: ' + (j.error || resp.status), 'err');
+                    return;
+                }
+                lastData = j;
+                btnReset.disabled = false;
+                btnCopy.disabled  = false;
+                btnDl.disabled    = false;
+                const counts = [
+                    `${(j.product_family||[]).length} продукт.`,
+                    `${(j.description||[]).length} описан.`,
+                    `${(j.rate_plans?.postpaid||[]).length}+${(j.rate_plans?.prepaid||[]).length} тариф.`,
+                    `${(j.excl_packs||[]).length} excl-пакет.`,
+                    `${(j.excl_services||[]).length} excl-усл.`,
+                    `${(j.pcrf||[]).length} PCRF`,
+                ].join(' · ');
+                setStatus('Готово · ' + counts, 'ok');
+                render(j);
+                if (window.SbmsToast) {
+                    SbmsToast.show('Приказ распарсен', { type: 'success' });
+                }
+            } catch (e) {
+                setStatus('Сетевая ошибка: ' + (e && e.message || e), 'err');
+            }
+        }
+
+        fileInput.addEventListener('change', e => uploadFile(e.target.files[0]));
+
+        ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            drop.classList.add('is-drag');
+        }));
+        ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+            e.preventDefault(); e.stopPropagation();
+            drop.classList.remove('is-drag');
+        }));
+        drop.addEventListener('drop', e => {
+            const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+            if (f) uploadFile(f);
+        });
+
+        /* ----------- actions ----------- */
+        btnReset.addEventListener('click', () => {
+            lastData = null;
+            lastFilename = '';
+            fileInput.value = '';
+            btnReset.disabled = true;
+            btnCopy.disabled  = true;
+            btnDl.disabled    = true;
+            setStatus('', '');
+            resultsEl.innerHTML = `
+                <div class="op-card">
+                    <div class="op-empty">
+                        Загрузите PDF/DOCX приказа — здесь появится разбор по секциям.
+                    </div>
+                </div>
+            `;
+        });
+
+        btnCopy.addEventListener('click', async () => {
+            if (!lastData) return;
+            const text = JSON.stringify(lastData, null, 2);
+            try {
+                await navigator.clipboard.writeText(text);
+                if (window.SbmsToast) SbmsToast.show('JSON скопирован', { type: 'success' });
+                else setStatus('JSON скопирован', 'ok');
+            } catch (e) {
+                setStatus('Не удалось скопировать: ' + e.message, 'err');
+            }
+        });
+
+        btnDl.addEventListener('click', () => {
+            if (!lastData) return;
+            const text = JSON.stringify(lastData, null, 2);
+            const blob = new Blob([text], { type: 'application/json' });
+            const a = document.createElement('a');
+            const safeName = (lastFilename || 'order').replace(/\.[^.]+$/, '') + '.parsed.json';
+            a.href = URL.createObjectURL(blob);
+            a.download = safeName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            }, 0);
+        });
+    })();
+    </script>
+</body>
+</html>

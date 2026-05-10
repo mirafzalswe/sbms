@@ -25,12 +25,10 @@
         { id: 'subscriber', href: '/subscriber',           label: 'Абонент' },
         { id: 'compare',    href: '/compare',              label: 'Сравнить' },
         { id: 'history',    href: '/test-history',         label: 'История' },
-        { id: 'dashboard',  href: '/',                     label: 'Dashboard' },
-        { id: 'tester',     href: '/tester',               label: 'QA Tester' },
-        { id: 'tariff',     href: '/tariff-test',          label: 'Тариф' },
         { id: 'matrix',     href: '/matrix-test',          label: 'Матрица' },
         { id: 'product',    href: '/product-availability', label: 'Доступность' },
         { id: 'avail-check',href: '/availability-check',   label: 'Проверка пакетов' },
+        { id: 'order-parse',href: '/order-parse',          label: 'Разбор приказа' },
         { id: 'tme',        href: '/tme',                  label: 'TME' },
     ];
 

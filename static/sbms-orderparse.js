@@ -193,26 +193,74 @@
     }
 
     /* ---------- Free-form lines ---------- */
+    /* Поддерживает «вертикальный» формат:
+         5611
+         (пустые строки)
+         Data_pack_in_Roam_Neighbours_250MB
+         5612
+         …
+       а также обычный inline: «5611 Data_pack…», «(ID 5611) Data_pack…».
+       Допускаются 2-значные ID (40, 55, 62…). */
     function fromFreeForm(text) {
         const out = [];
+        const PURE_ID_RE = /^(\d{2,8})$/;
+
+        // 1) Сначала собираем все непустые строки (с исходными номерами строк),
+        //    чтобы можно было «заглядывать вперёд» через пустые строки.
+        const ne = [];
         splitLines(text).forEach((rawLine, idx) => {
-            const line = clean(rawLine);
-            if (!line) return;
-            const id = extractId(line);
-            if (id != null) {
-                const name = stripIdFromName(line);
-                out.push({ id, name, line: idx + 1 });
-                return;
-            }
-            // "12345, Foydali" / "12345 - Foydali" / "12345 Foydali"
-            const m = line.match(/^(\d{3,8})\s*[,;:\t—–\-|\s]+\s*(.+)$/);
-            if (m) {
-                out.push({ id: parseInt(m[1], 10), name: clean(m[2]), line: idx + 1 });
-                return;
-            }
-            // строка — просто имя
-            if (line.length > 2) out.push({ id: null, name: line, line: idx + 1 });
+            const l = clean(rawLine);
+            if (l) ne.push({ line: idx + 1, text: l });
         });
+
+        function isPureNameCandidate(t) {
+            // строка — кандидат на «имя для пары»: она НЕ голый ID и НЕ начинается с ID+разделитель
+            if (PURE_ID_RE.test(t)) return false;
+            if (extractId(t) != null) return false;
+            if (/^\d{2,8}[\s,;:\t—–\-|]/.test(t)) return false;
+            return true;
+        }
+
+        let i = 0;
+        while (i < ne.length) {
+            const cur = ne[i];
+            const text = cur.text;
+
+            // 1) Голый ID (2–8 цифр) → ищем следующую непустую строку как имя
+            const pureId = text.match(PURE_ID_RE);
+            if (pureId) {
+                const nxt = ne[i + 1];
+                if (nxt && isPureNameCandidate(nxt.text)) {
+                    out.push({ id: parseInt(pureId[1], 10), name: nxt.text, line: cur.line });
+                    i += 2;
+                    continue;
+                }
+                out.push({ id: parseInt(pureId[1], 10), name: '', line: cur.line });
+                i += 1;
+                continue;
+            }
+
+            // 2) ID внутри строки: «(ID 12345) Foydali» / «ID:12345 …» / «(12345)»
+            const id = extractId(text);
+            if (id != null) {
+                out.push({ id, name: stripIdFromName(text), line: cur.line });
+                i += 1;
+                continue;
+            }
+
+            // 3) Inline: «12345, Foydali» / «12345 - Foydali» / «12345 Foydali» (2–8 цифр)
+            const m = text.match(/^(\d{2,8})\s*[,;:\t—–\-|]\s*(.+)$/)
+                   || text.match(/^(\d{3,8})\s+(.+)$/);
+            if (m) {
+                out.push({ id: parseInt(m[1], 10), name: clean(m[2]), line: cur.line });
+                i += 1;
+                continue;
+            }
+
+            // 4) Просто имя без ID
+            if (text.length > 2) out.push({ id: null, name: text, line: cur.line });
+            i += 1;
+        }
         return out;
     }
 

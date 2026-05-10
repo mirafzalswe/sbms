@@ -20,7 +20,7 @@ except ImportError:
 
 
 # Единицы измерения из SBMS
-MEASURE_UNITS = {0: "сум", 1: "минуты", 7: "SMS", 14: "МБ"}
+MEASURE_UNITS = {0: "сум", 1: "SMS", 7: "минуты", 14: "МБ"}
 
 
 # ============================================================
@@ -202,9 +202,9 @@ def extract_volumes(rt_discounts_data):
         spent = item.get("spentVolume", 0) or 0
         remaining = max_vol - spent
 
-        if uid == 1:
+        if uid == 7:
             totals["minutes"] += max_vol
-        elif uid == 7:
+        elif uid == 1:
             totals["sms"] += max_vol
         elif uid == 14:
             totals["mb"] += max_vol
@@ -249,9 +249,9 @@ def extract_volumes_by_product_id(rt_discounts_data, product_id):
         spent = item.get("spentVolume", 0) or 0
         remaining = max_vol - spent
 
-        if uid == 1:
+        if uid == 7:
             totals["minutes"] += max_vol
-        elif uid == 7:
+        elif uid == 1:
             totals["sms"] += max_vol
         elif uid == 14:
             totals["mb"] += max_vol

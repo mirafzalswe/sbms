@@ -15,18 +15,22 @@
         }
         .ac-grid {
             display: grid;
-            grid-template-columns: minmax(360px, 460px) 1fr;
+            /* minmax(0, 1fr) — иначе grid-track раздувается под min-content
+               (длинные имена + много колонок ролей) и таблица вылезает за экран */
+            grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
             gap: var(--space-4);
             align-items: start;
         }
         @media (max-width: 1100px) {
-            .ac-grid { grid-template-columns: 1fr; }
+            .ac-grid { grid-template-columns: minmax(0, 1fr); }
         }
 
         .ac-card {
             background: var(--bg-surface);
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
+            min-width: 0;          /* грид-cell может ужиматься */
+            overflow: hidden;       /* скруглённые углы при внутреннем скролле */
         }
         .ac-card__head {
             display: flex; align-items: center; gap: var(--space-2);
@@ -136,19 +140,23 @@
         .ac-drop__hint { font-weight: var(--weight-semibold); color: var(--text-2); }
         .ac-drop input[type="file"] { display: none; }
 
-        /* Parsed preview */
+        /* Parsed preview (editable) */
         .ac-preview {
             margin-top: var(--space-2);
             border: 1px solid var(--border);
             border-radius: 6px;
             background: var(--bg-canvas);
-            max-height: 240px;
+            max-height: 280px;
             overflow: auto;
         }
-        .ac-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .ac-preview th, .ac-preview td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+        .ac-preview table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+        .ac-preview th, .ac-preview td {
+            padding: 2px 6px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
         .ac-preview th {
-            position: sticky; top: 0;
+            position: sticky; top: 0; z-index: 1;
             background: var(--bg-surface);
             text-align: left;
             font-size: 10px;
@@ -156,19 +164,79 @@
             letter-spacing: .04em;
             color: var(--text-3);
             font-weight: var(--weight-semibold);
+            padding: 4px 6px;
         }
-        .ac-preview td:first-child {
-            font-family: var(--font-mono);
-            color: var(--info-text);
-            width: 90px;
-        }
-        .ac-preview td.no-id { color: var(--warning-text); }
+        .ac-preview col.col-id   { width: 86px; }
+        .ac-preview col.col-act  { width: 28px; }
         .ac-preview tr:last-child td { border-bottom: none; }
+        .ac-preview tr:hover td { background: var(--bg-subtle); }
+
+        /* inline edit-инпуты внутри превью */
+        .ac-pinp {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 3px 6px;
+            font-family: inherit;
+            font-size: 12px;
+            color: var(--text-1);
+            border-radius: 4px;
+            outline: none;
+        }
+        .ac-pinp:hover  { border-color: var(--border); background: var(--bg-surface); }
+        .ac-pinp:focus  { border-color: var(--brand); background: var(--bg-surface); box-shadow: var(--focus-ring); }
+        .ac-pinp.is-id  { font-family: var(--font-mono); color: var(--info-text); }
+        .ac-pinp.is-id.is-missing { color: var(--warning-text); }
+        .ac-pinp.is-invalid { border-color: var(--danger-text); color: var(--danger-text); }
+
+        .ac-prow-del {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--text-3);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            transition: background-color .15s, color .15s, border-color .15s;
+        }
+        .ac-prow-del:hover {
+            background: var(--danger-soft);
+            color: var(--danger-text);
+            border-color: rgba(239,68,68,.3);
+        }
+
         .ac-preview-empty {
             padding: 16px;
             color: var(--text-3);
             font-size: var(--text-xs);
             text-align: center;
+        }
+        .ac-preview-foot {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 8px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-surface);
+            position: sticky; bottom: 0;
+        }
+        .ac-add-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 10px;
+            background: transparent;
+            border: 1px dashed var(--border-strong);
+            border-radius: 6px;
+            color: var(--text-2);
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color .15s, color .15s, border-color .15s;
+        }
+        .ac-add-btn:hover { background: var(--brand-soft); color: var(--text-1); border-color: var(--brand); }
+        .ac-preview-foot__hint {
+            margin-left: auto;
+            font-size: 10px;
+            color: var(--text-3);
         }
 
         .ac-meta {
@@ -247,7 +315,12 @@
         .ac-stat--warn    b { color: var(--warning-text); }
         .ac-stat--danger  b { color: var(--danger-text); }
 
-        .ac-rtable-wrap { max-height: 65vh; overflow: auto; }
+        .ac-rtable-wrap {
+            max-height: 70vh;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-width: 100%;
+        }
         .ac-rtable {
             width: 100%;
             border-collapse: collapse;
@@ -277,13 +350,24 @@
             font-size: 12px;
         }
         .ac-rtable td.col-id.is-missing { color: var(--warning-text); }
-        .ac-rtable td.col-name { white-space: normal; max-width: 260px; word-break: break-word; }
+        .ac-rtable td.col-name {
+            white-space: normal;
+            max-width: 240px;
+            min-width: 160px;
+            word-break: break-word;
+        }
         .ac-rtable td.col-kind {
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: .04em;
             color: var(--text-3);
             font-weight: var(--weight-semibold);
+        }
+        /* ячейки под роли — могут быть длинными именами из API, ограничим */
+        .ac-rtable td.col-role {
+            max-width: 220px;
+            white-space: normal;
+            word-break: break-word;
         }
 
         /* Status badges */
@@ -555,6 +639,7 @@
             selectedRoles: new Set(['admin', 'B2B_FO']),
             packs: [],
             services: [],
+            lastSent: { packs: [], services: [] },
             result: null,
             resultFilter: { search: '', status: '', kind: '', onlyDiff: false },
             running: false,
@@ -618,22 +703,152 @@
             const res = window.SbmsOrderParse.parseText(text);
             state[kind] = res.items || [];
             renderPreview(kind);
-            $(kind + 'Count').textContent = state[kind].length;
+            updateCount(kind);
+        }
+
+        function updateCount(kind) {
+            const items = state[kind] || [];
+            const withId = items.filter(it => it.id != null).length;
+            $(kind + 'Count').textContent = withId === items.length
+                ? items.length
+                : `${items.length} (${withId} с ID)`;
         }
 
         function renderPreview(kind) {
             const el = $(kind + 'Preview');
             const items = state[kind] || [];
-            if (!items.length) { el.innerHTML = '<div class="ac-preview-empty">Распознанные записи появятся здесь</div>'; return; }
-            const rows = items.slice(0, 200).map(it => `<tr>
-                <td class="${it.id == null ? 'no-id' : ''}">${it.id == null ? '— нет ID —' : esc(it.id)}</td>
-                <td>${esc(it.name || '')}</td>
-            </tr>`).join('');
-            const more = items.length > 200 ? `<div style="padding:6px 8px;color:var(--text-3);font-size:11px;">Показано 200 из ${items.length}</div>` : '';
-            el.innerHTML = `<table>
-                <thead><tr><th>ID</th><th>Название</th></tr></thead>
-                <tbody>${rows}</tbody>
-            </table>${more}`;
+            const head = `
+                <table>
+                    <colgroup>
+                        <col class="col-id">
+                        <col>
+                        <col class="col-act">
+                    </colgroup>
+                    <thead><tr><th>ID</th><th>Название</th><th></th></tr></thead>
+                    <tbody>`;
+            const tail = `</tbody></table>`;
+            const foot = `<div class="ac-preview-foot">
+                <button type="button" class="ac-add-btn" data-add="${kind}">+ Добавить ID вручную</button>
+                <span class="ac-preview-foot__hint">Поля редактируемы. ⏎ — следующее поле, ⌫ на пустом — удалить строку</span>
+            </div>`;
+            if (!items.length) {
+                el.innerHTML = `${head}${tail}<div class="ac-preview-empty">Распознанные записи появятся здесь — или добавьте вручную</div>${foot}`;
+                bindPreview(kind);
+                return;
+            }
+            const MAX_RENDER = 500;
+            const visible = items.slice(0, MAX_RENDER);
+            const rows = visible.map((it, idx) => {
+                const idVal = it.id == null ? '' : String(it.id);
+                const idCls = it.id == null ? 'is-missing' : '';
+                return `<tr data-idx="${idx}">
+                    <td><input type="text" class="ac-pinp is-id ${idCls}" data-field="id"
+                               inputmode="numeric" autocomplete="off"
+                               placeholder="—"
+                               value="${esc(idVal)}"></td>
+                    <td><input type="text" class="ac-pinp" data-field="name"
+                               autocomplete="off"
+                               placeholder="название (необязательно)"
+                               value="${esc(it.name || '')}"></td>
+                    <td><button type="button" class="ac-prow-del" title="Удалить">×</button></td>
+                </tr>`;
+            }).join('');
+            const more = items.length > MAX_RENDER
+                ? `<div style="padding:6px 8px;color:var(--text-3);font-size:11px;">Показано ${MAX_RENDER} из ${items.length} — остальные будут отправлены при запуске</div>`
+                : '';
+            el.innerHTML = `${head}${rows}${tail}${more}${foot}`;
+            bindPreview(kind);
+        }
+
+        function bindPreview(kind) {
+            const root = $(kind + 'Preview');
+            // input → update state
+            root.querySelectorAll('.ac-pinp').forEach(inp => {
+                inp.addEventListener('input', () => {
+                    const tr = inp.closest('tr'); if (!tr) return;
+                    const idx = parseInt(tr.dataset.idx, 10);
+                    if (isNaN(idx) || !state[kind][idx]) return;
+                    const field = inp.dataset.field;
+                    if (field === 'id') {
+                        const v = inp.value.trim();
+                        if (!v) {
+                            state[kind][idx].id = null;
+                            inp.classList.remove('is-invalid');
+                            inp.classList.add('is-missing');
+                        } else if (/^\d{1,9}$/.test(v)) {
+                            state[kind][idx].id = parseInt(v, 10);
+                            inp.classList.remove('is-invalid', 'is-missing');
+                        } else {
+                            inp.classList.add('is-invalid');
+                        }
+                    } else {
+                        state[kind][idx].name = inp.value;
+                    }
+                    updateCount(kind);
+                });
+                inp.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const tr = inp.closest('tr'); if (!tr) return;
+                        if (inp.dataset.field === 'id') {
+                            const nameInp = tr.querySelector('.ac-pinp[data-field="name"]');
+                            if (nameInp) nameInp.focus();
+                        } else {
+                            // на name — переход к id следующей строки или добавить новую
+                            const next = tr.nextElementSibling;
+                            if (next) {
+                                const nextId = next.querySelector('.ac-pinp[data-field="id"]');
+                                if (nextId) nextId.focus();
+                            } else {
+                                addEmptyRow(kind, true);
+                            }
+                        }
+                    } else if (e.key === 'Backspace' && !inp.value) {
+                        // удалить пустую строку
+                        const tr = inp.closest('tr'); if (!tr) return;
+                        const idx = parseInt(tr.dataset.idx, 10);
+                        if (isNaN(idx)) return;
+                        const item = state[kind][idx];
+                        if (item && item.id == null && !(item.name || '').trim()) {
+                            e.preventDefault();
+                            deleteRow(kind, idx);
+                        }
+                    }
+                });
+            });
+            // delete
+            root.querySelectorAll('.ac-prow-del').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tr = btn.closest('tr'); if (!tr) return;
+                    const idx = parseInt(tr.dataset.idx, 10);
+                    if (isNaN(idx)) return;
+                    deleteRow(kind, idx);
+                });
+            });
+            // add
+            const addBtn = root.querySelector(`[data-add="${kind}"]`);
+            if (addBtn) addBtn.addEventListener('click', () => addEmptyRow(kind, true));
+        }
+
+        function deleteRow(kind, idx) {
+            state[kind].splice(idx, 1);
+            renderPreview(kind);
+            updateCount(kind);
+        }
+
+        function addEmptyRow(kind, focusId) {
+            state[kind].push({ id: null, name: '' });
+            renderPreview(kind);
+            updateCount(kind);
+            if (focusId) {
+                const root = $(kind + 'Preview');
+                const rows = root.querySelectorAll('tr[data-idx]');
+                const last = rows[rows.length - 1];
+                if (last) {
+                    const inp = last.querySelector('.ac-pinp[data-field="id"]');
+                    if (inp) inp.focus();
+                }
+            }
         }
 
         ['packs', 'services'].forEach(kind => {
@@ -664,11 +879,27 @@
                 $(kind + 'Text').value = lines;
                 state[kind] = res.items;
                 renderPreview(kind);
-                $(kind + 'Count').textContent = res.items.length;
+                updateCount(kind);
                 toast('success', `Распознано ${res.items.length} записей из ${esc(res.filename || file.name)}`);
             } catch (e) {
                 toast('error', 'Не удалось распарсить файл: ' + (e.message || e));
             }
+        }
+
+        // Очистка items: убираем пустые и невалидные ID, дедуп по id, нормализуем
+        function cleanItems(items) {
+            const seen = new Set();
+            const out = [];
+            (items || []).forEach(it => {
+                const id = (it && it.id != null && !isNaN(Number(it.id))) ? Number(it.id) : null;
+                const name = ((it && it.name) || '').trim();
+                if (id == null && !name) return;
+                const key = id != null ? 'i:' + id : 'n:' + name.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                out.push({ id, name });
+            });
+            return out;
         }
 
         /* ============================================================
@@ -679,7 +910,17 @@
             const msisdn = ($('msisdn').value || '').replace(/[^0-9]/g, '');
             if (!msisdn) { toast('warn', 'Введите MSISDN'); $('msisdn').focus(); return; }
             if (!state.selectedRoles.size) { toast('warn', 'Выберите хотя бы одну роль'); return; }
-            if (!state.packs.length && !state.services.length) { toast('warn', 'Заполните хотя бы один список'); return; }
+
+            // Чистим списки от пустых/невалидных строк (в т.ч. ручные пустые добавления)
+            const packsClean    = cleanItems(state.packs);
+            const servicesClean = cleanItems(state.services);
+            if (!packsClean.length && !servicesClean.length) {
+                toast('warn', 'Заполните хотя бы один список (ID или название)');
+                return;
+            }
+            // Снапшот того, что отправляется — отдельно от state.packs/services,
+            // чтобы пользователь мог редактировать список, не путая результаты
+            state.lastSent = { packs: packsClean, services: servicesClean };
 
             const includeAdmin = state.selectedRoles.has('admin');
             const otherRoles = [...state.selectedRoles].filter(id => id !== 'admin').map(id => {
@@ -718,8 +959,8 @@
                         adminToken,
                         includeAdmin,
                         roles: otherRoles,
-                        packs: state.packs.map(it => ({ id: it.id, name: it.name })),
-                        services: state.services.map(it => ({ id: it.id, name: it.name })),
+                        packs:    packsClean,
+                        services: servicesClean,
                     }),
                 });
                 if (!resp.ok) {
@@ -765,11 +1006,14 @@
             const byRole = r.byRole || {};
             const roleIds = Object.keys(byRole);
 
-            // Определяем aggregated status каждой записи и собираем плоский список
+            // Используем снапшот того, что было реально отправлено,
+            // чтобы индексы совпадали с ответом сервера
+            const sent = state.lastSent || { packs: [], services: [] };
+
             const flat = [];
             const allItems = [
-                ...(state.packs.map((it, idx) => ({ ...it, _kind: 'pack',    _idx: idx }))),
-                ...(state.services.map((it, idx) => ({ ...it, _kind: 'service', _idx: idx }))),
+                ...(sent.packs.map((it, idx)    => ({ ...it, _kind: 'pack',    _idx: idx }))),
+                ...(sent.services.map((it, idx) => ({ ...it, _kind: 'service', _idx: idx }))),
             ];
 
             allItems.forEach(input => {
@@ -878,7 +1122,7 @@
             const idCls = r.input.id == null ? 'is-missing' : '';
             const cells = roleIds.map(rid => {
                 const cell = r.byRole[rid] || { status: 'idle' };
-                return `<td>${renderStatusCell(cell, r)}</td>`;
+                return `<td class="col-role">${renderStatusCell(cell, r)}</td>`;
             }).join('');
             return `<tr>
                 <td class="col-id ${idCls}">${idTxt}</td>

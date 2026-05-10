@@ -473,7 +473,11 @@ class SBMSClient:
 
     def get_available_packs(self, subscriber_id):
         resp = self._get(f"/PSAPI/v1/bis-base/subscribers/{subscriber_id}/packs/availableForActivate", {
-            "authToken": self.token, "limit": 500, "unlimited": 1, "offset": 0
+            "authToken": self.token,
+            "languageId": 1,
+            "limit": 0,
+            "showFees": "true",
+            "unlimited": 1,
         })
         return self._safe_json(resp)
 
@@ -553,7 +557,11 @@ class SBMSClient:
 
     def get_available_services(self, subscriber_id):
         resp = self._get(f"/PSAPI/v1/bis-base/subscribers/{subscriber_id}/services/availableForActivate", {
-            "authToken": self.token
+            "authToken": self.token,
+            "languageId": 1,
+            "limit": 0,
+            "showFees": "true",
+            "unlimited": 1,
         })
         return self._safe_json(resp)
 

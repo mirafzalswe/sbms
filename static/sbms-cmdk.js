@@ -89,9 +89,6 @@
 
         // ----- Навигация -----
         const NAV = (global.SbmsNav && global.SbmsNav.LINKS) || [
-            { id: 'dashboard', href: '/',                     label: 'Dashboard' },
-            { id: 'tester',    href: '/tester',               label: 'QA Tester' },
-            { id: 'tariff',    href: '/tariff-test',          label: 'Тариф' },
             { id: 'matrix',    href: '/matrix-test',          label: 'Матрица' },
             { id: 'product',   href: '/product-availability', label: 'Доступность' },
             { id: 'tme',       href: '/tme',                  label: 'TME' },

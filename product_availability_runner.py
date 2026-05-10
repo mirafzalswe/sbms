@@ -37,7 +37,7 @@ _REPORT_PREFIX = "product_avail_"
 
 # Retry-параметры для проверки доступности после смены тарифа.
 # Смена тарифа асинхронная: ratePlan меняется быстро (~1s через searchBase),
-# но системные пакеты тарифа подкатываются биллингом с задержкой 3-15s.
+# но каталог availableForActivate пересчитывается биллингом с задержкой 3-15s.
 # 4 попытки с интервалом 3s = до 9 доп. секунд ожидания на тариф (после первой проверки).
 MAX_AVAIL_RETRIES = 3
 AVAIL_RETRY_DELAY = 3.0
@@ -365,15 +365,16 @@ def run_product_availability(
         if wait_after_change > 0:
             time.sleep(wait_after_change)
 
-        # 3) Запросить подключённые продукты под viewer'ом — С RETRY.
-        # Используем /packs/search?onlyRealPackFlag=0 (или /services/search) —
-        # это полный список того, что РЕАЛЬНО подключено на абоненте, включая
-        # системные пакеты тарифа.
+        # 3) Запросить ДОСТУПНЫЕ ДЛЯ АКТИВАЦИИ продукты под viewer'ом — С RETRY.
+        # Используем /PSAPI/v1/bis-base/subscribers/{sid}/packs/availableForActivate
+        # (или .../services/availableForActivate) — это каталог того, что viewer
+        # МОЖЕТ активировать на абоненте под текущим тарифом. Семантика теста:
+        # «продукт доступен для подключения под тарифом X».
         #
         # ВАЖНО: смена тарифа асинхронная. Даже если searchBase.ratePlanId уже
-        # показывает новый тариф, биллинг подкатывает системные пакеты с задержкой
-        # 3-15 секунд. Поэтому делаем retry-цикл: если продукта ещё нет — ждём
-        # и пробуем снова. Это устраняет ложные fail когда order висит
+        # показывает новый тариф, биллинг пересчитывает каталог availableForActivate
+        # с задержкой 3-15 секунд. Поэтому делаем retry-цикл: если продукта ещё
+        # нет — ждём и пробуем снова. Это устраняет ложные fail когда order висит
         # «В ПРОЦЕССЕ ПОДКЛЮЧЕНИЯ».
         fields = _PACK_ID_FIELDS if product_kind == "pack" else _SERVICE_ID_FIELDS
         viewer_resp = None
@@ -385,9 +386,9 @@ def run_product_availability(
             attempts = attempt + 1
             try:
                 if product_kind == "pack":
-                    viewer_resp = viewer_client.search_subscriber_packs(subscriber_id)
+                    viewer_resp = viewer_client.get_available_packs(subscriber_id)
                 else:
-                    viewer_resp = viewer_client.search_subscriber_services(subscriber_id)
+                    viewer_resp = viewer_client.get_available_services(subscriber_id)
                 viewer_err = None
             except Exception as e:
                 viewer_err = str(e)
@@ -408,14 +409,14 @@ def run_product_availability(
 
         items_count = len(_items(viewer_resp))
         # Диагностический хинт — самая частая причина fail с пустым ответом:
-        # viewer-учётка просто не видит пакеты этого абонента (ACL).
+        # viewer-учётка просто не видит каталог availableForActivate этого абонента (ACL).
         diag_hint = None
         if not is_available and items_count == 0 and not viewer_err:
             diag_hint = (
-                "viewer вернул пустой список (count=0). Скорее всего у учётки "
-                f"'{getattr(viewer_client, '_login', '?')}' нет прав видеть "
-                "пакеты этого абонента. Попробуйте использовать ту же учётку, "
-                "что и admin (через карточку «✏ Вручную»)."
+                "viewer вернул пустой каталог availableForActivate (count=0). "
+                f"Скорее всего у учётки '{getattr(viewer_client, '_login', '?')}' "
+                "нет прав видеть доступные для активации продукты этого абонента. "
+                "Попробуйте использовать ту же учётку, что и admin (через карточку «✏ Вручную»)."
             )
 
         row_result = {

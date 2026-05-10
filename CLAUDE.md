@@ -86,7 +86,7 @@ GET /PSAPI/v1/bis-base/customers/{cid}/availableBalance?authToken=...
 GET /PSAPI/v1/bis-brt-balance/subscribers/{sid}/rtDiscounts?authToken=...&customerDatabaseId=902
 → items: [ { productId, measureUnitId, discountType, remainingValue, ... } ]
 ```
-Маппинг `measureUnitId`: **0=сум, 1=минуты, 7=SMS, 14=MB**.
+Маппинг `measureUnitId`: **0=сум, 1=SMS, 7=минуты, 14=MB** (UCELL SBMS отдаёт 1↔7 относительно «привычного» порядка).
 Маппинг `discountType`: **4=Пакетная, 6=Безлимит, 11=Дневная, 12=Бонусная**.
 
 ⚠️ После смены тарифа в ответе присутствуют скидки от **обоих** тарифов — фильтровать по `productId`.

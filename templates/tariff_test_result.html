@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Тестовая смена тарифа — результат</title>
+    <style>
+        :root {
+            --bg-page:       #f6f7f9;
+            --bg-card:       #ffffff;
+            --bg-subtle:     #f4f4f5;
+            --bg-canvas:     #fafafa;
+            --text-1:        #0f172a;
+            --text-2:        #475569;
+            --text-3:        #94a3b8;
+            --border:        #e4e4e7;
+            --border-soft:   #ececef;
+            --brand:         #7c3aed;
+            --brand-soft:    #f5f0ff;
+            --success:       #16a34a;
+            --success-soft:  #ecfdf5;
+            --danger:        #dc2626;
+            --danger-soft:   #fef2f2;
+            --warning:       #d97706;
+            --warning-soft:  #fffbeb;
+            --info:          #0891b2;
+            --info-soft:     #ecfeff;
+
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+            --shadow-md: 0 4px 12px rgba(15,23,42,.06);
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0;
+            background: var(--bg-page); color: var(--text-1);
+            font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: var(--brand); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 80px 20px; }
+
+        /* Header */
+        .head { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2); font-size: 13px; transition: border-color .12s, color .12s; }
+        .back-btn:hover { color: var(--brand); border-color: var(--brand); text-decoration: none; }
+        .head__main { flex: 1; }
+        .head__title { font-size: 20px; font-weight: 600; margin: 0 0 4px 0; letter-spacing: -.01em; }
+        .head__sub { font-size: 12px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+        .head__sub b { color: var(--text-2); font-weight: 500; }
+        .head__chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.4; }
+        .head__chip--ok   { color: var(--success); background: var(--success-soft); }
+        .head__chip--warn { color: var(--warning); background: var(--warning-soft); }
+        .head__chip--fail { color: var(--danger);  background: var(--danger-soft); }
+
+        /* Section card */
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 14px; overflow: hidden; }
+        .card__head { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid var(--border-soft); background: linear-gradient(0deg, var(--bg-canvas), var(--bg-card)); }
+        .card__title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
+        .card__hint { font-size: 11px; color: var(--text-3); margin-left: auto; }
+        .card__body { padding: 16px 18px; }
+
+        /* Tariff hero */
+        .tariff-name { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .tariff-name__big { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--text-1); letter-spacing: -.01em; }
+        .tariff-name__id  { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); }
+        .tariff-name__fee { margin-left: auto; font-family: var(--font-mono); font-size: 14px; color: var(--brand); background: var(--brand-soft); padding: 5px 12px; border-radius: var(--radius-md); font-weight: 600; }
+        .tariff-name__from-old { font-size: 11px; color: var(--text-3); margin-top: 8px; }
+        .tariff-name__from-old s { color: var(--text-3); text-decoration: line-through; }
+
+        /* KPI tiles (limits / quotas) */
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 720px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+        .kpi { padding: 12px 14px; background: var(--bg-canvas); border: 1px solid var(--border-soft); border-radius: var(--radius-md); position: relative; }
+        .kpi__head { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+        .kpi__dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+        .kpi__val { font-family: var(--font-mono); font-size: 18px; font-weight: 600; color: var(--text-1); }
+        .kpi__sub { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); }
+        .kpi--unset .kpi__val { color: var(--text-3); }
+
+        .fin-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        @media (max-width: 720px) { .fin-row { grid-template-columns: 1fr; } }
+        .fin { padding: 12px 14px; background: var(--bg-canvas); border: 1px solid var(--border-soft); border-radius: var(--radius-md); }
+        .fin__lbl { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+        .fin__val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--text-1); }
+        .fin__sub { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); }
+        .fin--charge .fin__val { color: var(--danger); }
+
+        /* Quota table */
+        .qtbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+        .qtbl th, .qtbl td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; text-align: left; }
+        .qtbl th { font-size: 10px; color: var(--text-3); text-transform: uppercase; font-weight: 600; letter-spacing: .04em; background: var(--bg-canvas); }
+        .qtbl td.num, .qtbl th.num { text-align: right; font-family: var(--font-mono); }
+        .qtbl tr:last-child td { border-bottom: none; }
+        .qtbl .id-cell { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+        .qtbl .date-cell { color: var(--text-2); font-family: var(--font-mono); font-size: 11px; white-space: nowrap; }
+
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; line-height: 1.5; }
+        .tag--min   { background: rgba(34,197,94,.12);  color: var(--success); }
+        .tag--sms   { background: rgba(59,130,246,.12); color: #2563eb; }
+        .tag--mb    { background: rgba(167,139,250,.14); color: #7c3aed; }
+        .tag--money { background: rgba(245,158,11,.14); color: #d97706; }
+
+        /* Pills (active items list) */
+        .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--bg-canvas); border: 1px solid var(--border); font-size: 12px; color: var(--text-1); white-space: nowrap; }
+        .pill .id { color: var(--text-3); font-family: var(--font-mono); font-size: 10px; }
+        .pill .meta { color: var(--text-3); font-size: 10px; }
+        .pill--brand { background: var(--brand-soft); border-color: rgba(124,58,237,.2); color: var(--brand); }
+        .pill--success { background: var(--success-soft); border-color: rgba(22,163,74,.2); color: var(--success); }
+        .pill--new { background: var(--success-soft); border-color: var(--success); color: var(--success); font-weight: 600; box-shadow: 0 0 0 2px rgba(22,163,74,.08); }
+        .pill__badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.4; }
+        .pill__badge--new { background: var(--success); color: #fff; }
+        .pill__badge--gone { background: var(--danger); color: #fff; }
+        .pills-section { margin-bottom: 12px; }
+        .pills-section:last-child { margin-bottom: 0; }
+        .pills-section__title { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; display: flex; align-items: baseline; gap: 6px; }
+        .pills-section--gone { color: var(--danger); }
+        .pills-section--gone .pills-section__title { color: var(--danger); }
+        .pills-section--gone .pill { background: var(--danger-soft); border-color: rgba(220,38,38,.2); color: var(--danger); text-decoration: line-through; }
+
+        .empty { color: var(--text-3); font-size: 12px; padding: 8px 0; font-style: italic; }
+        .err-box { background: var(--danger-soft); border: 1px solid rgba(220,38,38,.2); color: var(--danger); padding: 10px 14px; border-radius: var(--radius-md); font-size: 12px; }
+
+        /* Roles grid */
+        .roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+        .role-card { background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; }
+        .role-card__head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        .role-card__title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+        .role-card__login { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); margin-left: auto; }
+        .role-card__counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+        .role-card__count { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 6px 8px; text-align: center; }
+        .role-card__count b { display: block; font-family: var(--font-mono); font-size: 14px; color: var(--text-1); }
+        .role-card__count span { font-size: 10px; color: var(--text-3); }
+        .role-card__list { font-size: 11px; color: var(--text-2); line-height: 1.5; }
+        .role-card__list strong { color: var(--text-1); display: block; margin-top: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); }
+        .role-card--err { background: var(--danger-soft); border-color: rgba(220,38,38,.2); }
+        .role-card--err .role-card__title { color: var(--danger); }
+        .role-card--admin { border-left: 3px solid var(--brand); }
+
+        /* Loading / error */
+        .loading { display: flex; align-items: center; justify-content: center; min-height: 240px; gap: 10px; color: var(--text-3); font-size: 13px; }
+        .spinner { width: 16px; height: 16px; border: 2px solid var(--brand); border-top-color: transparent; border-radius: 50%; animation: ttrSpin .9s linear infinite; }
+        @keyframes ttrSpin { to { transform: rotate(360deg) } }
+        .err { background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(220,38,38,.2); border-radius: var(--radius-md); padding: 14px 18px; font-size: 13px; }
+
+        details.coll { margin-bottom: 14px; }
+        details.coll > summary { cursor: pointer; user-select: none; list-style: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 16px; font-size: 12px; color: var(--text-2); transition: border-color .12s; }
+        details.coll > summary::-webkit-details-marker { display: none; }
+        details.coll > summary::before { content: '▸ '; color: var(--text-3); margin-right: 4px; }
+        details.coll[open] > summary::before { content: '▾ '; color: var(--brand); }
+        details.coll > summary:hover { border-color: var(--brand); color: var(--brand); }
+        details.coll[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        details.coll[open] .coll-body { background: var(--bg-card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); padding: 12px 16px; }
+
+        .steps { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .steps th, .steps td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+        .steps th { font-size: 10px; color: var(--text-3); text-transform: uppercase; font-weight: 600; letter-spacing: .04em; background: var(--bg-canvas); }
+        .steps tr:last-child td { border-bottom: none; }
+        .steps__status { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+        .steps__status--PASS { background: var(--success-soft); color: var(--success); }
+        .steps__status--FAIL { background: var(--danger-soft);  color: var(--danger); }
+        .steps__status--WARN { background: var(--warning-soft); color: var(--warning); }
+        .steps__status--INFO,
+        .steps__status--SKIP { background: var(--bg-subtle);    color: var(--text-2); }
+
+        .foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+        .foot a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); color: var(--text-2); font-size: 13px; }
+        .foot a:hover { border-color: var(--brand); color: var(--brand); text-decoration: none; }
+        .foot a.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .foot a.primary:hover { background: #6d28d9; border-color: #6d28d9; color: #fff; }
+
+        pre.raw { background: var(--bg-canvas); color: var(--text-2); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-soft); font-size: 11px; line-height: 1.5; overflow: auto; max-height: 480px; font-family: var(--font-mono); }
+
+        /* Quota mini-cards (компактный вариант для tariff_test_result) */
+        .qa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+        .qa-card { background: var(--bg-canvas); border: 1px solid var(--border-soft); border-radius: var(--radius-md); padding: 10px 12px; }
+        .qa-card.is-exhausted { opacity: .8; border-color: rgba(220,38,38,.25); }
+        .qa-card.is-inactive  { opacity: .55; }
+        .qa-card__head { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; }
+        .qa-card__head > div:first-child { flex: 1; min-width: 0; }
+        .qa-card__title { font-size: 13px; font-weight: 600; color: var(--text-1); line-height: 1.3; word-break: break-word; }
+        .qa-card__sub { font-size: 10px; color: var(--text-3); font-family: var(--font-mono); margin-top: 1px; word-break: break-all; }
+        .qa-badges { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; flex-shrink: 0; }
+        .qa-badge { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+        .qa-cat--internet { background: rgba(167,139,250,.14); color: #7c3aed; }
+        .qa-cat--sms      { background: rgba(59,130,246,.12); color: #2563eb; }
+        .qa-cat--voice    { background: rgba(34,197,94,.12);  color: #16a34a; }
+        .qa-cat--social   { background: rgba(236,72,153,.12); color: #db2777; }
+        .qa-cat--bonus    { background: rgba(245,158,11,.14); color: #d97706; }
+        .qa-cat--other    { background: var(--bg-subtle);     color: var(--text-2); }
+        .qa-st--active    { background: var(--success-soft);  color: var(--success); }
+        .qa-st--expiring  { background: var(--warning-soft);  color: var(--warning); }
+        .qa-st--exhausted { background: var(--danger-soft);   color: var(--danger); }
+        .qa-st--inactive  { background: var(--bg-subtle);     color: var(--text-3); }
+        .qa-st--unlimited { background: var(--brand-soft);    color: var(--brand); }
+        .qa-card__bar { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px 0; }
+        .qa-card__track { flex: 1; height: 6px; background: var(--bg-subtle); border-radius: 999px; overflow: hidden; }
+        .qa-card__fill { height: 100%; border-radius: 999px; transition: width .3s; }
+        .qa-card__fill--internet  { background: #a78bfa; }
+        .qa-card__fill--sms       { background: #3b82f6; }
+        .qa-card__fill--voice     { background: #22c55e; }
+        .qa-card__fill--social    { background: #ec4899; }
+        .qa-card__fill--bonus     { background: #f59e0b; }
+        .qa-card__fill--other     { background: var(--text-3); }
+        .qa-card__fill--depleted  { background: var(--danger); }
+        .qa-card__fill--unlimited { background: var(--brand); }
+        .qa-card__pct { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); min-width: 36px; text-align: right; }
+        .qa-card__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11px; }
+        .qa-card__row > div { display: flex; flex-direction: column; gap: 1px; }
+        .qa-card__row .k { color: var(--text-3); font-size: 10px; text-transform: uppercase; letter-spacing: .03em; }
+        .qa-card__row .v { color: var(--text-1); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+        .qa-card__dates { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-soft); font-size: 10px; color: var(--text-3); }
+        .qa-card__dates b { color: var(--text-2); font-weight: 500; }
+        .qa-groups { display: flex; flex-direction: column; gap: 14px; }
+        .qa-group__title { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+        .qa-group__count { display: inline-block; padding: 1px 7px; background: var(--bg-subtle); border-radius: 999px; color: var(--text-2); font-weight: 600; }
+
+        /* Roles — расширенный (full-list) формат */
+        .role-card__group { margin-top: 8px; }
+        .role-card__group + .role-card__group { margin-top: 6px; }
+        .role-card__group > summary {
+            cursor: pointer; user-select: none; list-style: none;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--text-3); font-weight: 600;
+            padding: 6px 8px; background: var(--bg-card); border: 1px solid var(--border-soft);
+            border-radius: var(--radius-sm);
+            transition: border-color .12s, color .12s;
+        }
+        .role-card__group > summary::-webkit-details-marker { display: none; }
+        .role-card__group > summary::before { content: '▸'; color: var(--text-3); font-size: 9px; }
+        .role-card__group[open] > summary::before { content: '▾'; color: var(--brand); }
+        .role-card__group > summary:hover { color: var(--brand); border-color: var(--brand); }
+        .role-card__group > summary .grp-count {
+            margin-left: auto; padding: 1px 7px; background: var(--bg-subtle);
+            border-radius: 999px; font-weight: 700; color: var(--text-2);
+        }
+        .role-card__chips {
+            display: flex; flex-wrap: wrap; gap: 4px;
+            padding: 8px 4px 2px 4px;
+            max-height: 180px; overflow-y: auto;
+        }
+        .role-card__chip {
+            display: inline-flex; align-items: baseline; gap: 5px;
+            padding: 3px 8px; border-radius: 4px;
+            background: var(--bg-card); border: 1px solid var(--border-soft);
+            font-size: 11px; color: var(--text-1); line-height: 1.4;
+            max-width: 100%;
+        }
+        .role-card__chip .id { color: var(--text-3); font-family: var(--font-mono); font-size: 9px; }
+        .role-card__chip .meta { color: var(--text-3); font-family: var(--font-mono); font-size: 9px; }
+        .role-card__chip--archived { opacity: .55; text-decoration: line-through; }
+        .role-card__chips--empty {
+            color: var(--text-3); font-size: 11px; font-style: italic;
+            padding: 8px 4px;
+        }
+
+        /* ── Print-friendly: применяется и при window.print(), и при html2pdf rendering ── */
+        @media print {
+            html, body { background: #fff !important; color: #000 !important; }
+            .wrap { max-width: 100% !important; padding: 8mm !important; }
+            /* Скрываем всё интерактивное — back-кнопка, футер, loader */
+            #ttrLoading, #ttrError, #ttrFoot, .back-btn { display: none !important; }
+            /* Раскрываем все details (включая «Сырые шаги» и «Raw responses») */
+            details > * { display: revert !important; }
+            details > summary { color: var(--text-2) !important; background: #f4f4f5 !important; border-color: #e4e4e7 !important; }
+            details.coll, details.coll[open] .coll-body { border-color: #e4e4e7 !important; }
+            /* Карточки не разрезаются между страницами */
+            .card, .role-card, .qa-card, details.coll { break-inside: avoid; page-break-inside: avoid; }
+            .card { box-shadow: none !important; border-color: #e4e4e7 !important; }
+            /* Длинные таблицы пусть тянутся, но шапка повторяется */
+            .qtbl thead, .steps thead { display: table-header-group; }
+            /* Убираем прокрутку у вложенных контейнеров — содержимое целиком в PDF */
+            .role-card__chips, .steps tbody, .raw, pre.raw,
+            details.coll[open] .coll-body > div { max-height: none !important; overflow: visible !important; }
+            a { color: #0f172a !important; text-decoration: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="head">
+            <a class="back-btn" id="ttrBack" href="/subscriber">⬅ К абоненту</a>
+            <div class="head__main">
+                <h1 class="head__title">Тестовая смена тарифа — результат</h1>
+                <div class="head__sub" id="ttrHeadSub">загружаем отчёт…</div>
+            </div>
+            <span id="ttrHeadChip"></span>
+        </div>
+
+        <div id="ttrLoading" class="loading"><span class="spinner"></span><span>Загрузка отчёта…</span></div>
+        <div id="ttrError" class="err" style="display:none;"></div>
+
+        <div id="ttrContent" style="display:none;">
+
+            <!-- 1. Тариф -->
+            <div class="card">
+                <div class="card__head"><span class="card__title">Подключённый тариф</span></div>
+                <div class="card__body">
+                    <div class="tariff-name">
+                        <span class="tariff-name__big" id="ttrNewName">—</span>
+                        <span class="tariff-name__id"  id="ttrNewId">—</span>
+                        <span class="tariff-name__fee" id="ttrNewFee" style="display:none;"></span>
+                    </div>
+                    <div class="tariff-name__from-old" id="ttrOldHint"></div>
+                </div>
+            </div>
+
+            <!-- 2. Финансы -->
+            <div class="card">
+                <div class="card__head"><span class="card__title">Финансы</span></div>
+                <div class="card__body">
+                    <div class="fin-row">
+                        <div class="fin fin--charge">
+                            <div class="fin__lbl">Списано при смене</div>
+                            <div class="fin__val" id="ttrCharged">—</div>
+                            <div class="fin__sub" id="ttrChargedSub"></div>
+                        </div>
+                        <div class="fin">
+                            <div class="fin__lbl">Баланс после</div>
+                            <div class="fin__val" id="ttrBalAfter">—</div>
+                            <div class="fin__sub" id="ttrBalSub"></div>
+                        </div>
+                        <div class="fin">
+                            <div class="fin__lbl">Следующее списание</div>
+                            <div class="fin__val" id="ttrNextDate">—</div>
+                            <div class="fin__sub" id="ttrNextFee"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Лимиты тарифа (что дал ИМЕННО этот тариф) -->
+            <div class="card">
+                <div class="card__head">
+                    <span class="card__title">Лимиты тарифа</span>
+                    <span class="card__hint" id="ttrLimitsHint">из rtDiscounts по productId тарифа</span>
+                </div>
+                <div class="card__body">
+                    <div class="kpi-row" id="ttrLimitsKpi"></div>
+                </div>
+            </div>
+
+            <!-- 4. Лимиты тарифа (детально) -->
+            <div class="card" id="ttrLimitsDetailsCard">
+                <div class="card__head">
+                    <span class="card__title">Лимиты тарифа · детально</span>
+                    <span class="card__hint" id="ttrLimitsDetailsHint"></span>
+                </div>
+                <div class="card__body" style="padding:0;">
+                    <table class="qtbl">
+                        <thead><tr>
+                            <th style="width:90px;">Тип</th>
+                            <th class="num" style="width:120px;">Объём</th>
+                            <th>Имя / описание</th>
+                            <th style="width:90px;">Plan ID</th>
+                            <th class="date-cell" style="width:160px;">Действует до</th>
+                        </tr></thead>
+                        <tbody id="ttrLimitsDetailsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. Квоты абонента (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA, снимок ПОСЛЕ смены) -->
+            <div class="card" id="ttrQuotasCard">
+                <div class="card__head">
+                    <span class="card__title">Квоты абонента</span>
+                    <span class="card__hint" id="ttrQuotasHint"></span>
+                </div>
+                <div class="card__body"><div id="ttrQuotas"></div></div>
+            </div>
+
+            <!-- 6. Подключённые пакеты -->
+            <div class="card">
+                <div class="card__head">
+                    <span class="card__title">Подключённые пакеты</span>
+                    <span class="card__hint" id="ttrActivePacksHint"></span>
+                </div>
+                <div class="card__body"><div id="ttrActivePacks"></div></div>
+            </div>
+
+            <!-- 6. Подключённые услуги -->
+            <div class="card">
+                <div class="card__head">
+                    <span class="card__title">Подключённые услуги</span>
+                    <span class="card__hint" id="ttrActiveServicesHint"></span>
+                </div>
+                <div class="card__body"><div id="ttrActiveServices"></div></div>
+            </div>
+
+            <!-- 7. COS / PCRF -->
+            <div class="card">
+                <div class="card__head">
+                    <span class="card__title">COS / PCRF (TME)</span>
+                    <span class="card__hint" id="ttrCosHint"></span>
+                </div>
+                <div class="card__body"><div id="ttrCos"></div></div>
+            </div>
+
+            <!-- 8. Доступно через выбранные учётки -->
+            <div class="card">
+                <div class="card__head">
+                    <span class="card__title">Доступно через выбранные учётки</span>
+                    <span class="card__hint" id="ttrRolesHint"></span>
+                </div>
+                <div class="card__body"><div class="roles" id="ttrRoles"></div></div>
+            </div>
+
+            <!-- 9. Сырые шаги -->
+            <details class="coll">
+                <summary id="ttrChecksSummary">Сырые шаги (раскрыть)</summary>
+                <div class="coll-body">
+                    <div style="max-height:340px;overflow:auto;">
+                        <table class="steps">
+                            <thead><tr>
+                                <th style="width:64px;">Статус</th>
+                                <th>Проверка</th>
+                                <th style="width:200px;">Ожидалось</th>
+                                <th style="width:240px;">Получено</th>
+                            </tr></thead>
+                            <tbody id="ttrChecksBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 10. Raw responses -->
+            <details class="coll">
+                <summary>Raw API responses (отладка)</summary>
+                <div class="coll-body"><pre class="raw" id="ttrRaw"></pre></div>
+            </details>
+
+            <div class="foot" id="ttrFoot">
+                <a id="ttrOpenHistory" href="/test-history">История тестов</a>
+                <a id="ttrDownloadPdf" href="#" role="button">📄 Скачать PDF</a>
+                <a class="primary" id="ttrOpenSubscriber" href="/subscriber">К абоненту</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- html2pdf.js: one-click PDF download. Если CDN недоступен (offline-стенд),
+         downloadPdf() корректно отвалится в fallback на window.print(). -->
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
+    <script>
+    (function () {
+        'use strict';
+
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        const fmtN = (v) => (v == null || !Number.isFinite(Number(v))) ? '—'
+            : Math.round(Number(v)).toLocaleString('ru-RU');
+        const fmtSum = (v) => v == null ? '—' : fmtN(v) + ' сум';
+        const fmtMb = (v) => {
+            const n = Number(v) || 0;
+            if (n >= 1024) return (n / 1024).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ГБ';
+            return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' МБ';
+        };
+        const fmtDate = (iso) => {
+            if (!iso) return '—';
+            const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2})?:?(\d{2})?/);
+            if (!m) return iso;
+            return m[3] + '.' + m[2] + '.' + m[1] + (m[4] ? (' ' + m[4] + ':' + (m[5] || '00')) : '');
+        };
+
+        // measureUnitId маппинг с учётом UCELL swap (1↔7).
+        const UNIT = {
+            0:  { key: 'money',   label: 'Деньги',   tagCls: 'tag--money', dotColor: '#d97706', fmt: (v) => fmtN(v) + ' сум' },
+            1:  { key: 'sms',     label: 'SMS',      tagCls: 'tag--sms',   dotColor: '#2563eb', fmt: (v) => fmtN(v) + ' SMS' },
+            7:  { key: 'minutes', label: 'Минуты',   tagCls: 'tag--min',   dotColor: '#16a34a', fmt: (v) => fmtN(v) + ' мин' },
+            14: { key: 'mb',      label: 'Интернет', tagCls: 'tag--mb',    dotColor: '#7c3aed', fmt: (v) => fmtMb(v) },
+        };
+
+        // ── load ─────────────────────────────────────────────────────
+        const reportId = (location.pathname.split('/').filter(Boolean).pop() || '').replace(/\?.*$/, '');
+        if (!reportId) { showError('Не указан ID отчёта'); return; }
+
+        $('ttrBack').href = '/subscriber';
+        $('ttrOpenSubscriber').href = '/subscriber';
+
+        fetch('/api/test/history/' + encodeURIComponent(reportId))
+            .then(async (r) => {
+                if (!r.ok) throw new Error('HTTP ' + r.status + ' — отчёт не найден');
+                return r.json();
+            })
+            .then((rep) => render(rep))
+            .catch((e) => showError(e.message || String(e)));
+
+        function showError(msg) {
+            $('ttrLoading').style.display = 'none';
+            $('ttrError').style.display = '';
+            $('ttrError').textContent = '⚠ ' + msg;
+            $('ttrHeadSub').textContent = '';
+        }
+
+        // ── extractors (правильно для реальных данных) ────────────
+        function extractNextCharge(nc) {
+            if (!nc || typeof nc !== 'object') return { date: null, amount: null };
+            // Формат A: {nextRatePlanCharges: [{recurringCharges: [{...}]}]}
+            // Формат B: {recurringCharges: [{...}], ratePlanId}
+            let rc = null;
+            if (Array.isArray(nc.nextRatePlanCharges) && nc.nextRatePlanCharges[0]) {
+                const wrap = nc.nextRatePlanCharges[0];
+                rc = (wrap.recurringCharges || wrap.charges || [])[0] || null;
+            }
+            if (!rc && Array.isArray(nc.recurringCharges)) rc = nc.recurringCharges[0] || null;
+            if (!rc) return { date: null, amount: null };
+            return {
+                date:   rc.nextChargeDate || rc.chargeDate || rc.startDate || rc.nextDate || null,
+                amount: (rc.amount != null) ? rc.amount : null,
+            };
+        }
+        function newRpFromAfter(raw) {
+            const sa = raw.searchBaseAfter;
+            if (sa && sa.searchResults && sa.searchResults[0]) {
+                const rp = (sa.searchResults[0].firstSubscriber || {}).ratePlan || {};
+                return { id: rp.ratePlanId, name: rp.name };
+            }
+            return { id: null, name: null };
+        }
+        function flat(maybe) {
+            // Унификация: items array OR plain array
+            if (Array.isArray(maybe)) return maybe;
+            if (maybe && Array.isArray(maybe.items)) return maybe.items;
+            return [];
+        }
+
+        // ── render ──────────────────────────────────────────────────
+        function render(rep) {
+            $('ttrLoading').style.display = 'none';
+            $('ttrContent').style.display = '';
+
+            const raw  = rep.rawResponses || {};
+            const meta = raw.testRunMeta  || {};
+            const ci   = rep.customerInfo || {};
+            const sm   = rep.summary      || {};
+
+            // Header
+            const ts = rep.timestamp ? rep.timestamp.replace('T', ' ').slice(0, 19) : '';
+            const sub = [];
+            if (rep.msisdn) sub.push('MSISDN <b>' + esc(rep.msisdn) + '</b>');
+            if (ts) sub.push(esc(ts));
+            if (rep.duration) sub.push(Math.round(rep.duration) + ' c');
+            if (rep.testId) sub.push('id ' + esc(rep.testId));
+            $('ttrHeadSub').innerHTML = sub.join(' · ');
+
+            const chip = $('ttrHeadChip');
+            if (sm.failed > 0)        chip.innerHTML = '<span class="head__chip head__chip--fail">FAIL · ' + sm.failed + '</span>';
+            else if (sm.warnings > 0) chip.innerHTML = '<span class="head__chip head__chip--warn">WARN · ' + sm.warnings + '</span>';
+            else                       chip.innerHTML = '<span class="head__chip head__chip--ok">OK</span>';
+
+            $('ttrBack').href             = '/subscriber?msisdn=' + encodeURIComponent(rep.msisdn || '');
+            $('ttrOpenSubscriber').href   = '/subscriber?msisdn=' + encodeURIComponent(rep.msisdn || '');
+
+            // 1. Тариф
+            const newRp = newRpFromAfter(raw);
+            const newName = meta.newRatePlanName || newRp.name || ci.ratePlanName || '—';
+            const newId   = meta.newRatePlanId   || newRp.id   || ci.ratePlanId   || '';
+            const nc = extractNextCharge(raw.nextChargesAfter || raw.targetNextChargesBefore);
+
+            $('ttrNewName').textContent = newName;
+            $('ttrNewId').textContent   = newId ? ('ID ' + newId) : '';
+            if (nc.amount != null) {
+                $('ttrNewFee').textContent = 'АП ' + fmtSum(nc.amount);
+                $('ttrNewFee').style.display = '';
+            }
+            // Вспомогательная подсказка про предыдущий тариф (зачёркнуто, без слова «было»)
+            const oldName = ci.ratePlanName;
+            if (oldName && oldName !== newName) {
+                $('ttrOldHint').innerHTML = 'после смены с <s>' + esc(oldName) +
+                    (ci.ratePlanId ? (' · ID ' + esc(ci.ratePlanId)) : '') + '</s>';
+            }
+
+            // 2. Финансы
+            const balBefore = ci.balanceBefore;
+            const balAfter  = ci.balanceAfter;
+            if (balBefore != null && balAfter != null) {
+                const charged = Number(balBefore) - Number(balAfter);
+                $('ttrCharged').textContent = (charged > 0 ? '−' : (charged < 0 ? '+' : '±')) + fmtN(Math.abs(charged)) + ' сум';
+                $('ttrChargedSub').textContent = charged === 0 ? 'без списания' : 'разница в балансе';
+            } else {
+                $('ttrCharged').textContent = '—';
+            }
+            $('ttrBalAfter').textContent = fmtSum(balAfter);
+            $('ttrBalSub').textContent   = balBefore != null ? ('было ' + fmtSum(balBefore)) : '';
+            $('ttrNextDate').textContent = nc.date ? fmtDate(nc.date) : '—';
+            $('ttrNextFee').textContent  = nc.amount != null ? fmtSum(nc.amount) : '';
+
+            // 3. Лимиты тарифа (KPI) — totals из rtDiscounts_filtered
+            renderLimitsKpi(raw);
+
+            // 4. Лимиты тарифа · детально (из rtDiscounts_filtered.details)
+            renderLimitsDetails(raw);
+
+            // 5. Квоты абонента (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA, снимок ПОСЛЕ)
+            renderQuotas(raw);
+
+            // 6. Подключённые пакеты
+            renderActivePacks(raw);
+
+            // 7. Подключённые услуги
+            renderActiveServices(raw);
+
+            // 8. COS / PCRF
+            renderCos(raw, meta);
+
+            // 9. Роли
+            renderRoles(raw);
+
+            // 10. Шаги
+            renderChecks(rep.checks || []);
+
+            // 11. Raw
+            $('ttrRaw').textContent = JSON.stringify(raw, null, 2);
+        }
+
+        // ── Source: limits-группа нового тарифа ─────────────────────
+        // Приоритет: raw.limitsAfter (богатые поля + sourceType:tariff) →
+        // fallback на rtDiscounts_filtered (для старых отчётов до фичи limitsAfter).
+        // Возвращает { items: [{measureUnitId, label, maxVolume, ...}], productId, source }
+        // — items в том же формате, чтобы рендер не зависел от источника.
+        function pickTariffLimits(raw) {
+            const lim = raw.limitsAfter;
+            if (lim && Array.isArray(lim.groups) && lim.groups.length) {
+                // Сначала ищем явную тарифную группу. Если её нет
+                // (бывает на пакетных тарифах) — fallback по tariffProductId.
+                let g = lim.groups.find(x => x.sourceType === 'tariff');
+                if (!g && lim.tariffProductId != null) {
+                    g = lim.groups.find(x => x.productId === lim.tariffProductId);
+                }
+                if (g) {
+                    return {
+                        items: (g.discounts || []).map(d => ({
+                            measureUnitId:  d.measureUnitId,
+                            label:          d.label,
+                            unit:           d.unit,
+                            maxVolume:      d.maxVolume,
+                            spentVolume:    d.spentVolume,
+                            remaining:      d.remaining,
+                            discountPlanId: d.discountPlanId,
+                            discountName:   d.discountName,
+                            endDate:        d.endDate,
+                        })),
+                        productId: g.productId,
+                        sourceName: g.sourceName,
+                        from: 'limitsAfter',
+                    };
+                }
+            }
+            // ── fallback: старые отчёты, где limitsAfter не собран ──
+            const f = raw.rtDiscounts_filtered;
+            if (f && Array.isArray(f.details)) {
+                return {
+                    items: f.details.map(d => ({
+                        measureUnitId:  d.measureUnitId,
+                        label:          (UNIT[d.measureUnitId] || {}).label || ('unit ' + d.measureUnitId),
+                        unit:           '',
+                        maxVolume:      d.maxVolume,
+                        spentVolume:    d.spentVolume,
+                        remaining:      d.remaining,
+                        discountPlanId: d.discountPlanId,
+                        discountName:   d.discountDescription || d.discountName || '',
+                        endDate:        d.endDate,
+                    })),
+                    productId:  f.productId,
+                    sourceName: null,
+                    from: 'rtDiscounts_filtered',
+                };
+            }
+            return { items: [], productId: null, sourceName: null, from: null };
+        }
+
+        // ── 3. Limits KPI ──────────────────────────────────────────
+        function renderLimitsKpi(raw) {
+            const lim = pickTariffLimits(raw);
+            const totals = { minutes: 0, sms: 0, mb: 0, money: 0 };
+            lim.items.forEach(d => {
+                const v = Number(d.maxVolume) || 0;
+                if      (d.measureUnitId === 7)  totals.minutes += v;
+                else if (d.measureUnitId === 1)  totals.sms     += v;
+                else if (d.measureUnitId === 14) totals.mb      += v;
+                else if (d.measureUnitId === 0)  totals.money   += v;
+            });
+            $('ttrLimitsHint').textContent = lim.items.length
+                ? 'productId ' + (lim.productId || '?') + ' · ' + lim.items.length + ' лимит(ов)' +
+                  (lim.from === 'rtDiscounts_filtered' ? ' · legacy' : '')
+                : 'тариф не выдал лимитов';
+
+            const cells = [
+                { uid: 7,  total: totals.minutes, label: UNIT[7].label,  fmt: UNIT[7].fmt,  dot: UNIT[7].dotColor  },
+                { uid: 1,  total: totals.sms,     label: UNIT[1].label,  fmt: UNIT[1].fmt,  dot: UNIT[1].dotColor  },
+                { uid: 14, total: totals.mb,      label: UNIT[14].label, fmt: UNIT[14].fmt, dot: UNIT[14].dotColor },
+                { uid: 0,  total: totals.money,   label: UNIT[0].label,  fmt: UNIT[0].fmt,  dot: UNIT[0].dotColor  },
+            ];
+            $('ttrLimitsKpi').innerHTML = cells.map(c => {
+                const v = Number(c.total) || 0;
+                const cls = v > 0 ? '' : 'kpi--unset';
+                const valStr = v > 0 ? c.fmt(v) : 'нет';
+                return `<div class="kpi ${cls}">
+                    <div class="kpi__head"><span class="kpi__dot" style="background:${c.dot};"></span><span>${esc(c.label)}</span></div>
+                    <div class="kpi__val">${esc(valStr)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── 4. Limits detail table ─────────────────────────────────
+        // То, что тариф ВЫДАЛ: пакетные лимиты на минуты/SMS/MB,
+        // привязанные к новому productId. НЕ путать с PSIX-квотами абонента.
+        function renderLimitsDetails(raw) {
+            const lim = pickTariffLimits(raw);
+            const card = $('ttrLimitsDetailsCard');
+            const body = $('ttrLimitsDetailsBody');
+            const hint = $('ttrLimitsDetailsHint');
+            if (!lim.items.length) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = '';
+            hint.textContent = (lim.sourceName ? lim.sourceName + ' · ' : '') +
+                'productId ' + (lim.productId || '?') + ' · ' +
+                lim.items.length + ' лимит(ов)' +
+                (lim.from === 'rtDiscounts_filtered' ? ' · legacy' : '');
+            body.innerHTML = lim.items.map((d) => {
+                const u = UNIT[d.measureUnitId] || { label: d.label || ('unit ' + d.measureUnitId), tagCls: '', fmt: (v) => fmtN(v) };
+                const name = d.discountName || '—';
+                return `<tr>
+                    <td><span class="tag ${u.tagCls}">${esc(u.label)}</span></td>
+                    <td class="num">${esc(u.fmt(d.maxVolume || 0))}</td>
+                    <td>${esc(name)}</td>
+                    <td class="id-cell">#${esc(d.discountPlanId || '—')}</td>
+                    <td class="date-cell">${esc(fmtDate(d.endDate))}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ── 5. Quotas (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA, snap ПОСЛЕ смены) ──
+        // Источник: report.rawResponses.quotaAfter — собран /api/tariff/test-run
+        // через _collect_subscriber_quota_snapshot. Каждый элемент уже нормализован
+        // в формате /api/subscriber/quota (категория, статус, проценты, даты).
+        const Q_CAT = {
+            internet: 'Интернет', sms: 'SMS', voice: 'Минуты',
+            social: 'Соц. сети', bonus: 'Бонус', other: 'Прочее',
+        };
+        const Q_ST = {
+            active:    'Активна',
+            expiring:  'Скоро закончится',
+            exhausted: 'Исчерпана',
+            inactive:  'Неактивна',
+            unlimited: 'Бессрочно',
+        };
+        const Q_CAT_ORDER = ['internet', 'sms', 'voice', 'social', 'bonus', 'other'];
+
+        function quotaFmtVal(num, unit) {
+            if (num == null || !Number.isFinite(Number(num))) return '—';
+            const n = Number(num);
+            if (unit === 'MB') {
+                let bytes = n;
+                if (bytes < 1e6) bytes = bytes * 1024 * 1024;
+                if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(2) + ' ГБ';
+                if (bytes >= 1024 ** 2) return (bytes / 1024 ** 2).toFixed(1) + ' МБ';
+                if (bytes >= 1024)      return (bytes / 1024).toFixed(0) + ' КБ';
+                return bytes.toFixed(0) + ' Б';
+            }
+            if (unit === 'min') return Math.round(n).toLocaleString('ru-RU') + ' мин';
+            if (unit === 'sms') return Math.round(n).toLocaleString('ru-RU') + ' SMS';
+            if (unit === 'pcs') return Math.round(n).toLocaleString('ru-RU') + ' шт';
+            if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + ' млрд';
+            if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + ' млн';
+            return Math.round(n).toLocaleString('ru-RU');
+        }
+        function quotaFmtDate(iso) {
+            if (!iso) return null;
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleDateString('ru-RU') + ' ' +
+                   d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+        function quotaCard(it) {
+            const cat = it.category || 'other';
+            const stMeta = Q_ST[it.status] || Q_ST.active;
+            const stCls  = 'qa-st--' + (it.status || 'active');
+            const pct = (it.percent != null) ? it.percent : null;
+            const fillCls = it.unlimited
+                ? 'qa-card__fill--unlimited'
+                : (it.status === 'exhausted' ? 'qa-card__fill--depleted' : 'qa-card__fill--' + cat);
+            const barWidth = it.unlimited ? 100 : (pct != null ? pct : 0);
+            const totalStr = quotaFmtVal(it.total, it.unit);
+            const usedStr  = quotaFmtVal(it.used,  it.unit);
+            const remStr   = quotaFmtVal(it.remaining, it.unit);
+            const actStr   = quotaFmtDate(it.activationDate);
+            const expStr   = it.unlimited ? 'бессрочно' : quotaFmtDate(it.expirationDate);
+            const stateCls = (it.status === 'exhausted') ? 'is-exhausted'
+                            : (it.status === 'inactive') ? 'is-inactive' : '';
+            return `
+            <div class="qa-card ${stateCls}">
+                <div class="qa-card__head">
+                    <div>
+                        <div class="qa-card__title">${esc(it.nameHuman || it.name || '—')}</div>
+                        <div class="qa-card__sub">${esc(it.name || '')}${it.service ? ' · ' + esc(it.service) : ''}</div>
+                    </div>
+                    <div class="qa-badges">
+                        <span class="qa-badge qa-cat--${cat}">${esc(Q_CAT[cat] || cat)}</span>
+                        <span class="qa-badge ${stCls}">${esc(stMeta)}</span>
+                    </div>
+                </div>
+                <div class="qa-card__bar">
+                    <div class="qa-card__track"><div class="qa-card__fill ${fillCls}" style="width:${barWidth}%;"></div></div>
+                    <div class="qa-card__pct">${it.unlimited ? '∞' : (pct != null ? pct.toFixed(1) + '%' : '—')}</div>
+                </div>
+                <div class="qa-card__row">
+                    <div><span class="k">Объём</span><span class="v">${esc(totalStr)}</span></div>
+                    <div><span class="k">Исп.</span><span class="v">${esc(usedStr)}</span></div>
+                    <div><span class="k">Остаток</span><span class="v">${esc(remStr)}</span></div>
+                </div>
+                ${(actStr || expStr) ? `<div class="qa-card__dates">
+                    ${actStr ? `<span><b>Активация:</b> ${esc(actStr)}</span>` : ''}
+                    ${expStr ? `<span><b>Обнуление:</b> ${esc(expStr)}</span>` : ''}
+                </div>` : ''}
+            </div>`;
+        }
+        function renderQuotas(raw) {
+            const card = $('ttrQuotasCard');
+            const wrap = $('ttrQuotas');
+            const hint = $('ttrQuotasHint');
+            const snap = raw.quotaAfter;
+
+            // Старый отчёт (до фичи quotaAfter) — секцию прячем, чтобы не путать.
+            if (snap == null) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = '';
+
+            if (snap.ok === false) {
+                hint.textContent = 'не получено';
+                wrap.innerHTML = '<div class="err-box">⚠ Не удалось снять квоты PSIX: <b>' +
+                    esc(snap.error || snap.errorKind || 'неизвестно') + '</b>' +
+                    (snap.upstream ? ' (upstream HTTP ' + esc(String(snap.upstream)) + ')' : '') +
+                    '</div>';
+                return;
+            }
+
+            const items = Array.isArray(snap.items) ? snap.items : [];
+            if (!items.length) {
+                hint.textContent = 'квот нет';
+                wrap.innerHTML = '<div class="empty">У абонента нет активных квот.</div>';
+                return;
+            }
+
+            const fetchedStr = snap.fetchedAt
+                ? 'снято ' + new Date(snap.fetchedAt * 1000).toLocaleTimeString('ru-RU').slice(0, 5)
+                : '';
+            const buckets = new Map();
+            items.forEach(it => {
+                const key = it.category || 'other';
+                if (!buckets.has(key)) buckets.set(key, []);
+                buckets.get(key).push(it);
+            });
+            const keysSorted = Q_CAT_ORDER.filter(k => buckets.has(k))
+                .concat([...buckets.keys()].filter(k => !Q_CAT_ORDER.includes(k)));
+
+            const counts = [items.length + ' квот'];
+            const activeCnt = items.filter(x => x.status === 'active' || x.status === 'unlimited').length;
+            if (activeCnt) counts.push(activeCnt + ' активн.');
+            if (fetchedStr) counts.push(fetchedStr);
+            hint.textContent = counts.join(' · ');
+
+            wrap.innerHTML = '<div class="qa-groups">' + keysSorted.map(key => {
+                const arr = buckets.get(key);
+                return `<div class="qa-group">
+                    <div class="qa-group__title">
+                        <span>${esc(Q_CAT[key] || key)}</span>
+                        <span class="qa-group__count">${arr.length}</span>
+                    </div>
+                    <div class="qa-grid">${arr.map(quotaCard).join('')}</div>
+                </div>`;
+            }).join('') + '</div>';
+        }
+
+        // ── 5,6. Active packs / services (snapshot + бейджи) ─────────
+        // Логика: показываем все актуальные после смены, новые помечаем зелёным
+        // бейджем «новый», в отдельной подсекции — те, что отвалились при смене.
+        function renderItemsSnapshot(opts) {
+            // opts: { containerId, hintId, after, before, idFn, nameFn, dateFn?, emptyMsg, newBadge='новый' }
+            const wrap = $(opts.containerId);
+            const hint = $(opts.hintId);
+            const afterArr = flat(opts.after);
+
+            if (opts.after == null) {
+                hint.textContent = 'снимок не выполнен';
+                wrap.innerHTML = '<div class="empty">' + opts.notCollectedMsg + '</div>';
+                return;
+            }
+
+            const beforeArr = flat(opts.before || []);
+            const beforeIds = new Set(beforeArr.map(opts.idFn).filter(v => v != null).map(String));
+            const afterIds  = new Set(afterArr.map(opts.idFn).filter(v => v != null).map(String));
+
+            const newCount  = afterArr.filter(x => !beforeIds.has(String(opts.idFn(x)))).length;
+            const goneItems = beforeArr.filter(x => !afterIds.has(String(opts.idFn(x))));
+
+            const parts = [];
+            parts.push(afterArr.length + ' подключено');
+            if (newCount > 0)        parts.push('+' + newCount + ' при смене');
+            if (goneItems.length)    parts.push('−' + goneItems.length + ' отключилось');
+            hint.textContent = parts.join(' · ');
+
+            const sections = [];
+
+            if (afterArr.length) {
+                const pills = afterArr.map(it => {
+                    const id = opts.idFn(it);
+                    const nm = opts.nameFn(it);
+                    const date = opts.dateFn ? opts.dateFn(it) : '';
+                    const isNew = id != null && !beforeIds.has(String(id));
+                    const cls = isNew ? 'pill--new' : 'pill--success';
+                    return `<span class="pill ${cls}">
+                        ${isNew ? '<span class="pill__badge pill__badge--new">' + esc(opts.newBadge || 'новый') + '</span>' : ''}
+                        <span>${esc(nm)}</span>
+                        ${id != null ? '<span class="id">#' + esc(id) + '</span>' : ''}
+                        ${date ? '<span class="meta">' + esc(date) + '</span>' : ''}
+                    </span>`;
+                }).join(' ');
+                sections.push(`<div class="pills-section">
+                    <div class="pills-section__title">Подключены сейчас <span style="color:var(--text-3);">(${afterArr.length})</span></div>
+                    <div class="pills">${pills}</div>
+                </div>`);
+            } else {
+                sections.push('<div class="empty">' + opts.emptyMsg + '</div>');
+            }
+
+            if (goneItems.length) {
+                const pills = goneItems.map(it => {
+                    const id = opts.idFn(it);
+                    const nm = opts.nameFn(it);
+                    return `<span class="pill">
+                        <span class="pill__badge pill__badge--gone">отключился</span>
+                        <span>${esc(nm)}</span>
+                        ${id != null ? '<span class="id">#' + esc(id) + '</span>' : ''}
+                    </span>`;
+                }).join(' ');
+                sections.push(`<div class="pills-section pills-section--gone">
+                    <div class="pills-section__title">Отключились при смене <span>(${goneItems.length})</span></div>
+                    <div class="pills">${pills}</div>
+                </div>`);
+            }
+
+            wrap.innerHTML = sections.join('');
+        }
+
+        function renderActivePacks(raw) {
+            renderItemsSnapshot({
+                containerId: 'ttrActivePacks',
+                hintId:      'ttrActivePacksHint',
+                after:       raw.activePacksAfter,
+                before:      raw.activePacksBefore,
+                idFn:        (p) => (p.pack || {}).packId != null ? (p.pack || {}).packId : p.packId,
+                nameFn:      (p) => (p.pack || {}).name || p.name || ('pack ' + (((p.pack || {}).packId) || p.packId)),
+                dateFn:      (p) => p.activationDate ? 'с ' + fmtDate(p.activationDate).split(' ')[0] : '',
+                emptyMsg:    'У абонента нет подключённых пакетов',
+                notCollectedMsg: 'activePacksAfter не собран при тесте — это старый отчёт.',
+                newBadge:    'подключился',
+            });
+        }
+
+        function renderActiveServices(raw) {
+            renderItemsSnapshot({
+                containerId: 'ttrActiveServices',
+                hintId:      'ttrActiveServicesHint',
+                after:       raw.activeServicesAfter,
+                before:      raw.activeServicesBefore,
+                idFn:        (s) => s.serviceId != null ? s.serviceId : s.id,
+                nameFn:      (s) => s.name || ('svc ' + (s.serviceId || s.id)),
+                emptyMsg:    'У абонента нет подключённых услуг',
+                notCollectedMsg: 'activeServicesAfter не собран при тесте — это старый отчёт.',
+                newBadge:    'подключилась',
+            });
+        }
+
+        // ── 7. COS / PCRF (snapshot после + бейдж «подключился при смене») ──
+        function renderCos(raw, meta) {
+            const wrap = $('ttrCos');
+            const hint = $('ttrCosHint');
+            if (!meta.useTme) {
+                hint.textContent = 'TME-снимок не запрашивался';
+                wrap.innerHTML = '<div class="empty">COS/PCRF снимок не собирался — запусти тест с включённой опцией TME.</div>';
+                return;
+            }
+            const before = raw.pcrfBefore;
+            const after  = raw.pcrfAfter;
+
+            // Особый кейс: до собралось, после — упало (TME моргнул при polling)
+            if (after && !after.ok && before && before.ok) {
+                hint.textContent = 'снимок ПОСЛЕ не получен · показываем ДО';
+                const services = before.services || [];
+                wrap.innerHTML =
+                    '<div class="err-box">⚠ Снимок ПОСЛЕ смены недоступен: <b>' +
+                    esc(after.error || after.code || 'неизвестно') + '</b>' +
+                    (after._retried ? ' (retry не помог)' : '') +
+                    '. Показан снимок ДО — реальная картина после смены может отличаться.</div>' +
+                    (services.length ? renderCosPills(services, new Set()) : '<div class="empty">У абонента нет активных PCRF/COS</div>');
+                return;
+            }
+
+            // Полный сбой
+            if (!after || !after.ok) {
+                hint.textContent = 'снимок не получен';
+                wrap.innerHTML = '<div class="err-box">⚠ Не удалось снять COS из TME: <b>' +
+                    esc((after && (after.error || after.code)) || 'неизвестно') + '</b></div>';
+                return;
+            }
+
+            const services = after.services || [];
+            const beforeNames = new Set(((before && before.services) || []).map(s => s.name));
+            const afterNames  = new Set(services.map(s => s.name));
+            const goneItems = ((before && before.services) || []).filter(s => !afterNames.has(s.name));
+            const newCount  = services.filter(s => !beforeNames.has(s.name)).length;
+
+            const parts = [services.length + ' активных'];
+            if (newCount > 0)       parts.push('+' + newCount + ' при смене');
+            if (goneItems.length)   parts.push('−' + goneItems.length + ' отключилось');
+            if (after._retried)     parts.push('(retry)');
+            parts.push('обновлено ' + (after.fetchedAt ? new Date(after.fetchedAt * 1000).toLocaleTimeString('ru-RU').slice(0, 5) : '—'));
+            hint.textContent = parts.join(' · ');
+
+            const sections = [];
+            if (services.length) {
+                sections.push(renderCosPills(services, beforeNames));
+            } else {
+                sections.push('<div class="empty">У абонента нет активных PCRF/COS сервисов</div>');
+            }
+            if (goneItems.length) {
+                const pills = goneItems.map(s => {
+                    return `<span class="pill">
+                        <span class="pill__badge pill__badge--gone">отключился</span>
+                        <span>${esc(s.name)}</span>
+                    </span>`;
+                }).join(' ');
+                sections.push(`<div class="pills-section pills-section--gone">
+                    <div class="pills-section__title">Отключились при смене <span>(${goneItems.length})</span></div>
+                    <div class="pills">${pills}</div>
+                </div>`);
+            }
+            wrap.innerHTML = sections.join('');
+        }
+        function renderCosPills(services, beforeNames) {
+            const pills = services.map(s => {
+                const stOk = s.status && s.status.tone === 'success';
+                const isNew = !beforeNames.has(s.name);
+                const cls = isNew ? 'pill--new' : (stOk ? 'pill--success' : 'pill--brand');
+                const stLabel = (s.activation && s.activation.label) || (s.status && s.status.label) || '';
+                return `<span class="pill ${cls}">
+                    ${isNew ? '<span class="pill__badge pill__badge--new">подключился</span>' : ''}
+                    <span>${esc(s.name)}</span>
+                    ${stLabel ? '<span class="meta">' + esc(stLabel) + '</span>' : ''}
+                </span>`;
+            }).join(' ');
+            return `<div class="pills-section">
+                <div class="pills-section__title">Подключены сейчас <span style="color:var(--text-3);">(${services.length})</span></div>
+                <div class="pills">${pills}</div>
+            </div>`;
+        }
+
+        // ── 8. Roles (полный список, не top-N) ────────────────────
+        // Каждая роль отрисовывается карточкой с тремя collapsible-блоками:
+        // Тарифы / Пакеты / Услуги. Внутри — chip-list с прокруткой,
+        // показывает имя + ID + цену (если есть). Архивные тарифы — затёрты.
+        function renderRoles(raw) {
+            const meta = raw.testRunMeta || {};
+            const previewByRole = raw.previewByRole || {};
+            // Бэккомпат: старые отчёты
+            if (!Object.keys(previewByRole).length) {
+                if (raw.previewB2C) previewByRole['B2C_FO'] = raw.previewB2C;
+                if (raw.previewB2B) previewByRole['B2B_FO'] = raw.previewB2B;
+            }
+            const labelById = {};
+            (Array.isArray(meta.rolesCatalog) ? meta.rolesCatalog : []).forEach(c => { labelById[c.id] = c.label; });
+
+            // Админ — всегда первой колонкой. У него available* лежат в raw API-формате,
+            // нормализуем под общий вид {id, name, isArchived?, fee?}.
+            const adminRps = flat(raw.availableRatePlansAfter).map(it => {
+                const rp = it.ratePlan || it;
+                return {
+                    id:         rp.ratePlanId || it.ratePlanId || it.id,
+                    name:       rp.name || it.name || ('rp ' + (rp.ratePlanId || it.ratePlanId)),
+                    isArchived: it.isArchived,
+                };
+            });
+            const adminPks = flat(raw.availablePacksAfter).map(it => ({
+                id:   it.packId || it.id,
+                name: it.name || ('pack ' + (it.packId || it.id)),
+                fee:  it.fee || it.price,
+            }));
+            const adminSvc = flat(raw.availableServicesAfter).map(it => ({
+                id:   it.serviceId || it.id,
+                name: it.name || ('svc ' + (it.serviceId || it.id)),
+                fee:  it.fee || it.price,
+            }));
+            const cards = [renderRoleCard({
+                title: 'Админ', login: 'текущая сессия', cls: 'role-card--admin',
+                rps: adminRps, pks: adminPks, svc: adminSvc,
+            })];
+
+            const roleIds = Object.keys(previewByRole);
+            const errs = [];
+            roleIds.forEach((rid) => {
+                const prev = previewByRole[rid];
+                const label = (prev && prev.role) || labelById[rid] || rid;
+                if (!prev) return;
+                if (!prev.ok) {
+                    errs.push(label + ': ' + (prev.error || prev.code));
+                    cards.push(`<div class="role-card role-card--err">
+                        <div class="role-card__head">
+                            <span class="role-card__title">${esc(label)}</span>
+                            <span class="role-card__login">${esc(rid)}</span>
+                        </div>
+                        <div class="role-card__list">${esc(prev.error || prev.code || 'не удалось')}</div>
+                    </div>`);
+                    return;
+                }
+                const d = prev.data || {};
+                const rps = (d.availableRatePlans || []).map(x => ({
+                    id:         x.ratePlanId,
+                    name:       x.name || ('rp ' + x.ratePlanId),
+                    isArchived: x.isArchived,
+                }));
+                const pks = (d.availablePacks || []).map(x => ({
+                    id:   x.packId,
+                    name: x.name || ('pack ' + x.packId),
+                    fee:  x.fee || x.price,
+                }));
+                const svc = (d.availableServices || []).map(x => ({
+                    id:   x.serviceId,
+                    name: x.name || ('svc ' + x.serviceId),
+                    fee:  x.fee || x.price,
+                }));
+                cards.push(renderRoleCard({
+                    title: label, login: prev.login || '',
+                    rps: rps, pks: pks, svc: svc,
+                }));
+            });
+
+            if (!roleIds.length) {
+                cards.push(`<div class="role-card">
+                    <div class="role-card__head"><span class="role-card__title">Учётки не выбраны</span></div>
+                    <div class="role-card__list">Включи нужные учётки в pre-flight модалке (B2C/B2B Frontoffice или Operator), чтобы сравнить, что доступно от их имени.</div>
+                </div>`);
+            }
+
+            $('ttrRoles').innerHTML = cards.join('');
+            $('ttrRolesHint').textContent = errs.length
+                ? ('ошибки: ' + errs.join(' · '))
+                : (roleIds.length ? (roleIds.length + ' выбрано') : '');
+        }
+
+        function renderRoleChips(items, kind) {
+            // kind: 'rp' | 'pack' | 'svc' — только для дефолтного pluralization,
+            // визуально ничего не меняет. Архивные tariffs затёрты.
+            if (!items.length) {
+                return '<div class="role-card__chips--empty">— ничего не доступно</div>';
+            }
+            return '<div class="role-card__chips">' + items.map(it => {
+                const archCls = it.isArchived ? ' role-card__chip--archived' : '';
+                const idStr = (it.id != null) ? `<span class="id">#${esc(it.id)}</span>` : '';
+                const feeStr = (it.fee != null && it.fee !== '' && Number(it.fee) > 0)
+                    ? `<span class="meta">${esc(fmtN(it.fee))} с</span>` : '';
+                return `<span class="role-card__chip${archCls}" title="${esc(it.name)}${it.id != null ? ' · ID ' + it.id : ''}${it.fee ? ' · ' + it.fee + ' сум' : ''}">
+                    <span>${esc(it.name)}</span>${idStr}${feeStr}
+                </span>`;
+            }).join('') + '</div>';
+        }
+
+        function renderRoleCard(o) {
+            // По умолчанию открываем единственный непустой блок (или первый), чтобы
+            // карточка не выглядела «закрытой» — но списки бывают на десятки позиций,
+            // поэтому остальные сворачиваем, экономя вертикаль страницы.
+            const groups = [
+                { key: 'rps', label: 'Тарифы',  arr: o.rps, kind: 'rp' },
+                { key: 'pks', label: 'Пакеты',  arr: o.pks, kind: 'pack' },
+                { key: 'svc', label: 'Услуги',  arr: o.svc, kind: 'svc' },
+            ];
+            const firstNonEmpty = groups.find(g => g.arr.length);
+            const groupHtml = groups.map(g => `
+                <details class="role-card__group" ${g === firstNonEmpty ? 'open' : ''}>
+                    <summary>
+                        <span>${esc(g.label)}</span>
+                        <span class="grp-count">${g.arr.length}</span>
+                    </summary>
+                    ${renderRoleChips(g.arr, g.kind)}
+                </details>`).join('');
+            return `<div class="role-card ${o.cls || ''}">
+                <div class="role-card__head">
+                    <span class="role-card__title">${esc(o.title)}</span>
+                    <span class="role-card__login">${esc(o.login)}</span>
+                </div>
+                <div class="role-card__counts">
+                    <div class="role-card__count"><b>${o.rps.length}</b><span>тарифов</span></div>
+                    <div class="role-card__count"><b>${o.pks.length}</b><span>пакетов</span></div>
+                    <div class="role-card__count"><b>${o.svc.length}</b><span>услуг</span></div>
+                </div>
+                ${groupHtml}
+            </div>`;
+        }
+
+        // ── 9. Steps ──────────────────────────────────────────────
+        function renderChecks(checks) {
+            const html = checks.map(c => {
+                const st = c.status || '—';
+                return `<tr>
+                    <td><span class="steps__status steps__status--${esc(st)}">${esc(st)}</span></td>
+                    <td>${esc(c.name || '—')} <span style="color:var(--text-3);font-size:10px;margin-left:4px;">${esc(c.category || '')}</span></td>
+                    <td style="color:var(--text-3);font-size:11px;">${esc(c.expected || '')}</td>
+                    <td style="font-family:var(--font-mono);font-size:11px;">${esc(c.actual || c.message || '')}</td>
+                </tr>`;
+            }).join('');
+            $('ttrChecksBody').innerHTML = html || '<tr><td colspan="4" class="empty">Нет шагов</td></tr>';
+            $('ttrChecksSummary').textContent =
+                'Сырые шаги: ' + checks.length +
+                ' (PASS ' + checks.filter(c => c.status === 'PASS').length +
+                ' · FAIL ' + checks.filter(c => c.status === 'FAIL').length +
+                ' · WARN ' + checks.filter(c => c.status === 'WARN').length + ')';
+        }
+
+        // ── PDF download ──────────────────────────────────────────
+        // Пытаемся через html2pdf.js (one-click, как файл). Если CDN не загрузился
+        // (offline-стенд) — фоллбэк на window.print(): юзер выберет «Save as PDF»
+        // в системном диалоге печати. CSS @media print делает страницу чистой.
+        async function downloadPdf(ev) {
+            if (ev) ev.preventDefault();
+            const btn = $('ttrDownloadPdf');
+            const orig = btn.textContent;
+
+            // Раскрываем все <details> чтобы они попали в PDF, потом восстановим.
+            const wasOpen = new Map();
+            document.querySelectorAll('details').forEach(d => {
+                wasOpen.set(d, d.open);
+                d.open = true;
+            });
+
+            const restore = () => {
+                wasOpen.forEach((wasO, d) => { d.open = wasO; });
+                btn.textContent = orig;
+                btn.style.pointerEvents = '';
+            };
+
+            btn.style.pointerEvents = 'none';
+            btn.textContent = '⏳ Готовим PDF…';
+
+            const fname = 'tariff-test-' + (reportId || 'report') + '.pdf';
+
+            // Нет html2pdf — честно говорим юзеру и идём в print-диалог.
+            if (typeof window.html2pdf !== 'function') {
+                btn.textContent = '🖨 Открываем диалог печати…';
+                setTimeout(() => {
+                    try { window.print(); } finally { restore(); }
+                }, 100);
+                return;
+            }
+
+            try {
+                await window.html2pdf().set({
+                    margin:      [8, 8, 10, 8],
+                    filename:    fname,
+                    image:       { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+                    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak:   { mode: ['css', 'legacy'], avoid: ['.card', '.role-card'] },
+                }).from($('ttrContent')).save();
+            } catch (e) {
+                console.error('PDF generation failed:', e);
+                alert('Не удалось сгенерировать PDF: ' + (e.message || e) +
+                      '\nОткроем диалог печати — выберите «Сохранить как PDF».');
+                try { window.print(); } catch (_) {}
+            } finally {
+                restore();
+            }
+        }
+        $('ttrDownloadPdf').addEventListener('click', downloadPdf);
+    })();
+    </script>
+</body>
+</html>

@@ -3,12 +3,12 @@
 UCELL SBMS API - Proxy Server
 ==============================
 Решает проблему CORS при работе через браузер.
-Dashboard доступен по адресу http://localhost:5000
+Главная страница: http://localhost:5000/subscriber (корень / редиректит туда же)
 
 Запуск: python server.py
 """
 
-from flask import Flask, request, Response, send_file, jsonify
+from flask import Flask, request, Response, send_file, jsonify, redirect
 import requests as http_client
 import urllib3
 import os
@@ -177,9 +177,7 @@ def add_cors_headers(response):
 
 @app.route('/')
 def index():
-    resp = _send_template('dashboard.html')
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return resp
+    return redirect('/subscriber', code=302)
 
 
 @app.route('/proxy/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
@@ -236,20 +234,6 @@ def proxy(path):
         )
 
 
-@app.route('/tester')
-def tester():
-    resp = _send_template('tester.html')
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return resp
-
-
-@app.route('/tariff-test')
-def tariff_test():
-    resp = _send_template('tariff_test.html')
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return resp
-
-
 @app.route('/matrix-test')
 def matrix_test_page():
     resp = _send_template('matrix_test.html')
@@ -264,11 +248,60 @@ def tme_page():
     return resp
 
 
+@app.route('/tariff-test/result/<report_id>')
+def tariff_test_result_page(report_id):
+    """Страница diff-результата тестовой смены тарифа.
+    Шаблон сам подгружает данные через GET /api/test/history/<id>."""
+    resp = _send_template('tariff_test_result.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
 @app.route('/subscriber')
 def subscriber_page():
     resp = _send_template('subscriber.html')
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return resp
+
+
+@app.route('/order-parse')
+def order_parse_page():
+    resp = _send_template('order_parse.html')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app.route('/api/order/parse-sections', methods=['POST'])
+def api_order_parse_sections():
+    """Парсит коммерческий приказ SBMS (PDF/DOCX) и возвращает структуру:
+        meta: {order_no, order_date, title}
+        product_family: [{product_id, name_ru, name_en, name_uz, technical_name}]
+        description:    [{name, limit, price}]
+        rate_plans:     {postpaid: [{id, name}], prepaid: [{id, name}]}
+        excl_packs:     [{n, name, ids, exclusion_type_raw, exclusion_code, exclusion_text}]
+        excl_services:  [...]
+        pcrf:           [{cos, activation, note, quota, priority, rg_si}]
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "Нужен multipart-файл в поле 'file'"}), 400
+    f = request.files['file']
+    name = f.filename or ""
+    content = f.read()
+    if not content:
+        return jsonify({"error": "Файл пустой"}), 400
+
+    try:
+        from order_parser import parse_order
+    except ImportError as e:
+        return jsonify({"error": f"order_parser недоступен: {e}"}), 500
+
+    try:
+        data = parse_order(name, content)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e), "filename": name}), 400
+    data["filename"] = name
+    return jsonify(data)
 
 
 # ============================================================
@@ -632,7 +665,77 @@ def api_pa_history_detail(report_id):
 # TME (Trouble Management Engine) — tme.billing.domain
 # ============================================================
 TME_BASE_URL = os.getenv("TME_BASE_URL", "https://tme.billing.domain")
-_tme_auth_cache = {}  # username -> {"token": str, "ts": float, "raw": dict}
+# Кеш токенов держится строго на сервере. Клиент знает только username.
+# username -> {"token": str, "ts": float, "exp": int|None, "raw": dict}
+_tme_auth_cache = {}
+
+
+def _tme_jwt_exp(token):
+    """Достаёт unix-timestamp 'exp' из payload JWT без верификации подписи.
+    Возвращает int|None. Подпись не проверяем — это делает TME при каждом запросе."""
+    if not token or not isinstance(token, str):
+        return None
+    try:
+        import base64
+        parts = token.split(".")
+        if len(parts) < 2:
+            return None
+        payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8", errors="replace"))
+        exp = payload.get("exp")
+        return int(exp) if isinstance(exp, (int, float)) else None
+    except Exception:
+        return None
+
+
+def _tme_get_cached_token(username):
+    """Возвращает (token, error_code). error_code один из:
+       None | 'TME_AUTH_REQUIRED' | 'TME_AUTH_EXPIRED'."""
+    if not username:
+        return None, "TME_AUTH_REQUIRED"
+    entry = _tme_auth_cache.get(username)
+    if not entry or not entry.get("token"):
+        return None, "TME_AUTH_REQUIRED"
+    exp = entry.get("exp")
+    # 30 секунд запаса, чтобы не нарваться на expiration в момент сетевого запроса.
+    if exp and exp <= int(time.time()) + 30:
+        return None, "TME_AUTH_EXPIRED"
+    return entry["token"], None
+
+
+# ----- PCRF / COS статус-мапперы (Single Source of Truth) -----
+# Значения "0", "1", "2" взяты из реального ответа pcrf_get_subs_services и
+# общепринятой PCRF-конвенции; неизвестные коды отдаются как есть с tone='muted'.
+_PCRF_SRVSTATUS_MAP = {
+    "0": ("Активен",     "success"),
+    "1": ("Неактивен",   "muted"),
+    "2": ("Заблокирован", "danger"),
+}
+_PCRF_ACTIVATION_MAP = {
+    "0": ("В очереди",     "warn"),
+    "1": ("Активируется",  "info"),
+    "2": ("Активирован",   "success"),
+    "3": ("Деактивирован", "muted"),
+}
+
+
+def _pcrf_normalize_item(raw):
+    """raw: dict из TME response['result'][i] → нормализованный объект для UI."""
+    if not isinstance(raw, dict):
+        return None
+    name = raw.get("SRVNAME") or ""
+    srv_raw = str(raw.get("SRVSTATUS", "")).strip()
+    act_raw = str(raw.get("SRVACTIVATIONSTATUS", "")).strip()
+    srv_label, srv_tone = _PCRF_SRVSTATUS_MAP.get(srv_raw, (f"Статус {srv_raw}" if srv_raw else "—", "muted"))
+    act_label, act_tone = _PCRF_ACTIVATION_MAP.get(act_raw, (f"Activation {act_raw}" if act_raw else "—", "muted"))
+    return {
+        "name":            name,
+        "startedAt":       raw.get("SRVSTARTDATETIME") or "",
+        "subscribedAt":    raw.get("SRVSUBSCRIBEDATE") or "",
+        "status":          {"raw": srv_raw, "label": srv_label, "tone": srv_tone},
+        "activation":      {"raw": act_raw, "label": act_label, "tone": act_tone},
+        "raw":             raw,
+    }
 
 
 @app.route('/api/tme/auth', methods=['POST'])
@@ -678,14 +781,18 @@ def api_tme_auth():
                         token = body["data"][key]
                         break
 
+        exp = _tme_jwt_exp(token)
         _tme_auth_cache[username] = {
             "token": token,
             "ts": time.time(),
+            "exp": exp,
             "raw": body,
         }
 
         return jsonify({
-            "token": token,
+            "token": token,                 # legacy: используется /tme страницей
+            "username": username,           # новый flow: фронту достаточно username
+            "expiresAt": exp,               # unix-ts (или null) — для UI countdown
             "status": resp.status_code,
             "body": body,
             "url": url,
@@ -778,6 +885,87 @@ def api_tme_scenario_run():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tme/pcrf-services', methods=['POST'])
+def api_tme_pcrf_services():
+    """Получить PCRF/COS услуги абонента.
+    POST {tmeUser, msisdn} → запускает сценарий pcrf_get_subs_services в TME,
+    возвращает нормализованный список + info_card.
+    Токен берётся из server-side кеша (_tme_auth_cache) — клиент его никогда не получает.
+    Если токена нет/истёк — 401 с code='TME_AUTH_REQUIRED' / 'TME_AUTH_EXPIRED'."""
+    try:
+        data = request.get_json() or {}
+        msisdn = (data.get("msisdn") or "").strip()
+        username = (data.get("tmeUser") or "").strip()
+
+        if not msisdn:
+            return jsonify({"error": "msisdn is required", "code": "MSISDN_MISSING"}), 400
+        if not username:
+            return jsonify({"error": "tmeUser is required (войдите в TME)", "code": "TME_AUTH_REQUIRED"}), 401
+
+        token, err = _tme_get_cached_token(username)
+        if err:
+            return jsonify({
+                "error": "TME session is required" if err == "TME_AUTH_REQUIRED" else "TME session expired",
+                "code": err,
+            }), 401
+
+        url = f"{TME_BASE_URL}/api/v1/scenarios/pcrf_get_subs_services/run"
+        resp = http_client.post(
+            url,
+            params={"page": 1, "page_size": 50},
+            json={"arguments": {"msisdn": msisdn}},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            verify=False,
+            timeout=TIMEOUT,
+        )
+
+        # 401 от TME = токен невалиден → инвалидируем кеш и просим перелогиниться
+        if resp.status_code == 401:
+            _tme_auth_cache.pop(username, None)
+            return jsonify({
+                "error": "TME rejected the cached token",
+                "code": "TME_AUTH_EXPIRED",
+                "status": 401,
+            }), 401
+
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {"raw": resp.text}
+
+        if resp.status_code >= 400:
+            return jsonify({
+                "error": "TME upstream error",
+                "code": "TME_UPSTREAM_ERROR",
+                "status": resp.status_code,
+                "body": body,
+            }), 502
+
+        items_raw = body.get("result") if isinstance(body, dict) else None
+        if not isinstance(items_raw, list):
+            items_raw = []
+        services = [s for s in (_pcrf_normalize_item(it) for it in items_raw) if s]
+
+        return jsonify({
+            "msisdn": msisdn,
+            "services": services,
+            "infoCard": (body.get("info_card") if isinstance(body, dict) else None) or {},
+            "count": len(services),
+            "fetchedAt": int(time.time()),
+        })
+    except http_client.exceptions.ConnectionError as e:
+        return jsonify({"error": "Cannot connect to TME server", "code": "TME_UNREACHABLE", "details": str(e)}), 502
+    except http_client.exceptions.Timeout:
+        return jsonify({"error": "TME request timeout", "code": "TME_TIMEOUT"}), 504
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e), "code": "INTERNAL"}), 500
 
 
 @app.route('/api/config')
@@ -1506,6 +1694,375 @@ def pack_run_test():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ============================================================
+# Helpers для /api/tariff/test-run
+# ============================================================
+def _pcrf_collect_for(msisdn, tme_user):
+    """Внутренний снимок PCRF/COS для заданного MSISDN.
+    Возвращает {ok, services, count, infoCard, fetchedAt} или {ok:False, error, code}.
+    Не падает — любая ошибка превращается в структурированный ответ, чтобы основной
+    тестовый сценарий продолжался.
+    """
+    if not msisdn:
+        return {"ok": False, "code": "MSISDN_MISSING", "error": "msisdn is required"}
+    if not tme_user:
+        return {"ok": False, "code": "TME_AUTH_REQUIRED", "error": "TME user not provided"}
+    token, err = _tme_get_cached_token(tme_user)
+    if err:
+        return {"ok": False, "code": err, "error": "TME session is required" if err == "TME_AUTH_REQUIRED" else "TME session expired"}
+    try:
+        url = f"{TME_BASE_URL}/api/v1/scenarios/pcrf_get_subs_services/run"
+        resp = http_client.post(
+            url,
+            params={"page": 1, "page_size": 50},
+            json={"arguments": {"msisdn": msisdn}},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            verify=False,
+            timeout=TIMEOUT,
+        )
+        if resp.status_code == 401:
+            _tme_auth_cache.pop(tme_user, None)
+            return {"ok": False, "code": "TME_AUTH_EXPIRED", "error": "TME rejected the cached token"}
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {"raw": resp.text}
+        if resp.status_code >= 400:
+            return {"ok": False, "code": "TME_UPSTREAM_ERROR", "error": f"TME upstream {resp.status_code}", "body": body}
+
+        items_raw = body.get("result") if isinstance(body, dict) else None
+        if not isinstance(items_raw, list):
+            items_raw = []
+        services = [s for s in (_pcrf_normalize_item(it) for it in items_raw) if s]
+        return {
+            "ok": True,
+            "msisdn": msisdn,
+            "services": services,
+            "count": len(services),
+            "infoCard": (body.get("info_card") if isinstance(body, dict) else None) or {},
+            "fetchedAt": int(time.time()),
+        }
+    except http_client.exceptions.ConnectionError as e:
+        return {"ok": False, "code": "TME_UNREACHABLE", "error": "Cannot connect to TME", "details": str(e)}
+    except http_client.exceptions.Timeout:
+        return {"ok": False, "code": "TME_TIMEOUT", "error": "TME request timeout"}
+    except Exception as e:
+        traceback.print_exc()
+        return {"ok": False, "code": "INTERNAL", "error": str(e)}
+
+
+# Каталог QA-ролей, синхронизирован с static/sbms-viewas.js (ROLES).
+# Пароли держим ТОЛЬКО на сервере — фронт передаёт roleIds, кеша на стороне клиента нет.
+# Если потребуется добавить роль — синхронизируйте оба файла.
+_PREVIEW_ROLES_CATALOG = {
+    "B2B_OP": {"id": "B2B_OP", "label": "B2B · Оператор",   "login": "DBS_CC_OPERATORS_PSO",          "password": "Ucell2026$$"},
+    "B2B_FO": {"id": "B2B_FO", "label": "B2B · Фронт-офис", "login": "DBS_REG_FO_PSO",                "password": "September2025+"},
+    "B2C_FO": {"id": "B2C_FO", "label": "B2C · Фронт-офис", "login": "DMS_FO_REGION_SPEC_PSO",        "password": "April042026+++"},
+    "B2C_OP": {"id": "B2C_OP", "label": "B2C · Оператор",   "login": "DCC_CALL_CENTER_OPERATORT_PSO", "password": "Ucell+pso+2023+"},
+}
+
+
+def _preview_collect_for(msisdn, login, password, role_label):
+    """Read-only preview подписок номера от имени другой учётки.
+    Возвращает структуру, аналогичную /api/preview/subscriptions, либо {ok:False, error}.
+    """
+    if not msisdn or not login or not password:
+        return {"ok": False, "code": "BAD_REQUEST", "error": "msisdn/login/password required", "role": role_label}
+    pclient = SBMSClient(BASE_URL, TIMEOUT)
+    try:
+        pclient.authenticate(login, password)
+    except Exception as e:
+        return {"ok": False, "code": "AUTH_FAILED", "error": f"login {login} failed: {str(e)[:200]}", "role": role_label}
+    try:
+        sd = pclient.search_customer(msisdn)
+        if not sd or (sd.get("listInfo") or {}).get("count", 0) == 0:
+            return {"ok": False, "code": "SUBSCRIBER_NOT_FOUND", "error": f"{msisdn} not found under {login}", "role": role_label}
+        sr = sd["searchResults"][0]
+        sid = sr.get("subscriberId")
+        cid = sr.get("customerId")
+        rate_plan = (sr.get("firstSubscriber") or {}).get("ratePlan") or {}
+
+        def _items(d):
+            return d.get("items", []) if isinstance(d, dict) else []
+
+        active_packs   = _items(pclient.get_active_packs(sid))
+        avail_packs    = _items(pclient.get_available_packs(sid))
+        active_svc     = _items(pclient.get_active_services(sid))
+        avail_svc      = _items(pclient.get_available_services(sid))
+        avail_rps_raw  = pclient.get_available_rateplans(sid)
+        flat_rps = []
+        for it in (_items(avail_rps_raw) or []):
+            rp = it.get("ratePlan") or {}
+            flat_rps.append({
+                "ratePlanId": rp.get("ratePlanId") or it.get("ratePlanId") or it.get("id"),
+                "name":       rp.get("name") or it.get("name", "N/A"),
+                "isArchived": it.get("isArchived"),
+            })
+        return {
+            "ok": True,
+            "role": role_label,
+            "login": login,
+            "msisdn": msisdn,
+            "subscriberId": sid,
+            "customerId": cid,
+            "currentRatePlan": {
+                "ratePlanId": rate_plan.get("ratePlanId"),
+                "name":       rate_plan.get("name"),
+            },
+            "data": {
+                "activePacks":         active_packs,
+                "availablePacks":      avail_packs,
+                "activeServices":      active_svc,
+                "availableServices":   avail_svc,
+                "availableRatePlans":  flat_rps,
+            },
+            "fetchedAt": int(time.time()),
+        }
+    except Exception as e:
+        traceback.print_exc()
+        return {"ok": False, "code": "INTERNAL", "error": str(e), "role": role_label}
+
+
+@app.route('/api/tariff/test-run', methods=['POST'])
+def api_tariff_test_run():
+    """Оркестратор: PCRF до → реальная смена тарифа (TestRunner) → PCRF после →
+    preview из B2C/B2B FO. Сохраняет расширенный отчёт в test_history/.
+    Body: {msisdn, newRatePlanId, newRatePlanName?, useTme?, tmeUser?, roles:{b2c,b2b}, authToken?}
+    Returns: {reportId, savedAs, redirectUrl, summary}
+    """
+    try:
+        data = request.get_json() or {}
+        msisdn = (data.get("msisdn") or "").strip()
+        new_rp_id = data.get("newRatePlanId")
+        new_rp_name = data.get("newRatePlanName") or ""
+        use_tme = bool(data.get("useTme"))
+        tme_user = (data.get("tmeUser") or "").strip()
+        roles = data.get("roles") if isinstance(data.get("roles"), dict) else {}
+
+        if not msisdn or not new_rp_id:
+            return jsonify({"error": "msisdn and newRatePlanId are required"}), 400
+
+        auth_token = data.get("authToken")
+        login = data.get("login") or os.getenv("SBMS_LOGIN", "DBS_CC_OPERATORS_PSO")
+        password = data.get("password") or os.getenv("SBMS_PASSWORD", "Ucell2026$$")
+
+        # 1. Pre-snapshot активных пакетов/услуг и доступных списков
+        #    (TestRunner собирает только AFTER; для honest diff нам нужен BEFORE)
+        pre_snapshot = {}
+        try:
+            pre_client = _get_client(data)
+            pre_search = pre_client.search_customer(msisdn)
+            if pre_search and (pre_search.get("listInfo") or {}).get("count", 0) > 0:
+                pre_sr = pre_search["searchResults"][0]
+                pre_sid = pre_sr.get("subscriberId")
+                if pre_sid:
+                    def _safe_items(d):
+                        return d.get("items", []) if isinstance(d, dict) else []
+
+                    pre_snapshot = {
+                        "activePacksBefore":        _safe_items(pre_client.get_active_packs(pre_sid)),
+                        "activeServicesBefore":     _safe_items(pre_client.get_active_services(pre_sid)),
+                        "availablePacksBefore":     _safe_items(pre_client.get_available_packs(pre_sid)),
+                        "availableServicesBefore":  _safe_items(pre_client.get_available_services(pre_sid)),
+                    }
+                    rps_raw = pre_client.get_available_rateplans(pre_sid)
+                    flat_rps = []
+                    for it in _safe_items(rps_raw):
+                        rp = it.get("ratePlan") or {}
+                        flat_rps.append({
+                            "ratePlanId": rp.get("ratePlanId") or it.get("ratePlanId") or it.get("id"),
+                            "name":       rp.get("name") or it.get("name", "N/A"),
+                            "isArchived": it.get("isArchived"),
+                        })
+                    pre_snapshot["availableRatePlansBeforeFlat"] = flat_rps
+                    # Снимок квот ДО смены (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA).
+                    # Ошибка не валит pre-snapshot — кладём как {ok:false, error}.
+                    try:
+                        pre_snapshot["quotaBefore"] = _collect_subscriber_quota_snapshot(
+                            pre_client, pre_sid, msisdn
+                        )
+                    except Exception as qe:
+                        pre_snapshot["quotaBefore"] = {"ok": False, "error": str(qe), "errorKind": "internal"}
+        except Exception as e:
+            traceback.print_exc()
+            pre_snapshot = {"_preSnapshotError": str(e)}
+
+        # 2. PCRF до
+        pcrf_before = _pcrf_collect_for(msisdn, tme_user) if use_tme else None
+
+        # 3. Реальная смена тарифа через TestRunner
+        test_case = {
+            "msisdn": msisdn,
+            "testType": "tariff_change",
+            "targetName": new_rp_name,
+            "login": login,
+            "password": password,
+            "expected": {
+                "targetRatePlanId":   new_rp_id,
+                "targetRatePlanName": new_rp_name,
+            },
+        }
+        runner = TestRunner(BASE_URL, login, password, TIMEOUT, auth_token=auth_token)
+        report = runner.run(test_case)
+
+        # 3.5. Post-snapshot: TestRunner для tariff_change НЕ собирает activePacksAfter/
+        # activeServicesAfter — их собираем сами. Также нормализуем "плоские" массивы
+        # активных и доступных списков, чтобы фронт не дёргался между .items и массивом.
+        post_snapshot = {}
+        try:
+            post_client = _get_client(data)  # тот же auth, что и pre_client
+            post_search = post_client.search_customer(msisdn)
+            if post_search and (post_search.get("listInfo") or {}).get("count", 0) > 0:
+                post_sr = post_search["searchResults"][0]
+                post_sid = post_sr.get("subscriberId")
+                if post_sid:
+                    def _items(d):
+                        return d.get("items", []) if isinstance(d, dict) else []
+                    post_snapshot["activePacksAfter"]    = _items(post_client.get_active_packs(post_sid))
+                    post_snapshot["activeServicesAfter"] = _items(post_client.get_active_services(post_sid))
+                    # «Плоские» алиасы доступных списков, формат как у before-полей
+                    avail_packs_after_raw = report.raw_responses.get("availablePacksAfter")
+                    avail_svc_after_raw   = report.raw_responses.get("availableServicesAfter")
+                    avail_rps_after_raw   = report.raw_responses.get("availableRatePlansAfter")
+                    if avail_packs_after_raw is None:
+                        post_snapshot["availablePacksAfterFlat"] = _items(post_client.get_available_packs(post_sid))
+                    else:
+                        post_snapshot["availablePacksAfterFlat"] = _items(avail_packs_after_raw)
+                    if avail_svc_after_raw is None:
+                        post_snapshot["availableServicesAfterFlat"] = _items(post_client.get_available_services(post_sid))
+                    else:
+                        post_snapshot["availableServicesAfterFlat"] = _items(avail_svc_after_raw)
+                    if avail_rps_after_raw is None:
+                        avail_rps_after_raw = post_client.get_available_rateplans(post_sid)
+                    flat_rps_after = []
+                    for it in _items(avail_rps_after_raw):
+                        rp = it.get("ratePlan") or {}
+                        flat_rps_after.append({
+                            "ratePlanId": rp.get("ratePlanId") or it.get("ratePlanId") or it.get("id"),
+                            "name":       rp.get("name") or it.get("name", "N/A"),
+                            "isArchived": it.get("isArchived"),
+                        })
+                    post_snapshot["availableRatePlansAfterFlat"] = flat_rps_after
+                    # Снимок квот ПОСЛЕ смены — фронт показывает их рядом с
+                    # «Лимиты тарифа» (rtDiscounts) и COS, чтобы отчёт давал
+                    # ту же картину, что /subscriber → вкладка «Квоты».
+                    try:
+                        post_snapshot["quotaAfter"] = _collect_subscriber_quota_snapshot(
+                            post_client, post_sid, msisdn
+                        )
+                    except Exception as qe:
+                        post_snapshot["quotaAfter"] = {"ok": False, "error": str(qe), "errorKind": "internal"}
+                    # Группированные лимиты ПОСЛЕ смены (та же логика, что
+                    # /api/limits/all). Source-aware: фронт фильтрует группу с
+                    # sourceType=tariff чтобы показать «Лимиты, которые дал тариф».
+                    # Отдельно сохраняем productId нового тарифа — чтобы фронт
+                    # мог матчить точный pid даже если /nextCharges моргнул.
+                    try:
+                        post_rp = (post_sr.get("firstSubscriber") or {}).get("ratePlan") or {}
+                        post_snapshot["limitsAfter"] = _collect_subscriber_limits_groups(
+                            post_client, post_sid,
+                            post_rp.get("ratePlanId") or new_rp_id,
+                            post_rp.get("name") or new_rp_name,
+                        )
+                    except Exception as le:
+                        post_snapshot["limitsAfter"] = {"groups": [], "totalItems": 0,
+                                                         "tariffProductId": None,
+                                                         "error": str(le)}
+        except Exception as e:
+            traceback.print_exc()
+            post_snapshot["_postSnapshotError"] = str(e)
+
+        # 4. PCRF после.
+        # После polling смены тарифа (~30 c) TME-сессия может моргнуть/таймаутнуть —
+        # один retry с короткой паузой существенно снижает ложные «TME_UNREACHABLE».
+        pcrf_after = None
+        if use_tme:
+            pcrf_after = _pcrf_collect_for(msisdn, tme_user)
+            if pcrf_after and not pcrf_after.get("ok") and \
+               pcrf_after.get("code") in ("TME_UNREACHABLE", "TME_TIMEOUT", "TME_AUTH_EXPIRED"):
+                time.sleep(3)
+                second = _pcrf_collect_for(msisdn, tme_user)
+                if second and second.get("ok"):
+                    second["_retried"] = True
+                    pcrf_after = second
+                else:
+                    pcrf_after["_retried"] = True
+                    if second and not second.get("ok"):
+                        pcrf_after["_retryError"] = second.get("error") or second.get("code")
+
+        # 5. Preview по выбранным ролям (пароли — только на сервере)
+        role_ids = data.get("roleIds")
+        if not isinstance(role_ids, list):
+            role_ids = []
+        # Совместимость со старым форматом {b2c:{login,password}, b2b:{...}}
+        if not role_ids and isinstance(roles, dict):
+            if isinstance(roles.get("b2c"), dict): role_ids.append("B2C_FO")
+            if isinstance(roles.get("b2b"), dict): role_ids.append("B2B_FO")
+
+        preview_by_role = {}
+        for rid in role_ids:
+            cat = _PREVIEW_ROLES_CATALOG.get(rid)
+            if not cat:
+                preview_by_role[rid] = {
+                    "ok": False, "code": "UNKNOWN_ROLE",
+                    "error": f"Неизвестная роль {rid}", "role": rid,
+                }
+                continue
+            preview_by_role[rid] = _preview_collect_for(
+                msisdn, cat["login"], cat["password"], cat["label"]
+            )
+
+        # 6. Положим расширенные блоки в отчёт
+        for k, v in pre_snapshot.items():
+            report.raw_responses[k] = v
+        for k, v in post_snapshot.items():
+            report.raw_responses[k] = v
+        report.raw_responses["pcrfBefore"]    = pcrf_before
+        report.raw_responses["pcrfAfter"]     = pcrf_after
+        report.raw_responses["previewByRole"] = preview_by_role
+        # Алиасы для совместимости с UI v1 (если открыт старый отчёт)
+        report.raw_responses["previewB2C"] = preview_by_role.get("B2C_FO") or preview_by_role.get("B2C_OP")
+        report.raw_responses["previewB2B"] = preview_by_role.get("B2B_FO") or preview_by_role.get("B2B_OP")
+        report.raw_responses["testRunMeta"] = {
+            "newRatePlanId":   new_rp_id,
+            "newRatePlanName": new_rp_name,
+            "useTme":          use_tme,
+            "tmeUser":         tme_user if use_tme else "",
+            "selectedRoles":   role_ids,
+            "rolesCatalog":    [
+                {"id": v["id"], "label": v["label"], "login": v["login"]}
+                for v in _PREVIEW_ROLES_CATALOG.values()
+            ],
+        }
+
+        # 6. Сохраняем
+        filename = save_report(report)
+
+        s = report.summary
+        return jsonify({
+            "reportId":    report.test_id,
+            "savedAs":     filename,
+            "redirectUrl": f"/tariff-test/result/{report.test_id}",
+            "summary": {
+                "msisdn":   msisdn,
+                "duration": round(report.duration, 2),
+                "passed":   s["passed"],
+                "failed":   s["failed"],
+                "warnings": s["warnings"],
+                "total":    s["total"],
+            },
+        })
+    except AuthRequired:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 # ============================================================
 # API: PACKS & SERVICES ACTIVATION/DEACTIVATION
 # ============================================================
@@ -1603,6 +2160,127 @@ def api_deactivate_service():
 # ============================================================
 # LIMITS OVERVIEW — все скидки с привязкой к источнику
 # ============================================================
+_LIMITS_UNITS = {
+    0:  {"label": "Деньги",   "unit": "сум"},
+    1:  {"label": "SMS",      "unit": "sms"},
+    7:  {"label": "Минуты",   "unit": "мин"},
+    14: {"label": "Интернет", "unit": "МБ"},
+}
+
+
+def _collect_subscriber_limits_groups(client, sid, rp_id, rp_name):
+    """Собрать все rtDiscounts абонента, сгруппированные по productId со
+    знанием источника (тариф / пакет / услуга / unknown).
+
+    Возвращает {"groups": [...], "totalItems": int, "tariffProductId": int|None}.
+    Используется из /api/limits/all и из /api/tariff/test-run (post-snapshot
+    «Лимиты тарифа» — фильтруется по tariffProductId / sourceType=tariff).
+    """
+    rt_data = client.get_rt_discounts(sid)
+    items = (rt_data or {}).get("items", []) if isinstance((rt_data or {}), dict) else []
+
+    product_map = {}    # productId -> {name, type, id, [instanceId]}
+    tariff_pid = None
+
+    # Текущий тариф → productId
+    if rp_id:
+        try:
+            nc = client.get_rateplan_next_charges(sid, rp_id)
+            if nc:
+                pid = extract_product_id_from_charges(nc)
+                if pid:
+                    product_map[pid] = {"name": rp_name or "Текущий тариф",
+                                         "type": "tariff", "id": rp_id}
+                    tariff_pid = pid
+        except Exception:
+            pass
+
+    def _items(resp):
+        return (resp or {}).get("items", []) if isinstance((resp or {}), dict) else []
+
+    # Активные пакеты
+    for p in _items(client.get_active_packs(sid)):
+        pack_obj = p.get("pack") or {}
+        pack_id = pack_obj.get("packId") or p.get("packId")
+        pack_name = pack_obj.get("name") or p.get("name", "Пакет")
+        inst_id = p.get("subscriberPackId") or p.get("packInstanceId")
+        if not pack_id:
+            continue
+        try:
+            pnc = client.get_pack_next_charges(sid, pack_id)
+            if pnc:
+                pid = extract_product_id_from_charges(pnc)
+                if pid:
+                    product_map[pid] = {"name": pack_name, "type": "pack",
+                                         "id": pack_id, "instanceId": inst_id}
+        except Exception:
+            pass
+
+    # Активные услуги
+    for s in _items(client.get_active_services(sid)):
+        svc_id = s.get("serviceId")
+        svc_name = s.get("name", "Услуга")
+        if not svc_id:
+            continue
+        try:
+            snc = client.get_service_next_charges(sid, svc_id)
+            if snc:
+                pid = extract_product_id_from_charges(snc)
+                if pid:
+                    product_map[pid] = {"name": svc_name, "type": "service",
+                                         "id": svc_id, "instanceId": svc_id}
+        except Exception:
+            pass
+
+    groups_map = defaultdict(list)
+    for item in items:
+        groups_map[item.get("productId")].append(item)
+
+    result_groups = []
+    for pid, disc_items in groups_map.items():
+        source = product_map.get(pid) or {
+            "name": f"productId: {pid}", "type": "unknown", "id": pid
+        }
+        discounts = []
+        for d in disc_items:
+            uid = d.get("measureUnitId", -1)
+            ui = _LIMITS_UNITS.get(uid, {"label": f"unit_{uid}", "unit": ""})
+            max_vol = d.get("maxVolume", 0) or 0
+            spent = d.get("spentVolume", 0) or 0
+            dpid = d.get("discountPlanId")
+            desc = get_discount_description(dpid) if dpid else ""
+            discounts.append({
+                "measureUnitId":    uid,
+                "label":            ui["label"],
+                "unit":             ui["unit"],
+                "maxVolume":        max_vol,
+                "spentVolume":      spent,
+                "remaining":        round(max_vol - spent, 4),
+                "discountPlanId":   dpid,
+                "discountName":     d.get("discountName", "") or desc,
+                "startDate":        d.get("startDate", ""),
+                "endDate":          d.get("endDate", ""),
+                "discountType":     d.get("discountType"),
+                "discountDetailId": d.get("discountDetailId"),
+            })
+        result_groups.append({
+            "productId":  pid,
+            "sourceName": source["name"],
+            "sourceType": source["type"],
+            "sourceId":   source.get("id"),
+            "discounts":  discounts,
+        })
+
+    order = {"tariff": 0, "pack": 1, "service": 2, "unknown": 3}
+    result_groups.sort(key=lambda g: order.get(g["sourceType"], 9))
+
+    return {
+        "groups":          result_groups,
+        "totalItems":      len(items),
+        "tariffProductId": tariff_pid,
+    }
+
+
 @app.route("/api/limits/all", methods=["POST"])
 def api_limits_all():
     """Вернуть все rtDiscounts, сгруппированные по источнику (тариф/пакет/услуга)."""
@@ -1624,115 +2302,11 @@ def api_limits_all():
         rp_id   = rate_plan.get("ratePlanId")
         rp_name = rate_plan.get("name", "Текущий тариф")
 
-        # ── все скидки ───────────────────────────────────────
-        rt_data = client.get_rt_discounts(sid)
-        items   = (rt_data or {}).get("items", [])
-
-        # ── productId → источник ──────────────────────────────
-        product_map = {}   # productId -> {name, type, id}
-
-        # Текущий тариф
-        if rp_id:
-            nc = client.get_rateplan_next_charges(sid, rp_id)
-            if nc:
-                pid = extract_product_id_from_charges(nc)
-                if pid:
-                    product_map[pid] = {"name": rp_name, "type": "tariff", "id": rp_id}
-
-        # Активные пакеты → через nextCharges достаём productId
-        def safe_items(resp):
-            return (resp or {}).get("items", []) if isinstance((resp or {}), dict) else []
-
-        active_packs = safe_items(client.get_active_packs(sid))
-        for p in active_packs:
-            pack_obj  = p.get("pack") or {}
-            pack_id   = pack_obj.get("packId")   or p.get("packId")
-            pack_name = pack_obj.get("name")      or p.get("name", "Пакет")
-            inst_id   = p.get("subscriberPackId") or p.get("packInstanceId")
-            if pack_id:
-                try:
-                    pnc = client.get_pack_next_charges(sid, pack_id)
-                    if pnc:
-                        pid = extract_product_id_from_charges(pnc)
-                        if pid:
-                            product_map[pid] = {
-                                "name": pack_name, "type": "pack",
-                                "id": pack_id, "instanceId": inst_id
-                            }
-                except Exception:
-                    pass
-
-        # Активные услуги → через nextCharges достаём productId
-        active_services = safe_items(client.get_active_services(sid))
-        for s in active_services:
-            svc_id   = s.get("serviceId")
-            svc_name = s.get("name", "Услуга")
-            if svc_id:
-                try:
-                    snc = client.get_service_next_charges(sid, svc_id)
-                    if snc:
-                        pid = extract_product_id_from_charges(snc)
-                        if pid:
-                            product_map[pid] = {
-                                "name": svc_name, "type": "service",
-                                "id": svc_id, "instanceId": svc_id
-                            }
-                except Exception:
-                    pass
-
-        # ── группировка по productId ──────────────────────────
-        UNITS = {
-            0:  {"label": "Деньги",   "unit": "сум"},
-            1:  {"label": "Минуты",   "unit": "мин"},
-            7:  {"label": "SMS",      "unit": "sms"},
-            14: {"label": "Интернет", "unit": "МБ"},
-        }
-
-        groups_map = defaultdict(list)
-        for item in items:
-            groups_map[item.get("productId")].append(item)
-
-        result_groups = []
-        for pid, disc_items in groups_map.items():
-            source = product_map.get(pid) or {
-                "name": f"productId: {pid}", "type": "unknown", "id": pid
-            }
-            discounts = []
-            for d in disc_items:
-                uid      = d.get("measureUnitId", -1)
-                ui       = UNITS.get(uid, {"label": f"unit_{uid}", "unit": ""})
-                max_vol  = d.get("maxVolume",  0) or 0
-                spent    = d.get("spentVolume", 0) or 0
-                dpid     = d.get("discountPlanId")
-                desc     = get_discount_description(dpid) if dpid else ""
-                discounts.append({
-                    "measureUnitId":  uid,
-                    "label":         ui["label"],
-                    "unit":          ui["unit"],
-                    "maxVolume":     max_vol,
-                    "spentVolume":   spent,
-                    "remaining":     round(max_vol - spent, 4),
-                    "discountPlanId": dpid,
-                    "discountName":  d.get("discountName", "") or desc,
-                    "startDate":     d.get("startDate", ""),
-                    "endDate":       d.get("endDate", ""),
-                    "discountType":  d.get("discountType"),
-                    "discountDetailId": d.get("discountDetailId"),
-                })
-
-            result_groups.append({
-                "productId":  pid,
-                "sourceName": source["name"],
-                "sourceType": source["type"],
-                "sourceId":   source.get("id"),
-                "discounts":  discounts,
-            })
-
-        # сортировка: тариф → пакеты → услуги → остальное
-        order = {"tariff": 0, "pack": 1, "service": 2, "unknown": 3}
-        result_groups.sort(key=lambda g: order.get(g["sourceType"], 9))
-
-        return jsonify({"groups": result_groups, "totalItems": len(items)})
+        bundle = _collect_subscriber_limits_groups(client, sid, rp_id, rp_name)
+        return jsonify({
+            "groups":     bundle["groups"],
+            "totalItems": bundle["totalItems"],
+        })
 
     except Exception as e:
         traceback.print_exc()
@@ -1942,6 +2516,125 @@ def _pick_quota_field(item, key):
     return None
 
 
+def _collect_subscriber_quota_snapshot(client, sid, msisdn):
+    """Снимок квот абонента для UI.
+
+    Использует PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA через client.get_subscriber_all_quota,
+    нормализует элементы (canonical fields, категории, статусы) и возвращает структуру:
+        success: { ok: True, items, groups, count, subscriberId, fetchedAt, raw }
+        failure: { ok: False, error, errorKind, upstream, attempts, hint }
+
+    Используется и в /api/subscriber/quota, и в /api/tariff/test-run для post-snapshot
+    «лимиты + квоты + COS» — чтобы в отчёте смены тарифа лежал тот же набор данных,
+    что видит оператор на /subscriber.
+    """
+    raw = client.get_subscriber_all_quota(sid, msisdn=msisdn)
+    upstream_err = raw.get("error")
+    upstream_status = raw.get("http_status")
+    error_kind = raw.get("error_kind")
+    if upstream_err and not raw.get("items"):
+        return {
+            "ok":        False,
+            "error":     upstream_err,
+            "errorKind": error_kind,
+            "upstream":  upstream_status,
+            "attempts":  [_scrub_attempt_for_ui(a) for a in (raw.get("attempts") or [])],
+            "imsi":      raw.get("imsi"),
+            "msisdn":    raw.get("msisdn"),
+            "hint": (
+                "Откройте модалку входа и переавторизуйтесь — токен SBMS истёк."
+                if error_kind in ("auth_expired", "auth_or_permission") else
+                "PSIX-эндпоинт не ответил. Проверьте VPN/сеть до sbms.ucell."
+            ),
+        }
+
+    items_raw = raw.get("items") or []
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    soon = now + timedelta(days=3)
+
+    out_items = []
+    for it in items_raw:
+        if not isinstance(it, dict):
+            continue
+        name     = _pick_quota_field(it, "name")
+        service  = _pick_quota_field(it, "service")
+        total    = _to_num(_pick_quota_field(it, "total"))
+        used     = _to_num(_pick_quota_field(it, "used"))
+        rem      = _to_num(_pick_quota_field(it, "rem"))
+        act_iso  = _norm_quota_date(_pick_quota_field(it, "act_date"))
+        exp_raw  = _pick_quota_field(it, "exp_date")
+        exp_iso  = _norm_quota_date(exp_raw)
+        unlimited = exp_iso is None and exp_raw not in (None, "")
+        if rem is None and (total is not None and used is not None):
+            rem = round(total - used, 4)
+        if total is None and (used is not None and rem is not None):
+            total = round(used + rem, 4)
+        percent = None
+        if total and total > 0:
+            used_eff = used if used is not None else (total - (rem or 0))
+            percent = max(0.0, min(100.0, round(used_eff / total * 100.0, 2)))
+
+        if total is not None and total > 0 and rem is not None and rem <= 0:
+            status = "exhausted"
+        elif unlimited:
+            status = "unlimited"
+        elif exp_iso:
+            try:
+                exp_dt = datetime.strptime(exp_iso, "%Y-%m-%dT%H:%M:%S")
+                if exp_dt < now:
+                    status = "inactive"
+                elif exp_dt <= soon:
+                    status = "expiring"
+                else:
+                    status = "active"
+            except Exception:
+                status = "active"
+        else:
+            status = "active"
+
+        category = _classify_quota(name) if name else "other"
+        unit = _quota_unit_from_name(name)
+
+        out_items.append({
+            "name":            name,
+            "nameHuman":       _humanize_quota_name(name),
+            "service":         service,
+            "category":        category,
+            "unit":            unit,
+            "total":           total,
+            "used":            used,
+            "remaining":       rem,
+            "percent":         percent,
+            "activationDate":  act_iso,
+            "expirationDate":  exp_iso,
+            "unlimited":       unlimited,
+            "status":          status,
+            "raw":             it,
+        })
+
+    groups = defaultdict(list)
+    for it in out_items:
+        groups[it["category"]].append(it)
+
+    STATUS_ORDER = {"expiring": 0, "active": 1, "exhausted": 2, "unlimited": 3, "inactive": 4}
+    out_items.sort(key=lambda it: (
+        STATUS_ORDER.get(it["status"], 9),
+        -(it["percent"] or 0),
+        it["name"] or "",
+    ))
+
+    return {
+        "ok":           True,
+        "items":        out_items,
+        "groups":       {k: groups[k] for k in groups},
+        "count":        len(out_items),
+        "subscriberId": sid,
+        "fetchedAt":    int(time.time()),
+        "raw":          {"http_status": raw.get("http_status"), "block": raw.get("block")},
+    }
+
+
 @app.route("/api/subscriber/quota", methods=["POST"])
 def api_subscriber_quota():
     """Все квоты/бонусы/лимиты абонента (PSIX UCELL_GET_SUBSCRIBER_ALL_QUOTA).
@@ -1983,126 +2676,28 @@ def api_subscriber_quota():
         if not sid:
             return jsonify({"error": "subscriberId не получен"}), 502
 
-        raw = client.get_subscriber_all_quota(sid, msisdn=msisdn)
-        # Если upstream вернул HTTP-ошибку или мы не смогли распарсить ответ —
-        # сразу прокидываем структурированную ошибку, а не молча отдаём пустой
-        # список. UI различает причины по полю `errorKind`:
-        #   auth_expired       — фронт обнуляет токен и просит перелогиниться
-        #   auth_or_permission — то же + подсказка про права
-        #   upstream_error     — сетевой/бэкенд-сбой, retry осмысленен
-        #   empty_body         — процедура отдала 200, но wrapper-only
-        upstream_err = raw.get("error")
-        upstream_status = raw.get("http_status")
-        error_kind = raw.get("error_kind")
-        if upstream_err and not raw.get("items"):
+        snap = _collect_subscriber_quota_snapshot(client, sid, msisdn)
+        if not snap.get("ok"):
             # 401/403 от upstream → 401 в UI (триггерим SbmsAuth-флоу).
             # 404/прочее → 502 (proxy/gateway-style ошибка).
-            ui_status = 401 if error_kind in ("auth_expired",) else 502
-            # На «вероятно auth» 404 тоже отдаём 401, чтобы UI авто-обновил сессию.
-            if error_kind == "auth_or_permission":
-                ui_status = 401
+            error_kind = snap.get("errorKind")
+            ui_status = 401 if error_kind in ("auth_expired", "auth_or_permission") else 502
             return jsonify({
-                "error":      upstream_err,
-                "errorKind":  error_kind,
-                "upstream":   upstream_status,
-                "attempts":   [_scrub_attempt_for_ui(a) for a in (raw.get("attempts") or [])],
-                "imsi":       raw.get("imsi"),
-                "msisdn":     raw.get("msisdn"),
-                "hint":       (
-                    "Откройте модалку входа и переавторизуйтесь — токен SBMS истёк."
-                    if ui_status == 401 else
-                    "PSIX-эндпоинт не ответил. Проверьте VPN/сеть до sbms.ucell."
-                ),
+                "error":     snap.get("error"),
+                "errorKind": error_kind,
+                "upstream":  snap.get("upstream"),
+                "attempts":  snap.get("attempts") or [],
+                "imsi":      snap.get("imsi"),
+                "msisdn":    snap.get("msisdn"),
+                "hint":      snap.get("hint"),
             }), ui_status
-        items_raw = raw.get("items") or []
-
-        # ── Нормализация ──────────────────────────────────────
-        from datetime import datetime, timedelta
-        now = datetime.utcnow()
-        soon = now + timedelta(days=3)
-
-        out_items = []
-        for it in items_raw:
-            if not isinstance(it, dict):
-                continue
-            name     = _pick_quota_field(it, "name")
-            service  = _pick_quota_field(it, "service")
-            total    = _to_num(_pick_quota_field(it, "total"))
-            used     = _to_num(_pick_quota_field(it, "used"))
-            rem      = _to_num(_pick_quota_field(it, "rem"))
-            act_iso  = _norm_quota_date(_pick_quota_field(it, "act_date"))
-            exp_raw  = _pick_quota_field(it, "exp_date")
-            exp_iso  = _norm_quota_date(exp_raw)
-            unlimited = exp_iso is None and exp_raw not in (None, "")  # дата была, но это 01.01.0001
-            # remaining derive
-            if rem is None and (total is not None and used is not None):
-                rem = round(total - used, 4)
-            if total is None and (used is not None and rem is not None):
-                total = round(used + rem, 4)
-            percent = None
-            if total and total > 0:
-                used_eff = used if used is not None else (total - (rem or 0))
-                percent = max(0.0, min(100.0, round(used_eff / total * 100.0, 2)))
-
-            # Статус
-            if total is not None and total > 0 and rem is not None and rem <= 0:
-                status = "exhausted"
-            elif unlimited:
-                status = "unlimited"
-            elif exp_iso:
-                try:
-                    exp_dt = datetime.strptime(exp_iso, "%Y-%m-%dT%H:%M:%S")
-                    if exp_dt < now:
-                        status = "inactive"
-                    elif exp_dt <= soon:
-                        status = "expiring"
-                    else:
-                        status = "active"
-                except Exception:
-                    status = "active"
-            else:
-                status = "active"
-
-            category = _classify_quota(name) if name else "other"
-            unit = _quota_unit_from_name(name)
-
-            out_items.append({
-                "name":            name,
-                "nameHuman":       _humanize_quota_name(name),
-                "service":         service,
-                "category":        category,
-                "unit":            unit,
-                "total":           total,
-                "used":            used,
-                "remaining":       rem,
-                "percent":         percent,
-                "activationDate":  act_iso,
-                "expirationDate":  exp_iso,
-                "unlimited":       unlimited,
-                "status":          status,
-                "raw":             it,
-            })
-
-        groups = defaultdict(list)
-        for it in out_items:
-            groups[it["category"]].append(it)
-
-        # Сортировка: бессрочные внизу, истёкшие в самом низу,
-        # внутри — по % использования убывающе (важнее всего «вот-вот закончится»).
-        STATUS_ORDER = {"expiring": 0, "active": 1, "exhausted": 2, "unlimited": 3, "inactive": 4}
-        out_items.sort(key=lambda it: (
-            STATUS_ORDER.get(it["status"], 9),
-            -(it["percent"] or 0),
-            it["name"] or "",
-        ))
-
         return jsonify({
-            "items":      out_items,
-            "groups":     {k: groups[k] for k in groups},
-            "count":      len(out_items),
-            "subscriberId": sid,
-            "fetchedAt":  int(time.time()),
-            "raw":        {"http_status": raw.get("http_status"), "block": raw.get("block")},
+            "items":        snap["items"],
+            "groups":       snap["groups"],
+            "count":        snap["count"],
+            "subscriberId": snap["subscriberId"],
+            "fetchedAt":    snap["fetchedAt"],
+            "raw":          snap["raw"],
         })
     except Exception as e:
         traceback.print_exc()
@@ -3058,6 +3653,9 @@ def _check_role_for_subscriber(client, msisdn, packs_in, services_in):
     sv_by_id, sv_by_name = _index_products(avail_svc,     "service")
 
     def _classify(item, active_id_idx, active_name_idx, avail_id_idx, avail_name_idx, kind):
+        # Матчим строго по ID. Имя — только справочное (имена могут повторяться
+        # и расходиться у разных ролей), в consistency-проверке не участвует.
+        # По имени матчим лишь когда ID вообще не передан.
         rid = item.get("id")
         nm = (item.get("name") or "").strip()
         nm_l = nm.lower()
@@ -3065,27 +3663,23 @@ def _check_role_for_subscriber(client, msisdn, packs_in, services_in):
         if rid is not None and rid in active_id_idx:
             raw = active_id_idx[rid]; api_name = (raw.get("name") or "").strip()
             return {"status": "active", "id": rid, "name": api_name or nm,
-                    "consistencyOk": (not nm or nm.lower() == api_name.lower()),
-                    "matchedBy": "id", "raw": raw}
-        if nm and nm_l in active_name_idx:
+                    "consistencyOk": True, "matchedBy": "id", "raw": raw}
+        if rid is None and nm and nm_l in active_name_idx:
             raw = active_name_idx[nm_l]
             api_id = raw.get("packId" if kind == "pack" else "serviceId")
             return {"status": "active", "id": api_id, "name": (raw.get("name") or nm),
-                    "consistencyOk": (rid is None or rid == api_id),
-                    "matchedBy": "name", "raw": raw}
+                    "consistencyOk": True, "matchedBy": "name", "raw": raw}
         # 2) AVAILABLE — доступно для подключения
         if rid is not None and rid in avail_id_idx:
             raw = avail_id_idx[rid]; api_name = (raw.get("name") or "").strip()
             return {"status": "available", "id": rid, "name": api_name or nm,
-                    "consistencyOk": (not nm or nm.lower() == api_name.lower()),
-                    "matchedBy": "id", "raw": raw}
-        if nm and nm_l in avail_name_idx:
+                    "consistencyOk": True, "matchedBy": "id", "raw": raw}
+        if rid is None and nm and nm_l in avail_name_idx:
             raw = avail_name_idx[nm_l]
             api_id = raw.get("packId" if kind == "pack" else "serviceId")
             return {"status": "available", "id": api_id, "name": (raw.get("name") or nm),
-                    "consistencyOk": (rid is None or rid == api_id),
-                    "matchedBy": "name", "raw": raw}
-        # 3) HIDDEN — не возвращается под этой ролью
+                    "consistencyOk": True, "matchedBy": "name", "raw": raw}
+        # 3) HIDDEN — не возвращается под этой ролью (или ID не нашёлся)
         return {"status": "hidden", "id": rid, "name": nm, "consistencyOk": True,
                 "matchedBy": None, "raw": None}
 
@@ -3258,9 +3852,7 @@ if __name__ == '__main__':
     print("=" * 55)
     print("  UCELL SBMS API - Proxy Server")
     print("=" * 55)
-    print(f"  Dashboard:    http://localhost:{port}")
-    print(f"  QA Tester:    http://localhost:{port}/tester")
-    print(f"  Tariff Test:  http://localhost:{port}/tariff-test")
+    print(f"  Subscriber:   http://localhost:{port}/subscriber")
     print(f"  TME Auth:     http://localhost:{port}/tme")
     print(f"  Proxy:        http://localhost:{port}/proxy/...")
     print(f"  Target:     {BASE_URL}")
