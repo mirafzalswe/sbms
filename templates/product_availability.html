@@ -214,6 +214,7 @@
 
 <script src="/static/sbms-auth.js"></script>
 <script src="/static/sbms-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
 <script>SbmsNav.mount('#sbmsNav', { active: 'product' });</script>
 
 <div class="container">
@@ -436,6 +437,7 @@
         <h2 style="display:flex; justify-content:space-between; align-items:center;">
             <span>Результаты</span>
             <span style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="downloadPDF()">PDF</button>
                 <button class="btn btn-ghost btn-sm" onclick="downloadJSON()">JSON</button>
                 <button class="btn btn-ghost btn-sm" onclick="downloadCSV()">CSV</button>
             </span>
@@ -1149,6 +1151,158 @@ function downloadCSV() {
 }
 
 function q(s) { return '"' + String(s||'').replace(/"/g, '""') + '"'; }
+
+// ============================================================
+// PDF EXPORT
+// ============================================================
+async function downloadPDF() {
+    if (!state.report) { alert('Отчёт ещё не готов'); return; }
+    if (typeof html2pdf === 'undefined') {
+        alert('Библиотека html2pdf не загрузилась — проверь интернет-соединение');
+        return;
+    }
+    const btn = event && event.target;
+    const oldText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Генерация…'; }
+    try {
+        const container = buildPDFContent(state.report);
+        document.body.appendChild(container);
+        const filename = `product_avail_${state.report.id || 'report'}.pdf`;
+        await html2pdf().set({
+            margin:       [10, 10, 12, 10],  // top, left, bottom, right (mm)
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.95 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
+        }).from(container).save();
+        document.body.removeChild(container);
+    } catch (e) {
+        alert('Ошибка генерации PDF: ' + (e && e.message ? e.message : e));
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = oldText; }
+    }
+}
+
+function buildPDFContent(report) {
+    const fmt = (iso) => {
+        if (!iso) return '—';
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('ru-RU', { dateStyle: 'long', timeStyle: 'short' });
+        } catch (_) { return iso; }
+    };
+    const safe = (s) => escapeHtml(String(s == null ? '' : s));
+    const c = report.counters || {};
+    const total = report.tariffs_total || (report.results || []).length;
+    const passPct  = total ? Math.round((c.pass||0)    * 100 / total) : 0;
+    const failPct  = total ? Math.round((c.fail||0)    * 100 / total) : 0;
+    const blockPct = total ? Math.round((c.blocked||0) * 100 / total) : 0;
+
+    const statusLabel = ({pass:'Доступен', fail:'Не доступен', blocked:'Заблокирован', pending:'Ожидает'});
+    const statusColor = ({pass:'#16a34a', fail:'#dc2626', blocked:'#d97706', pending:'#94a3b8'});
+
+    const rowsHtml = (report.results || []).map((r, i) => {
+        const st = r.status || 'pending';
+        let detail = '';
+        if (st === 'blocked') {
+            detail = r.block_reason || 'смена тарифа не удалась';
+        } else if (r.is_available) {
+            const tries = r.check_attempts > 1 ? ` (с ${r.check_attempts}-й попытки)` : '';
+            detail = `по полю ${r.matched_field || 'id'}${tries}`
+                   + (r.product_name ? ` · ${r.product_name}` : '')
+                   + (r.product_fee != null ? ` · fee ${r.product_fee}` : '');
+        } else {
+            const tries = r.check_attempts ? ` после ${r.check_attempts} попыток` : '';
+            detail = `не найден${tries} · ${r.available_count || 0} элементов в ответе`;
+            if (r.viewer_error) detail += ` · ошибка: ${r.viewer_error}`;
+            if (r.diag_hint)    detail += ` · ${r.diag_hint}`;
+        }
+        return `
+            <tr>
+              <td style="text-align:center;">${i + 1}</td>
+              <td style="font-family:monospace;color:#0369a1;">${safe(r.tariff_id ?? '—')}</td>
+              <td>${safe(r.tariff_name || '')}</td>
+              <td style="font-weight:700;color:${statusColor[st] || '#000'};">${statusLabel[st] || st}</td>
+              <td style="text-align:right;font-family:monospace;">${r.duration != null ? r.duration + 's' : '—'}</td>
+              <td style="font-size:10px;color:#475569;">${safe(detail)}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const productKindLabel = report.product_kind === 'pack' ? 'Пакет' :
+                              report.product_kind === 'service' ? 'Услуга' : (report.product_kind || '—');
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'width:190mm;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;background:#fff;padding:0;font-size:11px;line-height:1.45;';
+    wrap.innerHTML = `
+        <div style="border-bottom:2px solid #0369a1;padding-bottom:8px;margin-bottom:14px;">
+            <div style="font-size:18px;font-weight:700;color:#0369a1;">Отчёт «Доступность продукта»</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">SBMS Test Framework · ID отчёта: <span style="font-family:monospace;">${safe(report.id || '—')}</span></div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+            <tr>
+                <td style="vertical-align:top;width:50%;padding-right:10px;">
+                    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Абонент</div>
+                    <div style="font-size:13px;font-weight:600;">${safe(report.msisdn || '—')}</div>
+                    <div style="font-size:11px;color:#475569;">${safe(report.customer_name || '')}</div>
+                    <div style="font-size:10px;color:#94a3b8;margin-top:2px;">subscriberId: <span style="font-family:monospace;">${safe(report.subscriber_id || '—')}</span></div>
+                    <div style="font-size:10px;color:#94a3b8;">Исходный тариф: <span style="font-family:monospace;">${safe(report.initial_rateplan || '—')}</span></div>
+                </td>
+                <td style="vertical-align:top;width:50%;padding-left:10px;border-left:1px solid #e2e8f0;">
+                    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Проверяемый продукт</div>
+                    <div style="font-size:13px;font-weight:600;font-family:monospace;color:#0369a1;">${safe(report.product_id || '—')}</div>
+                    <div style="font-size:11px;color:#475569;">${productKindLabel}</div>
+                    <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Начало: ${fmt(report.started_at)}</div>
+                    <div style="font-size:10px;color:#94a3b8;">Завершено: ${fmt(report.finished_at)}</div>
+                    <div style="font-size:10px;color:#94a3b8;">Длительность: ${report.duration != null ? report.duration + ' сек' : '—'}</div>
+                </td>
+            </tr>
+        </table>
+
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <div style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center;background:#f8fafc;">
+                <div style="font-size:22px;font-weight:700;color:#0f172a;">${total}</div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Всего тарифов</div>
+            </div>
+            <div style="flex:1;border:1px solid #bbf7d0;border-radius:6px;padding:10px;text-align:center;background:#f0fdf4;">
+                <div style="font-size:22px;font-weight:700;color:#16a34a;">${c.pass || 0}</div>
+                <div style="font-size:10px;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;">Доступен (${passPct}%)</div>
+            </div>
+            <div style="flex:1;border:1px solid #fecaca;border-radius:6px;padding:10px;text-align:center;background:#fef2f2;">
+                <div style="font-size:22px;font-weight:700;color:#dc2626;">${c.fail || 0}</div>
+                <div style="font-size:10px;color:#b91c1c;text-transform:uppercase;letter-spacing:0.5px;">Не доступен (${failPct}%)</div>
+            </div>
+            <div style="flex:1;border:1px solid #fed7aa;border-radius:6px;padding:10px;text-align:center;background:#fff7ed;">
+                <div style="font-size:22px;font-weight:700;color:#d97706;">${c.blocked || 0}</div>
+                <div style="font-size:10px;color:#b45309;text-transform:uppercase;letter-spacing:0.5px;">Заблокировано (${blockPct}%)</div>
+            </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#0f172a;">Детальные результаты по тарифам</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <thead>
+                <tr style="background:#f1f5f9;">
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:center;width:8%;">#</th>
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:left;width:11%;">Tariff ID</th>
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:left;width:25%;">Тариф</th>
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:left;width:14%;">Статус</th>
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:right;width:9%;">Время</th>
+                    <th style="padding:6px 4px;border:1px solid #cbd5e1;text-align:left;width:33%;">Деталь</th>
+                </tr>
+            </thead>
+            <tbody>${rowsHtml || '<tr><td colspan="6" style="padding:10px;text-align:center;color:#94a3b8;">Нет результатов</td></tr>'}</tbody>
+        </table>
+
+        <div style="margin-top:18px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;text-align:center;">
+            Сгенерировано ${new Date().toLocaleString('ru-RU')} · SBMS Test Framework
+        </div>
+    `;
+    // Стилевая правка для разрыва страниц: каждая строка таблицы остаётся целой
+    wrap.querySelectorAll('tr').forEach(tr => { tr.style.pageBreakInside = 'avoid'; });
+    return wrap;
+}
 
 function triggerDownload(blob, name) {
     const a = document.createElement('a');
